@@ -71,7 +71,25 @@ app.on('activate', () => {
 })
 
 function clickDO() {
-    if(null === proxy.UID){
-        
+    if (null === proxy.UID) {
+        Gwin.webContents.send("invalidSession", "https://de.forgeofempires.com/")
     }
 }
+
+proxy.emitter.on("SID_Loaded", data => {
+    if (null !== data)
+        Gwin.webContents.send("alert", "SID: "+data);
+});
+
+proxy.emitter.on("XSRF_Loaded", (data) => {
+    if (null !== data)
+        Gwin.webContents.send("alert", "XSRF: "+data);
+});
+proxy.emitter.on("CSRF_Loaded", data => {
+    if (null !== data)
+        Gwin.webContents.send("alert", "CSRF: "+data);
+});
+proxy.emitter.on("CID_Loaded", data => {
+    if (null !== data)
+        Gwin.webContents.send("alert", "CID: "+data);
+});

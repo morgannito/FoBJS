@@ -16,9 +16,24 @@
 <script>
 const {ipcRenderer} = require('electron');
 
-ipcRenderer.on('foo',(event,data)=>{
-    alert(data);
+ipcRenderer.on('invalidSession',(event,data)=>{
+    createBrowserWindow(data);
 });
+
+ipcRenderer.on('alert',(event,data)=>{
+    //alert((event,data));
+});
+
+function createBrowserWindow(url) {
+  const remote = require('electron').remote;
+  const BrowserWindow = remote.BrowserWindow;
+  const win = new BrowserWindow({
+    height: 600,
+    width: 800
+  });
+
+  win.loadURL(url);
+}
 
 </script>
 
