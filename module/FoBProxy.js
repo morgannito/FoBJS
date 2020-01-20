@@ -1,5 +1,6 @@
 const { session } = require("electron");
 const events = require('events');
+global.fetch = require('electron-fetch').default;
 
 const myEmitter = new events.EventEmitter();
 
@@ -8,6 +9,7 @@ let CSRF = null;
 let CID = null;
 let SID = null;
 let UID = null;
+let WID = null;
 const init = () => {
 
     const filter = {
@@ -32,7 +34,25 @@ const init = () => {
 
     session.defaultSession.webRequest.onCompleted(filter,(details,callback) =>{
         if(details.url.indexOf(".forgeofempires.com/game/index?") > -1){
-            
+            if(null !== UID) return;
+            let world = details.url.replace(".forgeofempires.com/game/index?","").replace("https://","");
+            WID = world;
+            myEmitter.emit("WID_Loaded",WID);
+            fetch('https://'+world+'.forgeofempires.com/game/index?')
+            .then(res => res.text())
+            .then(body =>{
+                let re = /https:\/\/\w{1,2}\d{1,2}\.forgeofempires\.com\/game\/json\?h=(.+)',/ig;
+                re = new RegExp(re);
+                let result = body.matchAll(re).next().value;
+                if(null!== result){
+                    if(result.length === 2){
+                        UID = result[1];
+                        myEmitter.emit("UID_Loaded",UID);
+                    }else{
+                        console.log("ERROR");
+                    }
+                }
+            })
         }
     })
 
@@ -59,3 +79,4 @@ exports.CSRF = CSRF;
 exports.CID = CID;
 exports.SID = SID;
 exports.UID = UID;
+exports.WID = WID;

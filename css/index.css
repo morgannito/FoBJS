@@ -1,0 +1,8 @@
+body {
+    background: black;
+    color: white;
+}
+
+pre code {
+    font: 11pt/1.25 monospace;
+}
