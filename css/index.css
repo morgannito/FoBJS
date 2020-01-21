@@ -6,3 +6,8 @@ body {
 pre code {
     font: 11pt/1.25 monospace;
 }
+
+.debug { color: Snow; }
+.info  { color: LawnGreen; }
+.warn  { color: GoldenRod; }
+.error { color: LightCoral; }

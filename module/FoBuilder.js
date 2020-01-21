@@ -17,6 +17,21 @@ const init = (UID, VS, WID) => {
 const GetStartup = () => {
     return GetStartupData();
 }
+const DoMotivate = (playerid) => {
+    return Motivate(playerid);
+}
+const VisitTavern = (playerid) => {
+    return SittAtTavern(playerid);
+}
+const GetClanMember = () => {
+    return GetClanMemberData();
+}
+const GetFriends = () => {
+    return GetFriendsData();
+}
+const GetNeighbor = () => {
+    return GetNeighborData();
+}
 
 const GetStartupData = () => {
     var x = [{}];
@@ -40,7 +55,7 @@ const Motivate = (playerID) => {
     return fetchData(x, sig);
 }
 
-const TavernSitting = (playerID) => {
+const SittAtTavern = (playerID) => {
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [playerID];
@@ -51,27 +66,58 @@ const TavernSitting = (playerID) => {
     return fetchData(x, sig);
 }
 
+const GetClanMemberData = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "OtherPlayerService";
+    x[0]["requestMethod"] = "getClanMemberList";
+    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const GetFriendsData = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "OtherPlayerService";
+    x[0]["requestMethod"] = "getFriendsList";
+    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+const GetNeighborData = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "OtherPlayerService";
+    x[0]["requestMethod"] = "getNeighborList";
+    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
 async function fetchData(x, sig) {
-    let res = await fetch("https://" + WorldID + ".forgeofempires.com/game/json?h=" + User_Key,
-        {
-            "credentials": "include",
-            "headers": {
-                "accept": "*/*",
-                "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
-                "cache-control": "no-cache",
-                "client-identification": "version=1.169; requiredVersion=1.169; platform=bro; platformType=html5; platformVersion=web",
-                "content-type": "application/json",
-                "pragma": "no-cache",
-                "sec-fetch-mode": "cors",
-                "sec-fetch-site": "same-origin",
-                "signature": sig
-            },
-            "referrer": "https://" + WorldID + ".forgeofempires.com/game/index?",
-            "referrerPolicy": "no-referrer-when-downgrade",
-            "body": JSON.stringify(x).replace(' ', ''),
-            "method": "POST",
-            "mode": "cors"
-        });
+    let res = await fetch("https://" + WorldID + ".forgeofempires.com/game/json?h=" + User_Key, {
+        "credentials": "include",
+        "headers": {
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
+            "cache-control": "no-cache",
+            "client-identification": "version=1.169; requiredVersion=1.169; platform=bro; platformType=html5; platformVersion=web",
+            "content-type": "application/json",
+            "pragma": "no-cache",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "signature": sig
+        },
+        "referrer": "https://" + WorldID + ".forgeofempires.com/game/index?",
+        "referrerPolicy": "no-referrer-when-downgrade",
+        "body": JSON.stringify(x).replace(' ', ''),
+        "method": "POST",
+        "mode": "cors"
+    });
     let body = await res.text();
     return JSON.parse(body);
 }
@@ -86,6 +132,9 @@ exports.emitter = myEmitter;
 exports.init = init;
 exports.User_Key = User_Key;
 exports.Secret = Secret;
-exports.GetStartup = GetStartup
-exports.Motivate = Motivate
-exports.TavernSitting = TavernSitting
+exports.GetStartup = GetStartup;
+exports.DoMotivate = DoMotivate;
+exports.VisitTavern = VisitTavern;
+exports.GetClanMember = GetClanMember;
+exports.GetFriends = GetFriends;
+exports.GetNeighbor = GetNeighbor;
