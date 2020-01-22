@@ -118,8 +118,12 @@ async function fetchData(x, sig) {
         "method": "POST",
         "mode": "cors"
     });
-    let body = await res.text();
-    return JSON.parse(body);
+    if (res.status === 200) {
+        let body = await res.text();
+        return JSON.parse(body);
+    }
+    else
+        return JSON.parse("[]");
 }
 
 const calcSig = (x) => {

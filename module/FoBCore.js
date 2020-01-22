@@ -1,14 +1,20 @@
 exports.pWL = printWelcomeMessage;
 exports.getRandomInt = getRandomInt;
+exports.delay = delay;
+exports.printInfo = printInfo;
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
-function printWelcomeMessage(Gwin){
+async function delay(ms){
+    new Promise(res => setTimeout(res,ms));
+}
+
+function printWelcomeMessage(Gwin,app, callback){
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "#########################################");
-    Gwin.webContents.send('print', "######### WELCOME TO FoB v0.1.0 #########");
+    Gwin.webContents.send('print', "######### WELCOME TO FoB v"+app.getVersion()+" #########");
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', " ");
@@ -18,5 +24,10 @@ function printWelcomeMessage(Gwin){
     setTimeout(()=>{
         Gwin.webContents.send('print', "Done :D");
         Gwin.webContents.send('print', "You can now do Stuff!");
+        callback();
     },2000)
+}
+
+function printInfo(Gwin, htmltext){
+    Gwin.webContents.send('information', htmltext);
 }

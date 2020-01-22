@@ -1,10 +1,11 @@
 const events = require('events');
 
-var NeighborDict = [];
-var FriendsDict = [];
-var ClanMemberDict = [];
+let NeighborDict = [];
+let FriendsDict = [];
+let ClanMemberDict = [];
 
 function GetNeighbor(data) {
+    //NeighborDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getNeighborList") {
@@ -21,9 +22,11 @@ function GetNeighbor(data) {
             }
         }
     }
+    return NeighborDict;
 }
 
 function GetFriends(data) {
+    //FriendsDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getFriendsList") {
@@ -41,9 +44,11 @@ function GetFriends(data) {
             }
         }
     }
+    return FriendsDict;
 }
 
 function GetClanMember(data) {
+    //ClanMemberDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getClanMemberList") {
@@ -60,9 +65,10 @@ function GetClanMember(data) {
             }
         }
     }
+    return ClanMemberDict;
 }
 
-function GetMotivateResult(data){
+function GetMotivateResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "polivateRandomBuilding") {
@@ -79,13 +85,11 @@ function GetTavernInfo(data) {
             let TavernInfo = resData["responseData"];
             for (let x = 0; x < TavernInfo.length; x++) {
                 const Tavern = TavernInfo[x];
-                if (Tavern["sittingPlayerCount"] < Tavern["unlockedChairCount"]) {
-                    if (FriendsDict.length > 0) {
-                        for (let i = 0; i < FriendsDict.length; i++) {
-                            const friend = FriendsDict[i];
-                            if(friend.key === Tavern["ownerId"])
-                                friend.taverninfo = Tavern;
-                        }
+                if (FriendsDict.length > 0) {
+                    for (let i = 0; i < FriendsDict.length; i++) {
+                        const friend = FriendsDict[i];
+                        if (friend.key === Tavern["ownerId"])
+                            friend.taverninfo = Tavern;
                     }
                 }
             }
@@ -93,11 +97,52 @@ function GetTavernInfo(data) {
     }
 }
 
+function GetTavernResult(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "FriendsTavernService" && resData["requestMethod"] === "getOtherTavern") {
+            let TavernResult = resData["responseData"];
+            return TavernResult;
+        }
+    }
+}
+
+function GetVisitableTavern(FriendsList) {
+    return FriendsList.filter(friend => {
+        return (undefined !== friend.taverninfo && undefined === friend.taverninfo["state"] && friend.taverninfo["sittingPlayerCount"] < friend.taverninfo["unlockedChairCount"])
+    });
+}
+function GetTavernReward(data) {
+    let result = "";
+    if (data["rewardResources"].length > 0) {
+        if (data["rewardResources"]["resources"].length > 0) {
+            if (undefined !== data["rewardResources"]["resources"]["tavern_silver"])
+                result += `${data["rewardResources"]["resources"]["tavern_silver"]} Silver `;
+            if (undefined !== data["rewardResources"]["resources"]["strategy_points"])
+                result += `${data["rewardResources"]["resources"]["strategy_points"]} FPs `;
+        }
+        else {
+            return "none"
+        }
+    } else return "none"
+    return result;
+}
+
+function clearLists() {
+    NeighborDict = [];
+    FriendsDict = [];
+    ClanMemberDict = [];
+}
+
 exports.GetNeighbor = GetNeighbor;
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;
 exports.GetTavernInfo = GetTavernInfo;
+exports.GetVisitableTavern = GetVisitableTavern;
+exports.GetTavernReward = GetTavernReward;
 exports.GetMotivateResult = GetMotivateResult;
+exports.GetTavernResult = GetTavernResult;
 exports.ClanMemberDict = ClanMemberDict;
 exports.FriendsDict = FriendsDict;
 exports.NeighborDict = NeighborDict;
+exports.clearLists = clearLists;

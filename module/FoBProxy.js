@@ -61,11 +61,11 @@ const init = () => {
         if (undefined !== details.requestHeaders["Cookie"]) {
             cookie = details.requestHeaders["Cookie"];
             if (cookie.indexOf('cid') > -1) {
-                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace("cid=", "");
+                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace("cid= ", "");
                 myEmitter.emit("CID_Loaded", CID);
             }
             if (cookie.indexOf('sid') > -1) {
-                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace("sid=", "");
+                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace("sid= ", "");
                 myEmitter.emit("SID_Loaded", SID);
             }
         }

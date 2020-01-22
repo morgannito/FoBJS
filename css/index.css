@@ -7,7 +7,8 @@ pre code {
     font: 11pt/1.25 monospace;
 }
 
-.debug { color: Snow; }
-.info  { color: LawnGreen; }
-.warn  { color: GoldenRod; }
-.error { color: LightCoral; }
+span.debug { color: rgb(255, 255, 255); }
+span.info  { color: rgb(107, 214, 0); }
+span.warn  { color: rgb(235, 171, 8); }
+span.error { color: rgb(235, 49, 49); }
+span.progress.info { color: rgb(107, 214, 0); }

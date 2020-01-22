@@ -6,12 +6,13 @@ const proxy = require("./module/FoBProxy");
 const builder = require("./module/FoBuilder");
 const processer = require("./module/FoBProccess");
 const FoBCore = require("./module/FoBCore");
-const FoBCore = require("./module/FoBFunctions");
+const FoBFunctions = require("./module/FoBFunctions");
 
 electronDl();
 
 var Gwin = null;
 var menu = null;
+var loginMenu = null;
 var VS = null;
 var Lwin = null;
 var UserIDs = {
@@ -22,11 +23,15 @@ var UserIDs = {
     UID: null,
     WID: null,
 }
+var NeighborDict = [];
+var FriendsDict = [];
+var ClanMemberDict = [];
 
 function createWindow() {
 
     const size = screen.getAllDisplays()[0].workAreaSize;
     let win = new BrowserWindow({
+        title: "FoB v" + app.getVersion(),
         width: size[0],
         height: size[1],
         webPreferences: {
@@ -44,8 +49,7 @@ function createWindow() {
     createMenu();
 
     ipcMain.on('loaded', () => {
-        FoBCore.pWL(Gwin);
-        createMenuLogin();
+        FoBCore.pWL(Gwin, app, () => createMenuLogin());
     })
 
     Gwin.on('closed', () => {
@@ -111,8 +115,8 @@ function createMenuLogin() {
     }
     ];
 
-    menu = Menu.buildFromTemplate(menuTempate);
-    Menu.setApplicationMenu(menu);
+    loginMenu = Menu.buildFromTemplate(menuTempate);
+    Menu.setApplicationMenu(loginMenu);
 }
 function createMenuLoggedIn() {
     const menuTempate = [{
@@ -138,7 +142,7 @@ function createMenuLoggedIn() {
     menu = Menu.buildFromTemplate(menuTempate);
     Menu.setApplicationMenu(menu);
 }
-function AddButton(text, id, callback = null) {
+function AddButton({ text = "default", id = "none", insertBefore = null, menu = null, callback = null }) {
     menu = Menu.getApplicationMenu();
     if (null === callback) {
         mitem = new MenuItem({
@@ -146,7 +150,10 @@ function AddButton(text, id, callback = null) {
             id: id,
             submenu: []
         });
-        menu.append(mitem);
+        if (insertBefore !== null)
+            menu.insert(insertBefore,mitem);
+        else
+            menu.append(mitem);
         Menu.setApplicationMenu(menu);
     } else {
         let item = menu.getMenuItemById(id);
@@ -192,7 +199,8 @@ async function DoLogout() {
         UID: null,
         WID: null,
     }
-    await session.defaultSession.clearStorage();
+    await session.defaultSession.clearStorageData();
+    createMenuLogin();
 }
 
 proxy.emitter.on("SID_Loaded", data => {
@@ -232,44 +240,64 @@ proxy.emitter.on("WID_Loaded", data => {
 });
 proxy.emitter.on("UID_Loaded", data => {
     if (UserIDs.UID === null || UserIDs.UID !== data) {
-        //Gwin.webContents.send('print', "UID_Loaded: " + data);
         if (null !== data) {
             UserIDs.UID = data;
             downloadForgeHX().then(() => {
                 if (null !== UserIDs.UID && !Lwin.isDestroyed()) {
                     createMenuLoggedIn();
-                    AddButton("Funktionen", "function");
-                    AddButton("Alle Moppeln", "function", () => { console.log("alle Moppeln") });
-                    AddButton("Alle Besuchen", "function", () => { console.log("alle Besuchen") });
+                    AddButton({ text: "Funktionen", id: "function", menu: loginMenu, insertBefore: 2 });
+                    AddButton({text: "Alle Moppeln", id: "function",  menu: loginMenu, callback:() => { FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict) }});
+                    AddButton({text: "Alle Besuchen", id: "function",  menu: loginMenu, callback:() => { FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict) }});
+                    AddButton({text: "Update Lists", id: "function",  menu: loginMenu,callback: () => { GetData() }});
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
                     builder.init(UserIDs.UID, VS, UserIDs.WID);
-                    builder.GetFriends()
-                        .then(body => {
-                            processer.GetFriends(body);
-                            Gwin.webContents.send('print', "Friends Count: " + processer.FriendsDict.length);
-                            builder.GetNeighbor()
-                                .then(body => {
-                                    processer.GetNeighbor(body);
-                                    Gwin.webContents.send('print', "Neighbor Count: " + processer.NeighborDict.length);
-                                    builder.GetClanMember()
-                                        .then(body => {
-                                            processer.GetClanMember(body);
-                                            Gwin.webContents.send('print', "ClanMember Count: " + processer.ClanMemberDict.length);
-                                            builder.GetStartup()
-                                                .then(body => {
-                                                    processer.GetTavernInfo(body);
-                                                    Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.FriendsDict.filter(friend => (undefined !== friend.taverninfo && undefined === friend.taverninfo["state"])).length);
-                                                });
-                                        });
-                                });
-                        });
+                    GetData();
                 }
             });
         }
     }
 });
 
+function GetData() {
+    processer.clearLists();
+    builder.GetFriends()
+        .then(body => {
+            FriendsDict = processer.GetFriends(body);
+            //Gwin.webContents.send('print', "Friends Count: " + processer.FriendsDict.length);
+            builder.GetNeighbor()
+                .then(body => {
+                    NeighborDict = processer.GetNeighbor(body);
+                    //Gwin.webContents.send('print', "Neighbor Count: " + processer.NeighborDict.length);
+                    builder.GetClanMember()
+                        .then(body => {
+                            ClanMemberDict = processer.GetClanMember(body);
+                            //Gwin.webContents.send('print', "ClanMember Count: " + processer.ClanMemberDict.length);
+                            builder.GetStartup()
+                                .then(body => {
+                                    processer.GetTavernInfo(body);
+                                    //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
+                                    Gwin.webContents.send('clear', "");
+                                    PrepareInfoMenu();
+                                });
+                        });
+                });
+        });
+}
+function PrepareInfoMenu() {
+    h = [];
+    h.push("<span>#######################################################</span><br>");
+    h.push("<span># Usefull Information: </span><br>");
+    h.push("<span>#                                                     </span><br>");
+    h.push(`<span># Friends: ${FriendsDict.length}                                           </span><br>`);
+    h.push(`<span># Clanmembers: ${ClanMemberDict.length}                                           </span><br>`);
+    h.push(`<span># Neighbors: ${NeighborDict.length}                                           </span><br>`);
+    h.push(`<span>#                                                     </span><br>`);
+    h.push(`<span># Tavern you can visit: ${processer.GetVisitableTavern(FriendsDict).length}                                           </span><br>`);
+    h.push("<span>#                                                     </span><br>");
+    h.push("<span>#######################################################</span><br>");
+    FoBCore.printInfo(Gwin, h);
+}
 function createBrowserWindow(url) {
     const win = new BrowserWindow({
         height: 600,
