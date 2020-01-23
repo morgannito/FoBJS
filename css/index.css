@@ -1,6 +1,7 @@
 body {
     background: black;
     color: white;
+    height: 100%;
 }
 
 pre code {
@@ -12,3 +13,17 @@ span.info  { color: rgb(107, 214, 0); }
 span.warn  { color: rgb(235, 171, 8); }
 span.error { color: rgb(235, 49, 49); }
 span.progress.info { color: rgb(107, 214, 0); }
+
+div.Input{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 99%;
+}
+
+input.command{
+    color: white;
+    background: black;
+    height: 20px;
+    width: 100%;
+}

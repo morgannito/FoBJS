@@ -7,6 +7,7 @@ const builder = require("./module/FoBuilder");
 const processer = require("./module/FoBProccess");
 const FoBCore = require("./module/FoBCore");
 const FoBFunctions = require("./module/FoBFunctions");
+const FoBCommands = require("./module/FoBCommands");
 
 electronDl();
 
@@ -50,7 +51,12 @@ function createWindow() {
 
     ipcMain.on('loaded', () => {
         FoBCore.pWL(Gwin, app, () => createMenuLogin());
-    })
+        Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
+    });
+
+    ipcMain.on('executeCommand', (e, data) => {
+        assocFunction(data)
+    });
 
     Gwin.on('closed', () => {
         Gwin, win = null
@@ -151,7 +157,7 @@ function AddButton({ text = "default", id = "none", insertBefore = null, menu = 
             submenu: []
         });
         if (insertBefore !== null)
-            menu.insert(insertBefore,mitem);
+            menu.insert(insertBefore, mitem);
         else
             menu.append(mitem);
         Menu.setApplicationMenu(menu);
@@ -246,9 +252,10 @@ proxy.emitter.on("UID_Loaded", data => {
                 if (null !== UserIDs.UID && !Lwin.isDestroyed()) {
                     createMenuLoggedIn();
                     AddButton({ text: "Funktionen", id: "function", menu: loginMenu, insertBefore: 2 });
-                    AddButton({text: "Alle Moppeln", id: "function",  menu: loginMenu, callback:() => { FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict) }});
-                    AddButton({text: "Alle Besuchen", id: "function",  menu: loginMenu, callback:() => { FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict) }});
-                    AddButton({text: "Update Lists", id: "function",  menu: loginMenu,callback: () => { GetData() }});
+                    AddButton({ text: "Alle Moppeln", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict) } });
+                    AddButton({ text: "Alle Besuchen", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict) } });
+                    AddButton({ text: "Update Lists", id: "function", menu: loginMenu, callback: () => { GetData() } });
+                    Gwin.webContents.send('fillCommands', FoBCommands.getAllCommands());
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
                     builder.init(UserIDs.UID, VS, UserIDs.WID);
@@ -259,7 +266,7 @@ proxy.emitter.on("UID_Loaded", data => {
     }
 });
 
-function GetData() {
+function GetData(clear = true) {
     processer.clearLists();
     builder.GetFriends()
         .then(body => {
@@ -276,8 +283,9 @@ function GetData() {
                             builder.GetStartup()
                                 .then(body => {
                                     processer.GetTavernInfo(body);
+                                    FoBFunctions.ArcBonus = processer.GetArcBonus(body);
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
-                                    Gwin.webContents.send('clear', "");
+                                    if(clear) Gwin.webContents.send('clear', "");
                                     PrepareInfoMenu();
                                 });
                         });
@@ -304,5 +312,38 @@ function createBrowserWindow(url) {
         width: 800
     });
     win.loadURL(url);
+    win.webContents.openDevTools();
+    win.webContents.once('dom-ready', ()=>{
+        win.webContents.executeJavaScript(`
+            document.getElementById("login_userid").value = "SamLorito"
+            document.getElementById("login_password").value = "Carlo1509!?"
+            document.getElementById("login_remember_me").checked = true
+        `)
+    })
     Lwin = win;
 }
+function assocFunction(command) {
+    var x = {
+        'Login': async () => { return clickDO(); }
+    }
+    if (UserIDs.UID !== null)
+        x = { ...x,
+            'Logout': async () => { return DoLogout(); },
+            'MoppleAll': async () => { return FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict); },
+            'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
+            'UpdateList': async () => { return GetData(); },
+            'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); }
+        };
+    try {
+        Gwin.webContents.send('print', "Executing " + command);
+        Gwin.webContents.send('block', true);
+        Gwin.webContents.send('clear', "");
+        x[command]()
+            .then(() => Gwin.webContents.send('block', false))
+    } catch (e) {
+        Gwin.webContents.send('print', "Command not available");
+        Gwin.webContents.send('block', false);
+    }
+}
+
+exports.GetData = GetData;

@@ -32,6 +32,20 @@ const GetFriends = () => {
 const GetNeighbor = () => {
     return GetNeighborData();
 }
+const GetLGs = (playerid) =>{
+    return GetLGData(playerid);
+}
+
+const GetLGData = (playerID) =>{
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [playerID];
+    x[0]["requestClass"] = "GreatBuildingsService";
+    x[0]["requestMethod"] = "getOtherPlayerOverview";
+    x[0]["requestId"] = 1;
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
 
 const GetStartupData = () => {
     var x = [{}];
@@ -142,3 +156,4 @@ exports.VisitTavern = VisitTavern;
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;
 exports.GetNeighbor = GetNeighbor;
+exports.GetLGs = GetLGs;
