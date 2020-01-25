@@ -1,7 +1,3 @@
-(function() {
-    alert("dasda");
- })();
-
- document.addEventListener('DOMContentLoaded', ()=>{{
+document.addEventListener('DOMContentLoaded', ()=>{{
     alert("jkjklljl");
  }}, false);
