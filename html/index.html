@@ -39,6 +39,7 @@
                 ipcRenderer.send('executeCommand', input[0].value.trim());
                 input[0].value = ""
             }
+else if(!blocked) {input[0].value = ""; return;}
         });
         input[0].focus();
     }
