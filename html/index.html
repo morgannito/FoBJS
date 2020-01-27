@@ -29,17 +29,58 @@
     consoleEx.init(div);
     var { ipcRenderer } = require('electron');
     ipcRenderer.send('loaded', true);
-    var blocked = false;
+    var blocked, requestUsername, requestPassword, chooseWorld = false;
+    var Username = "", Password = "", preText = "";
+    var possWorlds = [];
 
     var input = document.getElementsByName("consoleInput");
     if (input.length === 1) {
         input[0].addEventListener('keyup', (e) => {
             if (event.which === 13 && !blocked) {
                 event.preventDefault();
-                ipcRenderer.send('executeCommand', input[0].value.trim());
-                input[0].value = ""
+                if (requestUsername || requestPassword) {
+                    if (requestPassword) {
+                        ipcRenderer.send('getPassword', Password);
+                        requestPassword = false;
+                        input[0].value = ""
+                        input[0].focus();
+                    }
+                    if (requestUsername) {
+                        ipcRenderer.send('getUsername', Username);
+                        requestUsername = false;
+                        input[0].value = ""
+                        input[0].focus();
+                    }
+                }
+                else if (chooseWorld) {
+                    var val = input[0].value;
+                    var foundWorld = possWorlds.findIndex((v, i, o) => v === val);
+                    if (foundWorld !== -1) {
+                        ipcRenderer.send('loadWorld', foundWorld);
+                        chooseWorld = false;
+                        input[0].value = ""
+                        input[0].focus();
+                    }else{
+                        input[0].value = ""
+                    }
+                }
+                else {
+                    ipcRenderer.send('executeCommand', input[0].value.trim());
+                    input[0].value = ""
+                    input[0].focus();
+                }
             }
-else if(!blocked) {input[0].value = ""; return;}
+            else if (blocked) { input[0].value = ""; return; }
+            else if (requestUsername) {
+                Username = input[0].value.trim();
+                consoleEx.inline(preText + Username);
+                input[0].focus();
+            }
+            else if (requestPassword) {
+                Password = input[0].value.trim();
+                consoleEx.inline(preText + ("*".repeat(Password.length)));
+                input[0].focus();
+            }
         });
         input[0].focus();
     }
@@ -68,6 +109,20 @@ else if(!blocked) {input[0].value = ""; return;}
     });
     ipcRenderer.on('clear', (e, data) => {
         consoleEx.clear();
+    });
+    ipcRenderer.on('requestUsername', (e, data) => {
+        requestUsername = true;
+        preText = data;
+        consoleEx.inline(data);
+    });
+    ipcRenderer.on('requestPassword', (e, data) => {
+        requestPassword = true;
+        preText = data;
+        consoleEx.inline(data);
+    });
+    ipcRenderer.on('chooseWorld', (e, data) => {
+        chooseWorld = true;
+        possWorlds = data.slice(0, -1).split(",");
     });
 </script>
 

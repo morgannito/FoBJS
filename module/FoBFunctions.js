@@ -140,6 +140,7 @@ function MotivateFriends(callback) {
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetMotivateResult(body);
+                                rewardMoney += result.reward;
                                 ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i + 1}/${FriendsList.length})`);
                             } else {
                                 Failed.push(Player);
@@ -174,6 +175,7 @@ function MotivateNeighbors(callback) {
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetMotivateResult(body);
+                                rewardMoney += result.reward;
                                 ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i + 1}/${NeighborList.length})`);
                             } else {
                                 Failed.push(Player);

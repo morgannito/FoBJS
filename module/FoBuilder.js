@@ -6,12 +6,14 @@ const FoBCore = require("./FoBCore");
 const myEmitter = new events.EventEmitter();
 let WorldID = null,
     User_Key = null,
-    Secret = null;
+    Secret = null,
+    VersionMajorMinor = null;
 
-const init = (UID, VS, WID) => {
+const init = (UID, VS, VMM, WID) => {
     User_Key = UID;
     Secret = VS;
     WorldID = WID;
+    VersionMajorMinor = VMM;
 }
 
 const GetStartup = () => {
@@ -119,7 +121,7 @@ async function fetchData(x, sig) {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
             "cache-control": "no-cache",
-            "client-identification": "version=1.169; requiredVersion=1.169; platform=bro; platformType=html5; platformVersion=web",
+            "client-identification": "version="+VersionMajorMinor+"; requiredVersion="+VersionMajorMinor+"; platform=bro; platformType=html5; platformVersion=web",
             "content-type": "application/json",
             "pragma": "no-cache",
             "sec-fetch-mode": "cors",

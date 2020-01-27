@@ -10,6 +10,7 @@ let CID = null;
 let SID = null;
 let UID = null;
 let WID = null;
+let ForgeHX = null;
 
 const init = () => {
 
@@ -43,8 +44,19 @@ const init = () => {
                 .then(res => res.text())
                 .then(body => {
                     let re = /https:\/\/\w{1,2}\d{1,2}\.forgeofempires\.com\/game\/json\?h=(.+)',/ig;
+                    let rex = /https:\/\/foede\.innogamescdn\.com\/\/cache\/ForgeHX(.+.js)'/ig;
                     re = new RegExp(re);
+                    rex = new RegExp(rex);
                     let result = body.matchAll(re).next().value;
+                    let fResult = body.matchAll(rex).next().value;
+                    if (undefined !== fResult){
+                        if (fResult.length === 2) {
+                            ForgeHX = fResult[1];
+                            myEmitter.emit("ForgeHX_Loaded", "ForgeHX"+ForgeHX);
+                        } else {
+                            console.log("ERROR");
+                        }
+                    }
                     if (null !== result) {
                         if (result.length === 2) {
                             UID = result[1];
@@ -61,11 +73,11 @@ const init = () => {
         if (undefined !== details.requestHeaders["Cookie"]) {
             cookie = details.requestHeaders["Cookie"];
             if (cookie.indexOf('cid') > -1) {
-                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace("cid= ", "");
+                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace(" ","").replace("cid=", "");
                 myEmitter.emit("CID_Loaded", CID);
             }
             if (cookie.indexOf('sid') > -1) {
-                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace("sid= ", "");
+                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace(" ","").replace("sid=", "");
                 myEmitter.emit("SID_Loaded", SID);
             }
         }
@@ -81,3 +93,4 @@ exports.CID = CID;
 exports.SID = SID;
 exports.UID = UID;
 exports.WID = WID;
+exports.ForgeHX = ForgeHX;

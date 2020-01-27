@@ -2,6 +2,7 @@ const { app, BrowserWindow, session, screen, Menu, ipcMain, MenuItem } = require
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
+const storage = require('electron-json-storage');
 const proxy = require("./module/FoBProxy");
 const builder = require("./module/FoBuilder");
 const processer = require("./module/FoBProccess");
@@ -11,11 +12,27 @@ const FoBCommands = require("./module/FoBCommands");
 
 electronDl();
 
+storage.setDataPath(path.join(app.getPath("userData")));
+
+storage.getAll((err, data) => {
+    if (err) throw error;
+    if (!(Object.entries(data).length === 0) && data.constructor === Object) {
+        UserName = data["UserName"];
+        Password = data["Password"];
+        LastWorld = data["LastWorld"];
+    }
+});
+
 var Gwin = null;
 var menu = null;
 var loginMenu = null;
 var VS = null;
-var Lwin = null;
+var VMM = null;
+var Lwin = null,
+    UserName = null,
+    Password = null,
+    LastWorld = null,
+    PlayableWorld = [];
 var UserIDs = {
     XSRF: null,
     CSRF: null,
@@ -23,7 +40,11 @@ var UserIDs = {
     SID: null,
     UID: null,
     WID: null,
+    ForgeHX: null,
 }
+
+var stop = true;
+
 var NeighborDict = [];
 var FriendsDict = [];
 var ClanMemberDict = [];
@@ -77,8 +98,22 @@ app.on('activate', () => {
     }
 })
 function clickDO() {
-    if (null === proxy.UID) {
-        createBrowserWindow("https://de.forgeofempires.com/");
+    if (null === proxy.UID && UserName !== null && Password !== null) {
+        createBrowserWindowAuto("https://de.forgeofempires.com/");
+    } else {
+        Gwin.webContents.send('requestUsername', "Please enter your Username: ");
+        ipcMain.once('getUsername', (event, data) => {
+            if ("" !== data) {
+                UserName = data;
+                Gwin.webContents.send('requestPassword', "Please enter your Password: ");
+                ipcMain.once('getPassword', (event, data) => {
+                    if ("" !== data) {
+                        Password = data;
+                        createBrowserWindow("https://de.forgeofempires.com/");
+                    }
+                });
+            }
+        });
     }
 }
 function createMenu() {
@@ -174,23 +209,34 @@ function AddButton({ text = "default", id = "none", insertBefore = null, menu = 
 
 }
 async function downloadForgeHX() {
-    let filePath = path.join(app.getPath("cache"), '.', 'ForgeHX-2683b67a.js');
+    let filePath = path.join(app.getPath("cache"), '.', UserIDs.ForgeHX);
     if (!fs.existsSync(filePath)) {
-        Gwin.webContents.send('info', "Searching cached ForgeHX.js");
-        await electronDl.download(Gwin, "https://foede.innogamescdn.com//cache/ForgeHX-2683b67a.js", { directory: app.getPath("cache") });
-        Gwin.webContents.send('info', "ForgeHX.js cached");
+        Gwin.webContents.send('info', "Searching cached " + UserIDs.ForgeHX);
+        await electronDl.download(Gwin, "https://foede.innogamescdn.com//cache/" + UserIDs.ForgeHX, { directory: app.getPath("cache") });
+        Gwin.webContents.send('info', UserIDs.ForgeHX + "cached");
     }
 
     let content = fs.readFileSync(filePath, 'utf8');
     if (content.length === 0) return;
 
     let re = /.VERSION_SECRET="([a-zA-Z0-9_\-\+\/==]+)";/ig;
+    let rex = /.VERSION_MAJOR_MINOR="([0-9+\.0-9+\.0-9+]+)";/ig;
     re = new RegExp(re);
+    rex = new RegExp(rex);
     let result = content.matchAll(re).next().value;
+    let VERSION = content.matchAll(rex).next().value;
     if (null !== result) {
         if (result.length === 2) {
             //Gwin.webContents.send('print', "VERSION_SECRET found (" + result[1] + ")");
             VS = result[1];
+        }
+        else
+            Gwin.webContents.send('print', "ERROR GETTING VERSION_SECRET");
+    }
+    if (null !== VERSION) {
+        if (VERSION.length === 2) {
+            //Gwin.webContents.send('print', "VERSION_SECRET found (" + result[1] + ")");
+            VMM = VERSION[1];
         }
         else
             Gwin.webContents.send('print', "ERROR GETTING VERSION_SECRET");
@@ -204,8 +250,12 @@ async function DoLogout() {
         SID: null,
         UID: null,
         WID: null,
+        ForgeHX: null,
     }
-    await session.defaultSession.clearStorageData();
+    UserName = null;
+    Password = null;
+    LastWorld = null;
+    //await session.defaultSession.clearStorageData();
     createMenuLogin();
 }
 
@@ -237,6 +287,12 @@ proxy.emitter.on("CID_Loaded", data => {
             UserIDs.CID = data;
     }
 });
+proxy.emitter.on("ForgeHX_Loaded", data => {
+    if (UserIDs.ForgeHX === null || UserIDs.ForgeHX !== data) {
+        if (null !== data)
+            UserIDs.ForgeHX = data;
+    }
+});
 proxy.emitter.on("WID_Loaded", data => {
     if (UserIDs.WID === null || UserIDs.WID !== data) {
         //Gwin.webContents.send('print', "WID_Loaded: " + data);
@@ -258,7 +314,7 @@ proxy.emitter.on("UID_Loaded", data => {
                     Gwin.webContents.send('fillCommands', FoBCommands.getAllCommands());
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
-                    builder.init(UserIDs.UID, VS, UserIDs.WID);
+                    builder.init(UserIDs.UID, VS, VMM, UserIDs.WID);
                     GetData();
                 }
             });
@@ -285,8 +341,9 @@ function GetData(clear = true) {
                                     processer.GetTavernInfo(body);
                                     FoBFunctions.ArcBonus = processer.GetArcBonus(body);
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
-                                    if(clear) Gwin.webContents.send('clear', "");
+                                    if (clear) Gwin.webContents.send('clear', "");
                                     PrepareInfoMenu();
+
                                 });
                         });
                 });
@@ -311,15 +368,49 @@ function createBrowserWindow(url) {
         height: 600,
         width: 800
     });
+    win.hide();
     win.loadURL(url);
-    win.webContents.openDevTools();
-    win.webContents.once('dom-ready', ()=>{
-        win.webContents.executeJavaScript(`
-            document.getElementById("login_userid").value = "SamLorito"
-            document.getElementById("login_password").value = "Carlo1509!?"
-            document.getElementById("login_remember_me").checked = true
-        `)
-    })
+    //win.webContents.openDevTools();
+    win.webContents.once('dom-ready', () => {
+        let filePath = path.join('js', 'preloadLogin.js');
+        var content = fs.readFileSync(filePath, 'utf8');
+        storage.set("UserName", UserName);
+        storage.set("Password", Password);
+        let name = encodeURIComponent(UserName);
+        let pass = encodeURIComponent(Password);
+        content = content.replace("###XSRF-TOKEN###", UserIDs.XSRF).replace("###USERNAME###", name).replace("###PASSWORD###", pass);
+        win.webContents.executeJavaScript(`${content}`);
+    });
+    win.webContents.on("did-navigate-in-page", (e, url) => {
+        if (stop) { stop = false; return; }
+        let filePath = path.join('js', 'preloadLoginWorld.js');
+        var content = fs.readFileSync(filePath, 'utf8');
+        win.webContents.executeJavaScript(`${content}`, true).then((result) => {
+            data = JSON.parse(result)["player_worlds"];
+            if ("" !== data) {
+                Gwin.webContents.send('print', "Choose from one of yours Worlds: ");
+                var possWorlds = "";
+                for (const key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        Gwin.webContents.send('print', `${data[key] + 1}: ${key}`);
+                        possWorlds += `${key},`
+                    }
+                }
+                PlayableWorld = possWorlds.slice(0, -1).split(',');
+                Gwin.webContents.send('chooseWorld', possWorlds);
+                ipcMain.once('loadWorld', (event, data) => {
+                    if (undefined !== PlayableWorld[data]) {
+                        storage.set("LastWorld", PlayableWorld[data]);
+                        Gwin.webContents.send('clear', "");
+                        let filePath = path.join('js', 'preloadSelectWorld.js');
+                        var content = fs.readFileSync(filePath, 'utf8');
+                        content = content.replace("###WORLD_ID###", PlayableWorld[data]);
+                        win.webContents.executeJavaScript(`${content}`);
+                    }
+                });
+            }
+        });
+    });
     Lwin = win;
 }
 function assocFunction(command) {
@@ -327,7 +418,8 @@ function assocFunction(command) {
         'Login': async () => { return clickDO(); }
     }
     if (UserIDs.UID !== null)
-        x = { ...x,
+        x = {
+            ...x,
             'Logout': async () => { return DoLogout(); },
             'MoppleAll': async () => { return FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict); },
             'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
@@ -345,5 +437,30 @@ function assocFunction(command) {
         Gwin.webContents.send('block', false);
     }
 }
-
+function createBrowserWindowAuto(url) {
+    const win = new BrowserWindow({
+        height: 600,
+        width: 800
+    });
+    win.hide();
+    win.loadURL(url);
+    //win.webContents.openDevTools();
+    win.webContents.once('dom-ready', () => {
+        let filePath = path.join('js', 'preloadLogin.js');
+        var content = fs.readFileSync(filePath, 'utf8');
+        let name = encodeURIComponent(UserName);
+        let pass = encodeURIComponent(Password);
+        content = content.replace("###XSRF-TOKEN###", UserIDs.XSRF).replace("###USERNAME###", name).replace("###PASSWORD###", pass);
+        win.webContents.executeJavaScript(`${content}`);
+    });
+    win.webContents.on("did-navigate-in-page", (e, url) => {
+        if (stop) { stop = false; return; }
+        Gwin.webContents.send('clear', "");
+        let filePath = path.join('js', 'preloadSelectWorld.js');
+        var content = fs.readFileSync(filePath, 'utf8');
+        content = content.replace("###WORLD_ID###", LastWorld);
+        win.webContents.executeJavaScript(`${content}`);
+    });
+    Lwin = win;
+}
 exports.GetData = GetData;
