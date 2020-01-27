@@ -55,7 +55,7 @@ function ExecuteSnipLGs(Gwin, fList, nList) {
         GetPLGINeighbor(() => {
             for (let i = 0; i < PossibleLGs.length; i++) {
                 const LG = PossibleLGs[i];
-                ConsoleWin.webContents.send('print', `${LG.name} (${LG.PlayerName}): ${LG.string}`);
+                ConsoleWin.webContents.send('print', `${LG.Name} (${LG.PlayerName}): ${LG.string}`);
             }
             Main.GetData(false);
         })
@@ -212,8 +212,8 @@ function GetPLGIFriends(callback) {
                                 ConsoleWin.webContents.send('progress', `Searching player ${Player.item["name"]}(${i + 1}/${FriendsList.length})`);
                                 tmp = processer.GetLGResult(body, ArcBonus)
                                 if(tmp.length > 0){
-                                    PossibleLGs.concat(tmp);
-                                    LGDict.concat(tmp);
+                                    PossibleLGs = PossibleLGs.concat(tmp);
+                                    LGDict = LGDict.concat(tmp);
                                 }
                             }
                         });
@@ -243,8 +243,8 @@ function GetPLGINeighbor(callback) {
                                 ConsoleWin.webContents.send('progress', `Searching player ${Player.item["name"]}(${i + 1}/${NeighborList.length})`);
                                 tmp = processer.GetLGResult(body, ArcBonus)
                                 if(tmp.length > 0){
-                                    PossibleLGs.concat(tmp);
-                                    LGDict.concat(tmp);
+                                    PossibleLGs = PossibleLGs.concat(tmp);
+                                    LGDict = LGDict.concat(tmp);
                                 }
                             }
                         });

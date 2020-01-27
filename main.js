@@ -20,6 +20,12 @@ storage.getAll((err, data) => {
         UserName = data["UserName"];
         Password = data["Password"];
         LastWorld = data["LastWorld"];
+        PlayableWorld = data["PlayableWorld"];
+        /* AddButton({ text: "Settings", id: "settings", menu: loginMenu, insertBefore: 2 });
+        AddButton({ text: "Switch Worlds", id: "settings", menu: loginMenu, hasSubMenus: true });
+        PlayableWorld.forEach(world => {
+            AddButton({ text: world, id: "settings_Switch Worlds", menu: loginMenu, callback: () => { SwitchWorld(world) } });
+        }); */
     }
 });
 
@@ -98,7 +104,7 @@ app.on('activate', () => {
     }
 })
 function clickDO() {
-    if (null === proxy.UID && UserName !== null && Password !== null) {
+    if (null === UserIDs.UID && UserName !== null && Password !== null) {
         createBrowserWindowAuto("https://de.forgeofempires.com/");
     } else {
         Gwin.webContents.send('requestUsername', "Please enter your Username: ");
@@ -183,9 +189,9 @@ function createMenuLoggedIn() {
     menu = Menu.buildFromTemplate(menuTempate);
     Menu.setApplicationMenu(menu);
 }
-function AddButton({ text = "default", id = "none", insertBefore = null, menu = null, callback = null }) {
+function AddButton({ text = "default", id = "none", insertBefore = null, menu = null, callback = null, hasSubMenus = false }) {
     menu = Menu.getApplicationMenu();
-    if (null === callback) {
+    if (null === callback && hasSubMenus === false) {
         mitem = new MenuItem({
             label: text,
             id: id,
@@ -196,7 +202,18 @@ function AddButton({ text = "default", id = "none", insertBefore = null, menu = 
         else
             menu.append(mitem);
         Menu.setApplicationMenu(menu);
-    } else {
+    }
+    else if (null === callback && hasSubMenus) {
+        let item = menu.getMenuItemById(id);
+        mitem = new MenuItem({
+            label: text,
+            id: id + "_" + text,
+            submenu: []
+        })
+        item.submenu.append(mitem);
+        Menu.setApplicationMenu(menu);
+    }
+    else {
         let item = menu.getMenuItemById(id);
         mitem = new MenuItem({
             label: text,
@@ -255,6 +272,11 @@ async function DoLogout() {
     UserName = null;
     Password = null;
     LastWorld = null;
+    PlayableWorld = [];
+    storage.remove("UserName");
+    storage.remove("Password");
+    storage.remove("LastWorld");
+    storage.remove("PlayableWorld");
     //await session.defaultSession.clearStorageData();
     createMenuLogin();
 }
@@ -311,6 +333,11 @@ proxy.emitter.on("UID_Loaded", data => {
                     AddButton({ text: "Alle Moppeln", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict) } });
                     AddButton({ text: "Alle Besuchen", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict) } });
                     AddButton({ text: "Update Lists", id: "function", menu: loginMenu, callback: () => { GetData() } });
+                    AddButton({ text: "Settings", id: "settings", menu: loginMenu, insertBefore: 3 });
+                    AddButton({ text: "Switch Worlds", id: "settings", menu: loginMenu, hasSubMenus: true });
+                    PlayableWorld.forEach(world => {
+                        AddButton({ text: world, id: "settings_Switch Worlds", menu: loginMenu, callback: () => { SwitchWorld(world) } });
+                    });
                     Gwin.webContents.send('fillCommands', FoBCommands.getAllCommands());
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
@@ -401,6 +428,7 @@ function createBrowserWindow(url) {
                 ipcMain.once('loadWorld', (event, data) => {
                     if (undefined !== PlayableWorld[data]) {
                         storage.set("LastWorld", PlayableWorld[data]);
+                        storage.set("PlayableWorld", PlayableWorld);
                         Gwin.webContents.send('clear', "");
                         let filePath = path.join('js', 'preloadSelectWorld.js');
                         var content = fs.readFileSync(filePath, 'utf8');
@@ -412,6 +440,25 @@ function createBrowserWindow(url) {
         });
     });
     Lwin = win;
+}
+function SwitchWorld(world) {
+    storage.set("LastWorld", world);
+    UserIDs = {
+        XSRF: null,
+        CSRF: null,
+        CID: null,
+        SID: null,
+        UID: null,
+        WID: world,
+        ForgeHX: null,
+    }
+    LastWorld = world;
+    NeighborDict = [];
+    FriendsDict = [];
+    ClanMemberDict = [];
+    createMenuLogin();
+    clickDO();
+    createMenuLoggedIn();
 }
 function assocFunction(command) {
     var x = {

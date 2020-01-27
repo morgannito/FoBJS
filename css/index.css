@@ -15,7 +15,7 @@ span.error { color: rgb(235, 49, 49); }
 span.progress.info { color: rgb(107, 214, 0); }
 
 div.Input{
-    position: absolute;
+    position: fixed;
     bottom: 0;
     left: 0;
     width: 99%;
@@ -26,4 +26,8 @@ input.command{
     background: black;
     height: 20px;
     width: 100%;
+}
+
+div.freeSpace{
+    height: 10px;
 }
