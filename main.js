@@ -29,9 +29,12 @@ storage.getAll((err, data) => {
     }
 });
 
+
+let isDev = true;
+
+
 var Gwin = null;
 var menu = null;
-var loginMenu = null;
 var VS = null;
 var VMM = null;
 var Lwin = null,
@@ -48,9 +51,7 @@ var UserIDs = {
     WID: null,
     ForgeHX: null,
 }
-
 var stop = true;
-
 var NeighborDict = [];
 var FriendsDict = [];
 var ClanMemberDict = [];
@@ -74,7 +75,7 @@ function createWindow() {
 
     proxy.init();
 
-    createMenu();
+    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 
     ipcMain.on('loaded', () => {
         FoBCore.pWL(Gwin, app, () => createMenuLogin());
@@ -82,7 +83,13 @@ function createWindow() {
     });
 
     ipcMain.on('executeCommand', (e, data) => {
-        assocFunction(data)
+        if (Array.isArray(data))
+            if (data.length == 2)
+                assocFunction(data[0], data[1])
+            else
+                return;
+        else
+            assocFunction(data)
     });
 
     Gwin.on('closed', () => {
@@ -90,9 +97,7 @@ function createWindow() {
     })
 
 }
-
 app.on('ready', createWindow);
-
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
@@ -121,109 +126,6 @@ function clickDO() {
             }
         });
     }
-}
-function createMenu() {
-    const menuTempate = [
-        {
-            label: 'DevTools',
-            click: () => {
-                Gwin.webContents.openDevTools();
-            }
-        },
-        {
-            label: 'Quit',
-            click: () => {
-                app.quit();
-            }
-        }
-    ];
-
-    menu = Menu.buildFromTemplate(menuTempate);
-    Menu.setApplicationMenu(menu);
-}
-function createMenuLogin() {
-    const menuTempate = [{
-        label: 'Login',
-        click: () => {
-            clickDO();
-        }
-    },
-    {
-        label: 'DevTools',
-        click: () => {
-            Gwin.webContents.openDevTools();
-        }
-    },
-    {
-        label: 'Quit',
-        click: () => {
-            app.quit();
-        }
-    }
-    ];
-
-    loginMenu = Menu.buildFromTemplate(menuTempate);
-    Menu.setApplicationMenu(loginMenu);
-}
-function createMenuLoggedIn() {
-    const menuTempate = [{
-        label: 'Logout',
-        click: () => {
-            DoLogout();
-        }
-    },
-    {
-        label: 'DevTools',
-        click: () => {
-            Gwin.webContents.openDevTools();
-        }
-    },
-    {
-        label: 'Quit',
-        click: () => {
-            app.quit();
-        }
-    }
-    ];
-
-    menu = Menu.buildFromTemplate(menuTempate);
-    Menu.setApplicationMenu(menu);
-}
-function AddButton({ text = "default", id = "none", insertBefore = null, menu = null, callback = null, hasSubMenus = false }) {
-    menu = Menu.getApplicationMenu();
-    if (null === callback && hasSubMenus === false) {
-        mitem = new MenuItem({
-            label: text,
-            id: id,
-            submenu: []
-        });
-        if (insertBefore !== null)
-            menu.insert(insertBefore, mitem);
-        else
-            menu.append(mitem);
-        Menu.setApplicationMenu(menu);
-    }
-    else if (null === callback && hasSubMenus) {
-        let item = menu.getMenuItemById(id);
-        mitem = new MenuItem({
-            label: text,
-            id: id + "_" + text,
-            submenu: []
-        })
-        item.submenu.append(mitem);
-        Menu.setApplicationMenu(menu);
-    }
-    else {
-        let item = menu.getMenuItemById(id);
-        mitem = new MenuItem({
-            label: text,
-            id: id + "_" + text,
-            click: () => callback()
-        })
-        item.submenu.append(mitem);
-        Menu.setApplicationMenu(menu);
-    }
-
 }
 async function downloadForgeHX() {
     let filePath = path.join(app.getPath("cache"), '.', UserIDs.ForgeHX);
@@ -278,9 +180,8 @@ async function DoLogout() {
     storage.remove("LastWorld");
     storage.remove("PlayableWorld");
     //await session.defaultSession.clearStorageData();
-    createMenuLogin();
+    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 }
-
 proxy.emitter.on("SID_Loaded", data => {
     if (UserIDs.SID === null || UserIDs.SID !== data) {
         //Gwin.webContents.send('print', "SID_Loaded: " + data);
@@ -328,21 +229,12 @@ proxy.emitter.on("UID_Loaded", data => {
             UserIDs.UID = data;
             downloadForgeHX().then(() => {
                 if (null !== UserIDs.UID && !Lwin.isDestroyed()) {
-                    createMenuLoggedIn();
-                    AddButton({ text: "Funktionen", id: "function", menu: loginMenu, insertBefore: 2 });
-                    AddButton({ text: "Alle Moppeln", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict) } });
-                    AddButton({ text: "Alle Besuchen", id: "function", menu: loginMenu, callback: () => { FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict) } });
-                    AddButton({ text: "Update Lists", id: "function", menu: loginMenu, callback: () => { GetData() } });
-                    AddButton({ text: "Settings", id: "settings", menu: loginMenu, insertBefore: 3 });
-                    AddButton({ text: "Switch Worlds", id: "settings", menu: loginMenu, hasSubMenus: true });
-                    PlayableWorld.forEach(world => {
-                        AddButton({ text: world, id: "settings_Switch Worlds", menu: loginMenu, callback: () => { SwitchWorld(world) } });
-                    });
                     Gwin.webContents.send('fillCommands', FoBCommands.getAllCommands());
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
                     builder.init(UserIDs.UID, VS, VMM, UserIDs.WID);
                     GetData();
+                    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
                 }
             });
         }
@@ -366,11 +258,11 @@ function GetData(clear = true) {
                             builder.GetStartup()
                                 .then(body => {
                                     processer.GetTavernInfo(body);
+                                    processer.GetResources(body);
                                     FoBFunctions.ArcBonus = processer.GetArcBonus(body);
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
                                     if (clear) Gwin.webContents.send('clear', "");
                                     PrepareInfoMenu();
-
                                 });
                         });
                 });
@@ -456,11 +348,10 @@ function SwitchWorld(world) {
     NeighborDict = [];
     FriendsDict = [];
     ClanMemberDict = [];
-    createMenuLogin();
     clickDO();
-    createMenuLoggedIn();
+    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 }
-function assocFunction(command) {
+function assocFunction(command, args = null) {
     var x = {
         'Login': async () => { return clickDO(); }
     }
@@ -471,7 +362,8 @@ function assocFunction(command) {
             'MoppleAll': async () => { return FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict); },
             'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
             'UpdateList': async () => { return GetData(); },
-            'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); }
+            'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); },
+            'SwitchWorlds': async () => { return SwitchWorld(); }
         };
     try {
         Gwin.webContents.send('print', "Executing " + command);
@@ -510,4 +402,125 @@ function createBrowserWindowAuto(url) {
     });
     Lwin = win;
 }
+function BuildMenu(login, logout, functions, settings, quit, devtools) {
+    worlds = [];
+    Menu.setApplicationMenu(new Menu());
+    menu = Menu.getApplicationMenu();
+
+    if (login) addLogin(menu);
+    if (logout) addLogout(menu);
+    if (functions) addFunctions(menu);
+    if (!login && settings) {
+        if (PlayableWorld.length > 0) {
+            PlayableWorld.forEach(world => {
+                if (world === UserIDs.WID)
+                    worlds.push({ label: world + " (Current)", id: world, click: () => { return; } });
+                else
+                    worlds.push({ label: world, id: world, click: () => { SwitchWorld(world); } });
+            });
+            addSettings(menu, worlds);
+        }
+    } else if (login && settings) {
+        if (settings) addSettings(menu, null);
+    }
+    if (quit) addQuit(menu);
+    if (devtools) addDevTools(menu);
+
+    Menu.setApplicationMenu(menu);
+}
+function addLogin(menu) {
+    mitem = new MenuItem({
+        label: "Login",
+        id: "login",
+        click: () => clickDO()
+    })
+    menu.append(mitem);
+}
+function addLogout(menu) {
+    mitem = new MenuItem({
+        label: "Logout",
+        id: "logout",
+        click: () => Logout()
+    })
+    menu.append(mitem);
+}
+function addFunctions(menu) {
+    mitem = new MenuItem({
+        label: "Functions",
+        id: "functions",
+        submenu: [
+            {
+                label: "Alle Moppeln",
+                id: "MoppleAll",
+                click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict)
+            },
+            {
+                label: "Alle Besuchen",
+                id: "VisitAll",
+                click: () => FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict)
+            },
+            {
+                label: "Update Lists",
+                id: "UpdateList",
+                click: () => GetData()
+            }
+
+        ]
+    });
+    menu.append(mitem);
+}
+function addSettings(menu, worlds) {
+    var worldItem = [];
+    if (null !== worlds) {
+        worldItem.push({
+            label: "Switch Worlds",
+            id: "SwitchWorlds",
+            submenu: worlds
+        })
+    }
+    worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
+    worldItem.push({ label: "Set max Intervall", id: "MaxIntervall" });
+    worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click:()=>{clearStorage()} });
+    mitem = new MenuItem({
+        label: "Settings",
+        id: "settings",
+        submenu: worldItem
+    });
+    menu.append(mitem);
+}
+function addQuit(menu) {
+    mitem = new MenuItem({
+        label: "Quit",
+        id: "quit",
+        click: () => app.quit()
+    })
+    menu.append(mitem);
+}
+function addDevTools(menu) {
+    mitem = new MenuItem({
+        label: "DevTools",
+        id: "devtools",
+        click: () => Gwin.webContents.openDevTools()
+    })
+    menu.append(mitem);
+}
+function clearStorage(){
+    UserIDs = {
+        XSRF: null,
+        CSRF: null,
+        CID: null,
+        SID: null,
+        UID: null,
+        WID: null,
+        ForgeHX: null,
+    }
+    UserName = null;
+    Password = null;
+    LastWorld = null;
+    PlayableWorld = [];
+    storage.clear(()=>{
+        Gwin.webContents.send('print', "Userdata was cleared!");
+    });
+}
+
 exports.GetData = GetData;

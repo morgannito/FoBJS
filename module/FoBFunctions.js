@@ -1,5 +1,6 @@
 const FoBuilder = require("./FoBuilder");
 const processer = require("./FoBProccess");
+const FoBCore = require("./FoBCore");
 const Main = require("../main");
 
 let FriendsList, NeighborList, ClanMemberList, TavernList = [];
@@ -86,7 +87,7 @@ function VisitTavern(callback) {
                 ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     } else {
         ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
         callback();
@@ -124,7 +125,7 @@ function MotivateMember(callback) {
                 ConsoleWin.webContents.send('print', `ClanMember Motivation done! Total Reward: ${rewardMoney} Gold (Count: ${ClanMemberList.length})`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     }
 }
 function MotivateFriends(callback) {
@@ -159,7 +160,7 @@ function MotivateFriends(callback) {
                 ConsoleWin.webContents.send('print', `Friends Motivation done! Total Reward: ${rewardMoney} Gold (Count: ${FriendsList.length})`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     }
 }
 function MotivateNeighbors(callback) {
@@ -194,7 +195,7 @@ function MotivateNeighbors(callback) {
                 ConsoleWin.webContents.send('print', `Neighbors Motivation done! Total Reward: ${rewardMoney} Gold (Count: ${NeighborList.length})`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     }
 }
 function GetPLGIFriends(callback) {
@@ -225,7 +226,7 @@ function GetPLGIFriends(callback) {
                 ConsoleWin.webContents.send('print', `Found ${LGDict.length} LGs`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     }
 }
 function GetPLGINeighbor(callback) {
@@ -256,7 +257,7 @@ function GetPLGINeighbor(callback) {
                 ConsoleWin.webContents.send('print', `Found ${LGDict.length} LGs`);
                 callback();
             }
-        }, 800);
+        }, FoBCore.getRandomIntervall());
     }
 }
 

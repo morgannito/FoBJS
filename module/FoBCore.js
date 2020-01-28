@@ -1,11 +1,16 @@
 exports.pWL = printWelcomeMessage;
 exports.getRandomInt = getRandomInt;
+exports.getRandomIntervall = getRandomIntervall;
 exports.delay = delay;
 exports.printInfo = printInfo;
 exports.GetP1 = GetP1;
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
+}
+
+function getRandomIntervall(){
+    return Math.floor(Math.random() * (2000-800)+800);
 }
 
 async function delay(ms){
@@ -20,13 +25,8 @@ function printWelcomeMessage(Gwin,app, callback){
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', " ");
     Gwin.webContents.send('print', " ");
-    Gwin.webContents.send('print', "We are going to setup some things....");
+    Gwin.webContents.send('print', "You can now login over the Menu or by the 'Login' command");
     Gwin.webContents.send('print', " ");
-    setTimeout(()=>{
-        Gwin.webContents.send('print', "Done :D");
-        Gwin.webContents.send('print', "You can now do Stuff!");
-        callback();
-    },2000)
 }
 
 function printInfo(Gwin, htmltext){

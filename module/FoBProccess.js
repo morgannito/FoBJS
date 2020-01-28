@@ -4,6 +4,11 @@ const FoBCore = require("./FoBCore");
 let NeighborDict = [];
 let FriendsDict = [];
 let ClanMemberDict = [];
+var ResourceDict = [];
+var OwnTavernInfo = {};
+var LimitedBonuses = [];
+var HiddenRewards = [];
+var ResourceDefinitions = [];
 
 function GetNeighbor(data) {
     //NeighborDict = [];
@@ -104,6 +109,31 @@ function GetTavernInfo(data) {
     }
 }
 
+function GetRewardResult(data){
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "RewardService" && resData["requestMethod"] === "collectReward") {
+            let RewardResults = resData["responseData"];
+            var Result = [];
+            for (let i = 0; i < RewardResults.length; i++) {
+                const RewardResult = RewardResults[i];
+                Result.push({
+                    type: RewardResult["subType"],
+                    amount: RewardResult["amount"],
+                    name: RewardResult["name"]
+                })
+            }
+            return TavernResult;
+        }
+        if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getPlayerResources") {
+            GetResources(data);
+        }
+        if (resData["requestClass"] === "HiddenRewardService" && resData["requestMethod"] === "getOverview") {
+            GetHiddenRewards(data);
+        }
+    }
+}
+
 function GetTavernResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -113,7 +143,70 @@ function GetTavernResult(data) {
         }
     }
 }
-
+function GetResources(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getPlayerResources") {
+            ResourceDict = resData["responseData"]["resources"];
+        }
+    }
+}
+function GetResourceDefinitions(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getResourceDefinitions") {
+            let resData = resData["responseData"];
+            for (let i = 0; i < resData.length; i++) {
+                const Definition = resData[i];
+                if (Definition["id"] === "premium" || Definition["id"] === "money" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver") {
+                    ResourceDefinitions.push(Definition)
+                }
+                else if (Definition["abilities"] !== undefined) {
+                    if (Definition["abilities"]["goodsProduceable"] !== undefined)
+                        ResourceDefinitions.push(Definition)
+                    else if (Definition["abilities"]["specialResource"] !== undefined)
+                        ResourceDefinitions.push(Definition)
+                }
+            }
+        }
+    }
+}
+function GetHiddenRewards(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "HiddenRewardService" && resData["requestMethod"] === "getOverview") {
+            var _hiddenrewards = resData["responseData"]["hiddenRewards"];
+            for (let x = 0; x < _hiddenrewards.length; x++) {
+                const _reward = _hiddenrewards[x];
+                let startTime = Math.floor(_reward["startTime"] / 1000);
+                let endTime = Math.floor(_reward["expireTime"] / 1000)
+                var reward = {
+                    id: _reward["hiddenRewardId"],
+                    isVisible: ((endTime > new Date().getTime()) && (startTime < new Date().getTime())),
+                    rarity: _reward["rarity"],
+                    position: _reward["position"]["context"]
+                }
+                HiddenRewards.push(reward);
+            }
+        }
+    }
+}
+function GetBonuses(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "BonusService" && resData["requestMethod"] === "getLimitedBonuses") {
+            LimitedBonuses = resData["responseData"];
+        }
+    }
+}
+function GetOwnTavernInfo(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "FriendsTavernService" && resData["requestMethod"] === "getSittingPlayersCount") {
+            OwnTavernInfo = resData["responseData"];
+        }
+    }
+}
 function GetVisitableTavern(FriendsList) {
     return FriendsList.filter(friend => {
         return (undefined !== friend.taverninfo && undefined === friend.taverninfo["state"] && friend.taverninfo["sittingPlayerCount"] < friend.taverninfo["unlockedChairCount"])
@@ -121,7 +214,7 @@ function GetVisitableTavern(FriendsList) {
 }
 function GetTavernReward(data) {
     var result = "";
-    if (typeof(data["rewardResources"]["resources"]) === "object") {
+    if (typeof (data["rewardResources"]["resources"]) === "object") {
         if (undefined !== data["rewardResources"]["resources"]["tavern_silver"])
             result += `${data["rewardResources"]["resources"]["tavern_silver"]} Silver `;
         if (undefined !== data["rewardResources"]["resources"]["strategy_points"])
@@ -220,7 +313,13 @@ function FormatKurs(k) {
         return Kurs + '%';
 }
 
+exports.GetRewardResult = GetRewardResult;
+exports.GetHiddenRewards = GetHiddenRewards;
+exports.GetResourceDefinitions = GetResourceDefinitions;
+exports.GetBonuses = GetBonuses;
+exports.GetOwnTavernInfo = GetOwnTavernInfo;
 exports.GetNeighbor = GetNeighbor;
+exports.GetResources = GetResources;
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;
 exports.GetTavernInfo = GetTavernInfo;
@@ -230,7 +329,14 @@ exports.GetArcBonus = GetArcBonus;
 exports.GetTavernReward = GetTavernReward;
 exports.GetMotivateResult = GetMotivateResult;
 exports.GetTavernResult = GetTavernResult;
+
 exports.ClanMemberDict = ClanMemberDict;
 exports.FriendsDict = FriendsDict;
 exports.NeighborDict = NeighborDict;
+exports.ResourceDict = ResourceDict;
+exports.OwnTavernInfo = OwnTavernInfo;
+exports.LimitedBonuses = LimitedBonuses;
+exports.HiddenRewards = HiddenRewards;
+exports.ResourceDefinitions = ResourceDefinitions;
+
 exports.clearLists = clearLists;

@@ -34,6 +34,7 @@
     var blocked, requestUsername, requestPassword, chooseWorld = false;
     var Username = "", Password = "", preText = "";
     var possWorlds = [];
+    var commands = [];
 
     var input = document.getElementsByName("consoleInput");
     if (input.length === 1) {
@@ -62,12 +63,20 @@
                         chooseWorld = false;
                         input[0].value = ""
                         input[0].focus();
-                    }else{
+                    } else {
                         input[0].value = ""
                     }
                 }
                 else {
-                    ipcRenderer.send('executeCommand', input[0].value.trim());
+                    if (input[0].value.trim().split(" ").length == 2) {
+                        var args = input[0].value.trim().split(" ")[1];
+                        var command = input[0].value.trim().split(" ")[0];
+                        if (commands.indexOf(command) > -1) {
+                            ipcRenderer.send('executeCommand', command, args);
+                        }
+                    }
+                    else
+                        ipcRenderer.send('executeCommand', input[0].value.trim());
                     input[0].value = ""
                     input[0].focus();
                 }
@@ -95,6 +104,7 @@
         for (var i = 0; i < data.length; i++) {
             options += "<option value='" + data[i] + "'>";
         }
+        commands = data;
         datalist.innerHTML = options;
     });
     ipcRenderer.on('print', (e, data) => {

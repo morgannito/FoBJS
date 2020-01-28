@@ -22,6 +22,9 @@ const GetStartup = () => {
 const DoMotivate = (playerid) => {
     return Motivate(playerid);
 }
+const DoCollectReward = (rewardid) => {
+    return CollectReward(playerid);
+}
 const VisitTavern = (playerid) => {
     return SittAtTavern(playerid);
 }
@@ -38,13 +41,24 @@ const GetLGs = (playerid) =>{
     return GetLGData(playerid);
 }
 
+const CollectReward = (rewardid) =>{
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [rewardid];
+    x[0]["requestClass"] = "HiddenRewardService";
+    x[0]["requestMethod"] = "collectReward";
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
 const GetLGData = (playerID) =>{
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "GreatBuildingsService";
     x[0]["requestMethod"] = "getOtherPlayerOverview";
-    x[0]["requestId"] = 1;
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -66,7 +80,7 @@ const Motivate = (playerID) => {
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "polivateRandomBuilding";
-    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -77,7 +91,7 @@ const SittAtTavern = (playerID) => {
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "FriendsTavernService";
     x[0]["requestMethod"] = "getOtherTavern";
-    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -88,7 +102,7 @@ const GetClanMemberData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getClanMemberList";
-    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -99,17 +113,18 @@ const GetFriendsData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getFriendsList";
-    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
+
 const GetNeighborData = () => {
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getNeighborList";
-    x[0]["requestId"] = FoBCore.getRandomInt(255);
+    x[0]["requestId"] = FoBCore.getRandomInt(1080);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -126,7 +141,8 @@ async function fetchData(x, sig) {
             "pragma": "no-cache",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
-            "signature": sig
+            "signature": sig,
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36"
         },
         "referrer": "https://" + WorldID + ".forgeofempires.com/game/index?",
         "referrerPolicy": "no-referrer-when-downgrade",
@@ -154,6 +170,7 @@ exports.User_Key = User_Key;
 exports.Secret = Secret;
 exports.GetStartup = GetStartup;
 exports.DoMotivate = DoMotivate;
+exports.DoCollectReward = DoCollectReward;
 exports.VisitTavern = VisitTavern;
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;
