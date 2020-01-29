@@ -4,6 +4,7 @@ function getAllCommands(){
         'VisitAll',
         'UpdateList',
         'SearchSnipLG',
+        'StartProductonBot',
         'Logout'
     ]
 }

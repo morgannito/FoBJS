@@ -10,6 +10,7 @@ const processer = require("./module/FoBProccess");
 const FoBCore = require("./module/FoBCore");
 const FoBFunctions = require("./module/FoBFunctions");
 const FoBCommands = require("./module/FoBCommands");
+const FoBProductionBot = require("./module/FoBProductionBot");
 
 electronDl();
 
@@ -22,11 +23,6 @@ storage.getAll((err, data) => {
         Password = data["Password"];
         LastWorld = data["LastWorld"];
         PlayableWorld = data["PlayableWorld"];
-        /* AddButton({ text: "Settings", id: "settings", menu: loginMenu, insertBefore: 2 });
-        AddButton({ text: "Switch Worlds", id: "settings", menu: loginMenu, hasSubMenus: true });
-        PlayableWorld.forEach(world => {
-            AddButton({ text: world, id: "settings_Switch Worlds", menu: loginMenu, callback: () => { SwitchWorld(world) } });
-        }); */
     }
 });
 
@@ -389,6 +385,7 @@ function assocFunction(command, args = null) {
             'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
             'UpdateList': async () => { return GetData(); },
             'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); },
+            'StartProductionBot': async () => { return FoBProductionBot.StartProductionBot(); },
             'SwitchWorlds': async () => { return SwitchWorld(); }
         };
     try {
