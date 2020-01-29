@@ -31,34 +31,87 @@ const VisitTavern = (playerid) => {
 const GetClanMember = () => {
     return GetClanMemberData();
 }
+const GetEntities = () => {
+    return GetEntitiesData();
+}
 const GetFriends = () => {
     return GetFriendsData();
 }
 const GetNeighbor = () => {
     return GetNeighborData();
 }
-const GetLGs = (playerid) =>{
+const GetLGs = (playerid) => {
     return GetLGData(playerid);
 }
+const DoLogService = () => {
+    return LogService();
+}
+const DoCollectProduction = (ids) => {
+    return CollectProduction(ids);
+}
+const DoQueryProduction = (id, prodID) => {
+    return QueryProduction(id, prodID);
+}
+const DoCancelProduction = (id) => {
+    return CancelProduction(id);
+}
 
-const CollectReward = (rewardid) =>{
+const CollectProduction = (ids) => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [ids];
+    x[0]["requestClass"] = "CityProductionService";
+    x[0]["requestMethod"] = "pickupProduction";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const QueryProduction = (id, prodID) => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [id, prodID];
+    x[0]["requestClass"] = "CityProductionService";
+    x[0]["requestMethod"] = "startProduction";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const CancelProduction = (id) => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [id];
+    x[0]["requestClass"] = "CityProductionService";
+    x[0]["requestMethod"] = "cancelProduction";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const CollectReward = (rewardid) => {
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [rewardid];
     x[0]["requestClass"] = "HiddenRewardService";
     x[0]["requestMethod"] = "collectReward";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
 
-const GetLGData = (playerID) =>{
+const GetLGData = (playerID) => {
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "GreatBuildingsService";
     x[0]["requestMethod"] = "getOtherPlayerOverview";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -74,13 +127,26 @@ const GetStartupData = () => {
     return fetchData(x, sig);
 }
 
+const LogService = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [{ "__class__": "FPSPerformance", "module": "City", "fps": 30, "vram": 0 }];
+    x[0]["requestClass"] = "LogService";
+    x[0]["requestMethod"] = "logPerformanceMetrics";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
 const Motivate = (playerID) => {
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "polivateRandomBuilding";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -91,7 +157,8 @@ const SittAtTavern = (playerID) => {
     x[0]["requestData"] = [playerID];
     x[0]["requestClass"] = "FriendsTavernService";
     x[0]["requestMethod"] = "getOtherTavern";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -102,7 +169,8 @@ const GetClanMemberData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getClanMemberList";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -113,7 +181,8 @@ const GetFriendsData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getFriendsList";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -124,9 +193,42 @@ const GetNeighborData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getNeighborList";
-    x[0]["requestId"] = FoBCore.getRandomInt(1080);
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
     let sig = calcSig(x);
     return fetchData(x, sig);
+}
+
+const GetEntitiesData = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "CityMapService";
+    x[0]["requestMethod"] = "getEntities";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    console.log(x[0]["requestId"]);
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const GetMetaDataUrls = (body) => {
+    url = "";
+    for (let i = 0; i < body.length; i++) {
+        const resData = body[i];
+        if (resData["requestClass"] === "StaticDataService" && resData["requestMethod"] === "getMetadata") {
+            var meta = resData["responseData"];
+            meta.forEach(obj => {
+                if (obj["identifier"] === "city_entities")
+                    url = obj["url"];
+            });
+        }
+        if (url !== "")
+            break;
+    }
+    if (url !== "")
+        return fetchMetaData(url);
+    else
+        return null;
 }
 
 async function fetchData(x, sig) {
@@ -136,7 +238,7 @@ async function fetchData(x, sig) {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
             "cache-control": "no-cache",
-            "client-identification": "version="+VersionMajorMinor+"; requiredVersion="+VersionMajorMinor+"; platform=bro; platformType=html5; platformVersion=web",
+            "client-identification": "version=" + VersionMajorMinor + "; requiredVersion=" + VersionMajorMinor + "; platform=bro; platformType=html5; platformVersion=web",
             "content-type": "application/json",
             "pragma": "no-cache",
             "sec-fetch-mode": "cors",
@@ -158,6 +260,32 @@ async function fetchData(x, sig) {
         return JSON.parse("[]");
 }
 
+async function fetchMetaData(url) {
+    let res = await fetch(url, {
+        "credentials": "include",
+        "headers": {
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9,de-DE;q=0.8,de;q=0.7",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "pragma": "no-cache",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36"
+        },
+        "referrer": "https://" + WorldID + ".forgeofempires.com/game/index?",
+        "referrerPolicy": "no-referrer-when-downgrade",
+        "method": "GET",
+        "mode": "cors"
+    });
+    if (res.status === 200) {
+        let body = await res.text();
+        return JSON.parse(body);
+    }
+    else
+        return JSON.parse("[]");
+}
+
 const calcSig = (x) => {
     let encoded = JSON.stringify(x).replace(' ', '')
     data = User_Key + Secret + encoded
@@ -168,11 +296,20 @@ exports.emitter = myEmitter;
 exports.init = init;
 exports.User_Key = User_Key;
 exports.Secret = Secret;
-exports.GetStartup = GetStartup;
+
+exports.DoCollectProduction = DoCollectProduction;
 exports.DoMotivate = DoMotivate;
+exports.DoLogService = DoLogService;
 exports.DoCollectReward = DoCollectReward;
+exports.DoCollectProduction = DoCollectProduction;
+exports.DoQueryProduction = DoQueryProduction;
+exports.DoCancelProduction = DoCancelProduction;
 exports.VisitTavern = VisitTavern;
+
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;
 exports.GetNeighbor = GetNeighbor;
 exports.GetLGs = GetLGs;
+exports.GetEntities = GetEntities;
+exports.GetStartup = GetStartup;
+exports.GetMetaDataUrls = GetMetaDataUrls;

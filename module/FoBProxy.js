@@ -49,10 +49,10 @@ const init = () => {
                     rex = new RegExp(rex);
                     let result = body.matchAll(re).next().value;
                     let fResult = body.matchAll(rex).next().value;
-                    if (undefined !== fResult){
+                    if (undefined !== fResult) {
                         if (fResult.length === 2) {
                             ForgeHX = fResult[1];
-                            myEmitter.emit("ForgeHX_Loaded", "ForgeHX"+ForgeHX);
+                            myEmitter.emit("ForgeHX_Loaded", "ForgeHX" + ForgeHX);
                         } else {
                             console.log("ERROR");
                         }
@@ -73,11 +73,11 @@ const init = () => {
         if (undefined !== details.requestHeaders["Cookie"]) {
             cookie = details.requestHeaders["Cookie"];
             if (cookie.indexOf('cid') > -1) {
-                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace(" ","").replace("cid=", "");
+                CID = cookie.split(';').find(e => (e.indexOf("cid") > -1)).replace(" ", "").replace("cid=", "");
                 myEmitter.emit("CID_Loaded", CID);
             }
             if (cookie.indexOf('sid') > -1) {
-                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace(" ","").replace("sid=", "");
+                SID = cookie.split(';').find(e => (e.indexOf("sid") > -1)).replace(" ", "").replace("sid=", "");
                 myEmitter.emit("SID_Loaded", SID);
             }
         }

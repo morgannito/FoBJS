@@ -13,6 +13,7 @@
     "electron-json-storage": "^4.1.8",
     "electron-winstaller": "^4.0.0",
     "http": "0.0.0",
+    "moment": "^2.24.0",
     "node-fetch": "^2.6.0",
     "path": "^0.12.7",
     "request": "^2.88.0",

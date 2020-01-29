@@ -2,6 +2,7 @@ const { app, BrowserWindow, session, screen, Menu, ipcMain, MenuItem } = require
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
+const moment = require('moment');
 const storage = require('electron-json-storage');
 const proxy = require("./module/FoBProxy");
 const builder = require("./module/FoBuilder");
@@ -257,27 +258,52 @@ function GetData(clear = true) {
                             //Gwin.webContents.send('print', "ClanMember Count: " + processer.ClanMemberDict.length);
                             builder.GetStartup()
                                 .then(body => {
+                                    processer.GetResourceDefinitions(body);
                                     processer.GetTavernInfo(body);
                                     processer.GetResources(body);
+                                    processer.GetOwnTavernInfo(body);
+                                    processer.GetHiddenRewards(body);
                                     FoBFunctions.ArcBonus = processer.GetArcBonus(body);
+                                    builder.GetMetaDataUrls(body).then(jsonbody => {
+                                        if(jsonbody !== null){
+                                            processer.GetProductionUnits(body, jsonbody);
+                                            if (clear) Gwin.webContents.send('clear', "");
+                                            PrepareInfoMenu();
+                                        }
+                                    });
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
-                                    if (clear) Gwin.webContents.send('clear', "");
-                                    PrepareInfoMenu();
                                 });
                         });
                 });
         });
 }
 function PrepareInfoMenu() {
+    var s = "";
+    if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
+        s = "READY TO COLLECT";
+    else s = "sitting"
     h = [];
     h.push("<span>#######################################################</span><br>");
-    h.push("<span># Usefull Information: </span><br>");
+    h.push(`<span># Current world: ${UserIDs.WID}</span><br>`);
     h.push("<span>#                                                     </span><br>");
     h.push(`<span># Friends: ${FriendsDict.length}                                           </span><br>`);
     h.push(`<span># Clanmembers: ${ClanMemberDict.length}                                           </span><br>`);
     h.push(`<span># Neighbors: ${NeighborDict.length}                                           </span><br>`);
     h.push(`<span>#                                                     </span><br>`);
     h.push(`<span># Tavern you can visit: ${processer.GetVisitableTavern(FriendsDict).length}                                           </span><br>`);
+    h.push(`<span># Your Tavernstatus: ${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}                                           </span><br>`);
+    h.push("<span>#                                                     </span><br>");
+    h.push(`<span># Incidents: ${processer.HiddenRewards.filter((reward) => { return (reward.isVisible === true); }).length} to be collected                               </span><br>`);
+    h.push("<span>#                                                     </span><br>");
+    h.push(`<span># Production:                                            </span><br>`);
+    for (let x = 0; x < processer.ProductionDict.length; x++) {
+        const prod = processer.ProductionDict[x];
+        var s = "";
+        if (prod["state"]["__class__"] === "ProducingState") s = "Producing " + prod["state"]["current_product"]["product"]["supplies"] + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"] + " in " + moment.unix(prod["state"]["next_state_transition_in"]).fromNow()
+        else if (prod["state"]["__class__"] === "IdleState") s = "Nothing to do"
+        else if (prod["state"]["__class__"] === "ProductionFinishedState") s = "Finished " + prod["state"]["current_product"]["product"]["supplies"] + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"]
+        h.push(`<span># | ${prod["name"]} | ${s} |</span><br>`);
+    }
     h.push("<span>#                                                     </span><br>");
     h.push("<span>#######################################################</span><br>");
     FoBCore.printInfo(Gwin, h);
@@ -480,7 +506,7 @@ function addSettings(menu, worlds) {
     }
     worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
     worldItem.push({ label: "Set max Intervall", id: "MaxIntervall" });
-    worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click:()=>{clearStorage()} });
+    worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click: () => { clearStorage() } });
     mitem = new MenuItem({
         label: "Settings",
         id: "settings",
@@ -504,7 +530,7 @@ function addDevTools(menu) {
     })
     menu.append(mitem);
 }
-function clearStorage(){
+function clearStorage() {
     UserIDs = {
         XSRF: null,
         CSRF: null,
@@ -518,7 +544,7 @@ function clearStorage(){
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
-    storage.clear(()=>{
+    storage.clear(() => {
         Gwin.webContents.send('print', "Userdata was cleared!");
     });
 }

@@ -1,4 +1,3 @@
-const events = require('events');
 const FoBCore = require("./FoBCore");
 
 let NeighborDict = [];
@@ -9,6 +8,8 @@ var OwnTavernInfo = {};
 var LimitedBonuses = [];
 var HiddenRewards = [];
 var ResourceDefinitions = [];
+var ProductionDict = [];
+var UseableSupplyProdutction = [];
 
 function GetNeighbor(data) {
     //NeighborDict = [];
@@ -109,7 +110,7 @@ function GetTavernInfo(data) {
     }
 }
 
-function GetRewardResult(data){
+function GetRewardResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "RewardService" && resData["requestMethod"] === "collectReward") {
@@ -150,14 +151,15 @@ function GetResources(data) {
             ResourceDict = resData["responseData"]["resources"];
         }
     }
+    exports.ResourceDict = ResourceDict;
 }
 function GetResourceDefinitions(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getResourceDefinitions") {
-            let resData = resData["responseData"];
-            for (let i = 0; i < resData.length; i++) {
-                const Definition = resData[i];
+            let res = resData["responseData"];
+            for (let i = 0; i < res.length; i++) {
+                const Definition = res[i];
                 if (Definition["id"] === "premium" || Definition["id"] === "money" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver") {
                     ResourceDefinitions.push(Definition)
                 }
@@ -170,6 +172,7 @@ function GetResourceDefinitions(data) {
             }
         }
     }
+    exports.ResourceDefinitions = ResourceDefinitions;
 }
 function GetHiddenRewards(data) {
     for (let i = 0; i < data.length; i++) {
@@ -190,6 +193,7 @@ function GetHiddenRewards(data) {
             }
         }
     }
+    exports.HiddenRewards = HiddenRewards;
 }
 function GetBonuses(data) {
     for (let i = 0; i < data.length; i++) {
@@ -198,6 +202,7 @@ function GetBonuses(data) {
             LimitedBonuses = resData["responseData"];
         }
     }
+    exports.LimitedBonuses = LimitedBonuses;
 }
 function GetOwnTavernInfo(data) {
     for (let i = 0; i < data.length; i++) {
@@ -206,6 +211,7 @@ function GetOwnTavernInfo(data) {
             OwnTavernInfo = resData["responseData"];
         }
     }
+    exports.OwnTavernInfo = OwnTavernInfo;
 }
 function GetVisitableTavern(FriendsList) {
     return FriendsList.filter(friend => {
@@ -224,6 +230,49 @@ function GetTavernReward(data) {
         return "none"
     }
     return result;
+}
+function GetProductionUnits(data, ceData) {
+    GetOnlySupplyUnits(ceData);
+    var Buildings = [];
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "CityMapService" && resData["requestMethod"] === "getEntities") {
+            Buildings = resData["responseData"];
+        }
+        else if (resData["requestClass"] === "StartupService" && resData["requestMethod"] === "getData") {
+            for (const key in resData["responseData"]) {
+                if (resData["responseData"].hasOwnProperty(key)) {
+                    const element = resData["responseData"][key];
+                    if (element["__class__"] == "CityMap") {
+                        Buildings = element["entities"];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if (Buildings.length > 0) {
+        for (let x = 0; x < Buildings.length; x++) {
+            const useable = Buildings[x];
+            ProductionDict = ProductionDict.concat(UseableSupplyProdutction.filter(entitie => {
+                if(entitie["id"] === useable["cityentity_id"]){
+                    entitie["state"] = useable["state"];
+                    return entitie;
+                }
+            }));
+        }
+    }
+    exports.ProductionDict = ProductionDict;
+}
+function GetOnlySupplyUnits(data) {
+    for (let i = 0; i < data.length; i++) {
+        const Unit = data[i];
+        if (undefined !== Unit["available_products"]) {
+            if (FoBCore.hasOnlySupplyProduction(Unit["available_products"]))
+                UseableSupplyProdutction.push(Unit);
+        }
+    }
+    exports.UseableSupplyProdutction = UseableSupplyProdutction;
 }
 
 function GetLGResult(data, ArcBonus) {
@@ -300,6 +349,7 @@ function GetArcBonus(data) {
             return ArcBonus;
         }
     }
+    exports.ArcBonus = ArcBonus;
 }
 function clearLists() {
     NeighborDict = [];
@@ -314,6 +364,8 @@ function FormatKurs(k) {
 }
 
 exports.GetRewardResult = GetRewardResult;
+exports.GetProductionUnits = GetProductionUnits;
+exports.GetOnlySupplyUnits = GetOnlySupplyUnits;
 exports.GetHiddenRewards = GetHiddenRewards;
 exports.GetResourceDefinitions = GetResourceDefinitions;
 exports.GetBonuses = GetBonuses;
@@ -333,10 +385,5 @@ exports.GetTavernResult = GetTavernResult;
 exports.ClanMemberDict = ClanMemberDict;
 exports.FriendsDict = FriendsDict;
 exports.NeighborDict = NeighborDict;
-exports.ResourceDict = ResourceDict;
-exports.OwnTavernInfo = OwnTavernInfo;
-exports.LimitedBonuses = LimitedBonuses;
-exports.HiddenRewards = HiddenRewards;
-exports.ResourceDefinitions = ResourceDefinitions;
 
 exports.clearLists = clearLists;
