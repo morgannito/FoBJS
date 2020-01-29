@@ -232,6 +232,7 @@ function GetTavernReward(data) {
     return result;
 }
 function GetProductionUnits(data, ceData) {
+    ProductionDict = [];
     GetOnlySupplyUnits(ceData);
     var Buildings = [];
     for (let i = 0; i < data.length; i++) {

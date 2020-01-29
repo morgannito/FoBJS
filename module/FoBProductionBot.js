@@ -19,7 +19,7 @@ const  StartProductionBot = () =>{
     ProductionWorker.loadFile('/html/prodworker.htm');
 
     ipcMain.on('worker_loaded', () => {
-        ProductionWorker.webContents.send('prodDict', PD);
+        ProductionWorker.webContents.send('start', PD);
     });
     //Main.GetData();
 }
