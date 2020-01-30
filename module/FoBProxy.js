@@ -1,6 +1,5 @@
 const { session } = require("electron");
 const events = require('events');
-global.fetch = require('electron-fetch').default;
 
 const myEmitter = new events.EventEmitter();
 

@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const FoBCore = require("./FoBCore");
 
 const myEmitter = new events.EventEmitter();
-let WorldID = null,
+
+var WorldID = null,
     User_Key = null,
     Secret = null,
     VersionMajorMinor = null;
@@ -55,6 +56,9 @@ const DoQueryProduction = (id, prodID) => {
 const DoCancelProduction = (id) => {
     return CancelProduction(id);
 }
+const DoCollectTavern = () => {
+    return CollectTavern();
+}
 
 const CollectProduction = (ids) => {
     var x = [{}];
@@ -63,7 +67,7 @@ const CollectProduction = (ids) => {
     x[0]["requestClass"] = "CityProductionService";
     x[0]["requestMethod"] = "pickupProduction";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -75,7 +79,7 @@ const QueryProduction = (id, prodID) => {
     x[0]["requestClass"] = "CityProductionService";
     x[0]["requestMethod"] = "startProduction";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -87,7 +91,7 @@ const CancelProduction = (id) => {
     x[0]["requestClass"] = "CityProductionService";
     x[0]["requestMethod"] = "cancelProduction";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -99,7 +103,7 @@ const CollectReward = (rewardid) => {
     x[0]["requestClass"] = "HiddenRewardService";
     x[0]["requestMethod"] = "collectReward";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -111,7 +115,7 @@ const GetLGData = (playerID) => {
     x[0]["requestClass"] = "GreatBuildingsService";
     x[0]["requestMethod"] = "getOtherPlayerOverview";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -134,7 +138,7 @@ const LogService = () => {
     x[0]["requestClass"] = "LogService";
     x[0]["requestMethod"] = "logPerformanceMetrics";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -146,7 +150,7 @@ const Motivate = (playerID) => {
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "polivateRandomBuilding";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -158,7 +162,19 @@ const SittAtTavern = (playerID) => {
     x[0]["requestClass"] = "FriendsTavernService";
     x[0]["requestMethod"] = "getOtherTavern";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const CollectTavern = () =>{
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "FriendsTavernService";
+    x[0]["requestMethod"] = "collectReward";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -170,7 +186,7 @@ const GetClanMemberData = () => {
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getClanMemberList";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -182,7 +198,7 @@ const GetFriendsData = () => {
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getFriendsList";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -194,7 +210,7 @@ const GetNeighborData = () => {
     x[0]["requestClass"] = "OtherPlayerService";
     x[0]["requestMethod"] = "getNeighborList";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -206,7 +222,7 @@ const GetEntitiesData = () => {
     x[0]["requestClass"] = "CityMapService";
     x[0]["requestMethod"] = "getEntities";
     x[0]["requestId"] = FoBCore.getNextRequestID();
-    console.log(x[0]["requestId"]);
+    
     let sig = calcSig(x);
     return fetchData(x, sig);
 }
@@ -254,7 +270,11 @@ async function fetchData(x, sig) {
     });
     if (res.status === 200) {
         let body = await res.text();
-        return JSON.parse(body);
+        try {
+            return JSON.parse(body);
+        } catch (error) {
+            return JSON.parse("[]");
+        }
     }
     else
         return JSON.parse("[]");
@@ -300,6 +320,7 @@ exports.Secret = Secret;
 exports.DoCollectProduction = DoCollectProduction;
 exports.DoMotivate = DoMotivate;
 exports.DoLogService = DoLogService;
+exports.DoCollectTavern = DoCollectTavern;
 exports.DoCollectReward = DoCollectReward;
 exports.DoCollectProduction = DoCollectProduction;
 exports.DoQueryProduction = DoQueryProduction;

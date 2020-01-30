@@ -25,8 +25,8 @@ function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
                     ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
                 if (Skipped.length > 0)
                     ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
-                ConsoleWin.webContents.send('print', "All Player motivated! Total Reward: "+ RewardMoney);
-                Main.GetData(false);
+                ConsoleWin.webContents.send('print', "All Player motivated! Total Reward: " + RewardMoney);
+                MainMain.GetData(false);
             })
         })
     })
@@ -61,6 +61,17 @@ function ExecuteSnipLGs(Gwin, fList, nList) {
             Main.GetData(false);
         })
     })
+}
+
+function CollectTavern(Gwin) {
+    ConsoleWin = Gwin;
+    ConsoleWin.webContents.send('print', `Do: Collect Tavern`);
+    FoBuilder.DoCollectTavern()
+    .then((data)=>{
+        let diff = processer.GetTavernCollectResult(data);
+        ConsoleWin.webContents.send('print', `Collected ${diff} Taver Silver`);
+        Main.GetData(false);
+    });
 }
 
 function VisitTavern(callback) {
@@ -212,7 +223,7 @@ function GetPLGIFriends(callback) {
                             if (body !== JSON.parse("[]")) {
                                 ConsoleWin.webContents.send('progress', `Searching player ${Player.item["name"]}(${i + 1}/${FriendsList.length})`);
                                 tmp = processer.GetLGResult(body, ArcBonus)
-                                if(tmp.length > 0){
+                                if (tmp.length > 0) {
                                     PossibleLGs = PossibleLGs.concat(tmp);
                                     LGDict = LGDict.concat(tmp);
                                 }
@@ -243,7 +254,7 @@ function GetPLGINeighbor(callback) {
                             if (body !== JSON.parse("[]")) {
                                 ConsoleWin.webContents.send('progress', `Searching player ${Player.item["name"]}(${i + 1}/${NeighborList.length})`);
                                 tmp = processer.GetLGResult(body, ArcBonus)
-                                if(tmp.length > 0){
+                                if (tmp.length > 0) {
                                     PossibleLGs = PossibleLGs.concat(tmp);
                                     LGDict = LGDict.concat(tmp);
                                 }
@@ -261,6 +272,14 @@ function GetPLGINeighbor(callback) {
     }
 }
 
+function Test() {
+    FoBuilder.DoQueryProduction(35, 1)
+        .then(data => {
+            console.log(data);
+            //ipcRenderer.send('ChangeState', { Unit: prodUnit["id"], OldState: eState.Idle });
+        })
+}
+
 exports.FriendsList = FriendsList;
 exports.ClanMemberList = ClanMemberList;
 exports.TavernList = TavernList;
@@ -268,6 +287,8 @@ exports.NeighborList = NeighborList;
 exports.PossibleLGs = PossibleLGs;
 exports.ExecuteMoppelAll = ExecuteMoppelAll;
 exports.ExecuteSnipLGs = ExecuteSnipLGs;
+exports.CollectTavern = CollectTavern;
 exports.ExecuteVisitTavern = ExecuteVisitTavern;
 exports.ConsoleWin = ConsoleWin;
 exports.ArcBonus = ArcBonus;
+exports.Test = Test;

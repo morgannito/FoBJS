@@ -6,11 +6,15 @@ exports.hasOnlySupplyProduction = hasOnlySupplyProduction;
 exports.delay = delay;
 exports.printInfo = printInfo;
 exports.GetP1 = GetP1;
+exports.TableFromArrayObject = TableFromArrayObject;
 
 var reqID = 2;
 
-function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max));
+function getRandomInt(max, min = null) {
+    if (min === null)
+        return Math.floor(Math.random() * Math.floor(max));
+    else
+        return Math.floor(Math.random() * (max - min) + min);
 }
 
 function getNextRequestID() {
@@ -149,4 +153,22 @@ function GetP1(AgeString, Level) {
     else {
         return 0;
     }
+}
+
+function TableFromArrayObject(data, PreString) {
+    var html = '<table>';
+    html += '<tr>';
+    for (var j in data[0]) {
+        html += '<th>' + j + '</th>';
+    }
+    html += '</tr>';
+    for (var i = 0; i < data.length; i++) {
+        html += '<tr>';
+        for (var j in data[i]) {
+            html += '<td>' + data[i][j] + '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    return html;
 }

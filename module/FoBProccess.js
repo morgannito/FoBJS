@@ -11,8 +11,11 @@ var ResourceDefinitions = [];
 var ProductionDict = [];
 var UseableSupplyProdutction = [];
 
+var oldTavernSilver = null;
+var newTavernSilver = null;
+
 function GetNeighbor(data) {
-    //NeighborDict = [];
+    NeighborDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getNeighborList") {
@@ -29,11 +32,12 @@ function GetNeighbor(data) {
             }
         }
     }
+    exports.NeighborDict = NeighborDict;
     return NeighborDict;
 }
 
 function GetFriends(data) {
-    //FriendsDict = [];
+    FriendsDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getFriendsList") {
@@ -51,11 +55,12 @@ function GetFriends(data) {
             }
         }
     }
+    exports.FriendsDict = FriendsDict;
     return FriendsDict;
 }
 
 function GetClanMember(data) {
-    //ClanMemberDict = [];
+    ClanMemberDict = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "getClanMemberList") {
@@ -72,6 +77,7 @@ function GetClanMember(data) {
             }
         }
     }
+    exports.ClanMemberDict = ClanMemberDict;
     return ClanMemberDict;
 }
 
@@ -106,6 +112,25 @@ function GetTavernInfo(data) {
                     }
                 }
             }
+        }
+    }
+}
+
+function GetTavernCollectResult(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "FriendsTavernService" && resData["requestMethod"] === "collectReward") {
+            if ((oldTavernSilver !== undefined && oldTavernSilver !== null) && (newTavernSilver !== undefined && newTavernSilver !== null)) {
+                if (oldTavernSilver < newTavernSilver){
+                    return (newTavernSilver - oldTavernSilver)
+                }else{
+                    return 0;
+                }
+            }
+        }
+        if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getPlayerResources") {
+            oldTavernSilver = ResourceDict["tavern_silver"];
+            GetResources(data);
         }
     }
 }
@@ -151,6 +176,7 @@ function GetResources(data) {
             ResourceDict = resData["responseData"]["resources"];
         }
     }
+    newTavernSilver = ResourceDict["tavern_silver"];
     exports.ResourceDict = ResourceDict;
 }
 function GetResourceDefinitions(data) {
@@ -233,7 +259,8 @@ function GetTavernReward(data) {
 }
 function GetProductionUnits(data, ceData) {
     ProductionDict = [];
-    GetOnlySupplyUnits(ceData);
+    if (UseableSupplyProdutction.length === 0 && ceData !== null)
+        GetOnlySupplyUnits(ceData);
     var Buildings = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -256,8 +283,9 @@ function GetProductionUnits(data, ceData) {
         for (let x = 0; x < Buildings.length; x++) {
             const useable = Buildings[x];
             ProductionDict = ProductionDict.concat(UseableSupplyProdutction.filter(entitie => {
-                if(entitie["id"] === useable["cityentity_id"]){
+                if (entitie["id"] === useable["cityentity_id"]) {
                     entitie["state"] = useable["state"];
+                    entitie["_id"] = useable["id"];
                     return entitie;
                 }
             }));
@@ -382,9 +410,6 @@ exports.GetArcBonus = GetArcBonus;
 exports.GetTavernReward = GetTavernReward;
 exports.GetMotivateResult = GetMotivateResult;
 exports.GetTavernResult = GetTavernResult;
-
-exports.ClanMemberDict = ClanMemberDict;
-exports.FriendsDict = FriendsDict;
-exports.NeighborDict = NeighborDict;
+exports.GetTavernCollectResult = GetTavernCollectResult;
 
 exports.clearLists = clearLists;

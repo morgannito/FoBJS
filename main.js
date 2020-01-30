@@ -2,6 +2,8 @@ const { app, BrowserWindow, session, screen, Menu, ipcMain, MenuItem } = require
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('electron-fetch').default;
+const cTable = require('console.table');
 const moment = require('moment');
 const storage = require('electron-json-storage');
 const proxy = require("./module/FoBProxy");
@@ -11,6 +13,8 @@ const FoBCore = require("./module/FoBCore");
 const FoBFunctions = require("./module/FoBFunctions");
 const FoBCommands = require("./module/FoBCommands");
 const FoBProductionBot = require("./module/FoBProductionBot");
+
+const timer = require("./js/timer").timer;
 
 electronDl();
 
@@ -26,9 +30,11 @@ storage.getAll((err, data) => {
     }
 });
 
+moment.locale("de");
 
 let isDev = true;
 
+const eState = { Producing: 1, Idle: 2, Finished: 3 };
 
 var Gwin = null;
 var menu = null;
@@ -52,6 +58,7 @@ var stop = true;
 var NeighborDict = [];
 var FriendsDict = [];
 var ClanMemberDict = [];
+var UpdateInfoID = null;
 
 function createWindow() {
 
@@ -91,8 +98,7 @@ function createWindow() {
 
     Gwin.on('closed', () => {
         Gwin, win = null
-    })
-
+    });
 }
 app.on('ready', createWindow);
 app.on('window-all-closed', () => {
@@ -232,13 +238,20 @@ proxy.emitter.on("UID_Loaded", data => {
                     builder.init(UserIDs.UID, VS, VMM, UserIDs.WID);
                     GetData();
                     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                    if (UpdateInfoID === null) {
+                        timer.start(() => {
+                            GetData();
+                            timer.set_interval(FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
+                        }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
+                        UpdateInfoID = timer.timeout;
+                    }
                 }
             });
         }
     }
 });
 
-function GetData(clear = true) {
+function GetData(clear = true, callback = null) {
     processer.clearLists();
     builder.GetFriends()
         .then(body => {
@@ -261,10 +274,13 @@ function GetData(clear = true) {
                                     processer.GetHiddenRewards(body);
                                     FoBFunctions.ArcBonus = processer.GetArcBonus(body);
                                     builder.GetMetaDataUrls(body).then(jsonbody => {
-                                        if(jsonbody !== null){
+                                        if (jsonbody !== null) {
                                             processer.GetProductionUnits(body, jsonbody);
                                             if (clear) Gwin.webContents.send('clear', "");
                                             PrepareInfoMenu();
+                                            if (callback !== null) {
+                                                callback();
+                                            }
                                         }
                                     });
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
@@ -279,6 +295,7 @@ function PrepareInfoMenu() {
         s = "READY TO COLLECT";
     else s = "sitting"
     h = [];
+    p = [];
     h.push("<span>#######################################################</span><br>");
     h.push(`<span># Current world: ${UserIDs.WID}</span><br>`);
     h.push("<span>#                                                     </span><br>");
@@ -295,11 +312,13 @@ function PrepareInfoMenu() {
     for (let x = 0; x < processer.ProductionDict.length; x++) {
         const prod = processer.ProductionDict[x];
         var s = "";
-        if (prod["state"]["__class__"] === "ProducingState") s = "Producing " + prod["state"]["current_product"]["product"]["supplies"] + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"] + " in " + moment.unix(prod["state"]["next_state_transition_in"]).fromNow()
+        if (prod["state"]["__class__"] === "ProducingState") s = "Producing " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"] + " in " + moment.unix(prod["state"]["next_state_transition_at"]).fromNow()
         else if (prod["state"]["__class__"] === "IdleState") s = "Nothing to do"
-        else if (prod["state"]["__class__"] === "ProductionFinishedState") s = "Finished " + prod["state"]["current_product"]["product"]["supplies"] + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"]
-        h.push(`<span># | ${prod["name"]} | ${s} |</span><br>`);
+        else if (prod["state"]["__class__"] === "ProductionFinishedState") s = "Finished " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"]
+        //h.push(`<span># | ${prod["name"]} | ${s} |</span><br>`);
+        p.push({Building:prod["name"],State: s});
     }
+    h.push("<span> "+FoBCore.TableFromArrayObject(p.sort((a,b) => (a.Building > b.Building) ? 1 : ((b.Building > a.Building) ? -1 : 0)),"#")+"</span><br>");
     h.push("<span>#                                                     </span><br>");
     h.push("<span>#######################################################</span><br>");
     FoBCore.printInfo(Gwin, h);
@@ -383,9 +402,12 @@ function assocFunction(command, args = null) {
             'Logout': async () => { return DoLogout(); },
             'MoppleAll': async () => { return FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict); },
             'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
-            'UpdateList': async () => { return GetData(); },
             'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); },
-            'StartProductionBot': async () => { return FoBProductionBot.StartProductionBot(); },
+            'StartProductionBot': async () => { return FoBProductionBot.StartProductionBot(); }, // 
+            'CollectSelf': async () => { return FoBProductionBot.CollectManuel(); }, // 
+            'QueueSelf': async () => { return FoBProductionBot.StartManuel(); }, // 
+            'CollectTavern': async () => { return FoBFunctions.CollectTavern(Gwin); },
+            'UpdateList': async () => { return GetData(); },
             'SwitchWorlds': async () => { return SwitchWorld(); }
         };
     try {
@@ -463,7 +485,7 @@ function addLogout(menu) {
     mitem = new MenuItem({
         label: "Logout",
         id: "logout",
-        click: () => Logout()
+        click: () => DoLogout()
     })
     menu.append(mitem);
 }
@@ -481,6 +503,31 @@ function addFunctions(menu) {
                 label: "Alle Besuchen",
                 id: "VisitAll",
                 click: () => FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict)
+            },
+            {
+                label: "Starte Produktions-Bot",
+                id: "StartProductionBot",
+                click: () => FoBProductionBot.StartProductionBot()
+            },
+            {
+                label: "Suche snippbare LGs",
+                id: "SearchSnipLG",
+                click: () => FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict)
+            },
+            {
+                label: "Selbst Einsammeln",
+                id: "CollectSelf",
+                click: () => FoBProductionBot.CollectManuel()
+            },
+            {
+                label: "Selbst Starten",
+                id: "QueueSelf",
+                click: () => FoBProductionBot.StartManuel()
+            },
+            {
+                label: "Taverne einsammeln",
+                id: "CollectTavern",
+                click: () => FoBFunctions.CollectTavern(Gwin)
             },
             {
                 label: "Update Lists",
@@ -547,3 +594,4 @@ function clearStorage() {
 }
 
 exports.GetData = GetData;
+exports.eState = eState;

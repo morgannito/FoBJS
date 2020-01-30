@@ -2,9 +2,12 @@ function getAllCommands(){
     return [
         'MoppleAll',
         'VisitAll',
-        'UpdateList',
         'SearchSnipLG',
-        'StartProductonBot',
+        'StartProductionBot',
+        'CollectSelf',
+        'QueueSelf',
+        'CollectTavern',
+        'UpdateList',
         'Logout'
     ]
 }

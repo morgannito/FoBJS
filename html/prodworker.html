@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <script src="../js/timer.js"></script>
+</head>
+
+<body>
+  <script>
+    const electron = require('electron');
+    const ipcRenderer = electron.ipcRenderer;
+
+    const FoBCore = require('../module/FoBCore');
+
+    var IntervallID = null;
+    var ProdDict = [];
+    const eState = { Producing: 1, Idle: 2, Finished: 3 };
+
+    ipcRenderer.send('worker_loaded', true);
+
+    ipcRenderer.on('start', (e, d) => {
+      ProdDict = d;
+      startWorker();
+    });
+
+    ipcRenderer.on('updateProdDict', (e, d) => {
+      ProdDict = d;
+    });
+
+    ipcRenderer.on('stop', () => {
+      if (IntervallID !== null) {
+        timer.stop();
+      }
+    });
+
+    function startWorker() {
+      if (IntervallID === null) {
+        timer.start(()=>{
+          console.log(timer.iv);
+          DoWorker();
+          timer.set_interval(FoBCore.getRandomInt((1000*60*7),(1000*60*5)));
+          console.log(timer.iv);
+        }, FoBCore.getRandomInt((1000*60*7),(1000*60*5)));
+
+        DoWorker();
+        IntervallID = timer.timeout;
+        /*IntervallID = setInterval(() => {
+          DoWorker();
+        }, (1000 * 60 * 5)+time);*/
+      }
+    }
+
+    function DoWorker() {
+      for (var i = 0; i < ProdDict.length; i++) {
+        const prodUnit = ProdDict[i];
+        if (prodUnit["state"]["__class__"] === "IdleState") {
+          ipcRenderer.send('DoQuery', { Unit: prodUnit["id"], Product: 1 });
+        }
+        else if (prodUnit["state"]["__class__"] === "ProducingState") {
+          ipcRenderer.send('ChangeState', { Unit: prodUnit["id"], OldState: eState.Producing });
+        }
+        else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+          ipcRenderer.send('DoCollect', { Unit: prodUnit["id"]});
+        }
+      }
+    }
+
+  </script>
+</body>
+
+</html>
