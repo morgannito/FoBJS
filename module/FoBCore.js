@@ -7,7 +7,7 @@ exports.delay = delay;
 exports.printInfo = printInfo;
 exports.GetP1 = GetP1;
 exports.TableFromArrayObject = TableFromArrayObject;
-
+exports.GetDistinctCount = GetDistinctCount;
 var reqID = 2;
 
 function getRandomInt(max, min = null) {
@@ -43,7 +43,7 @@ async function delay(ms) {
     new Promise(res => setTimeout(res, ms));
 }
 
-function printWelcomeMessage(Gwin, app, callback) {
+function printWelcomeMessage(Gwin, app) {
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "######### WELCOME TO FoB v" + app.getVersion() + " #########");
@@ -155,7 +155,38 @@ function GetP1(AgeString, Level) {
     }
 }
 
-function TableFromArrayObject(data, PreString) {
+function GetDistinctCount(arr) {
+    var counter = [];
+    var increment = false;
+    for (var x = 0; x < arr.length; x++) {
+        if (counter.length == 0) {
+            counter.push({
+                count: 1,
+                ...arr[x]
+            });
+        } else {
+            for (var c = 0; c < counter.length; c++) {
+                if (counter[c]._id === arr[x]._id) {
+                    increment = c;
+                    break;
+                } else {
+                    increment = false;
+                }
+            }
+            if (increment !== false) {
+                counter[increment].count += 1;
+            } else {
+                counter.push({
+                    count: 1,
+                    ...arr[x]
+                })
+            }
+        }
+    }
+    return counter;
+}
+
+function TableFromArrayObject(data) {
     var html = '<table>';
     html += '<tr>';
     for (var j in data[0]) {

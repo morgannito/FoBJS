@@ -4,10 +4,15 @@ const processer = require("./FoBProccess");
 const FoBuilder = require("./FoBuilder");
 const FoBCore = require("./FoBCore");
 const Main = require("../main");
+const events = require('events');
 
-PWW = null;
+const myEmitter = new events.EventEmitter();
 
-function StartProductionBot(){
+var IntervallID = null;
+
+var PWW = null;
+
+function StartProductionBot() {
 
     var ProductionWorker = new BrowserWindow({
         show: false,
@@ -24,59 +29,83 @@ function StartProductionBot(){
         PWW.webContents.send('start', processer.ProductionDict);
     });
 
-    ipcMain.on('ChangeState', (e, d) => {
-        Main.GetData(true, () => {
-            PWW.webContents.send('updateProdDict', processer.ProductionDict);
+    ipcMain.on('DoWork', (e, d) => {
+        var promArr = [];
+        var started = false;
+        for (var i = 0; i < ProdDict.length; i++) {
+            const prodUnit = ProdDict[i];
+            if (prodUnit["state"]["__class__"] === "IdleState") {
+                promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
+            }
+            else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+                promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
+                started = true;
+            }
+        }
+
+        Promise.all(promArr).then(values => {
+            if(started){
+                myEmitter.emit("TimeUpdate", (new Date().getTime()/1000) + (1000*60*5));
+                IntervallID = setInterval(()=>{
+                    myEmitter.emit("UpdateMenu", "");
+                },500);
+            }else{
+                myEmitter.emit("TimeUpdate", null);
+                clearInterval(IntervallID);
+            }
+            Main.GetData(true, () => {
+                PWW.webContents.send('updateProdDict', processer.ProductionDict);
+            });
+        }, reason => {
+            throw reason;
         });
     });
-
-    ipcMain.on('DoQuery', (e, d) => {
-        FoBuilder.DoQueryProduction(d.Unit, d.Product)
-            .then(data => {
-                //console.log(data);
-                Main.GetData(true, () => {
-                    PWW.webContents.send('updateProdDict', processer.ProductionDict);
-                });
-            })
-    })
-
-    ipcMain.on('DoCollect', (e, d) => {
-        FoBuilder.DoCollectProduction([d.Unit])
-            .then(data => {
-                //console.log(data);
-                Main.GetData(true, () => {
-                    PWW.webContents.send('updateProdDict', processer.ProductionDict);
-                });
-            })
-    })
 }
 
-function CollectManuel(){
+function CollectManuel(ConsoleWin) {
+    var promArr = [];
+    ConsoleWin.webContents.send('print', `Do: Self-Collect productions`);
     for (let i = 0; i < processer.ProductionDict.length; i++) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-            FoBuilder.DoCollectProduction([prodUnit["_id"]])
-                .then(() => {
-                    Main.GetData(true);
-                });
+            promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
         }
     }
+    Promise.all(promArr).then(values => {
+        myEmitter.emit("TimeUpdate", null);
+        Main.GetData(true, () => {
+            ConsoleWin.webContents.send('print', `Done all`);
+            clearInterval(IntervallID);
+        });
+    }, reason => {
+        throw reason; 
+    });
 }
 
-function StartManuel(){
+function StartManuel(ConsoleWin) {
+    var promArr = [];
+    ConsoleWin.webContents.send('print', `Do: Self-Start productions`);
     for (let i = 0; i < processer.ProductionDict.length; i++) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "IdleState") {
-            FoBuilder.DoQueryProduction(prodUnit["_id"],1)
-                .then(() => {
-                    Main.GetData(true);
-                });
+            promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
         }
     }
+    Promise.all(promArr).then(values => {
+        myEmitter.emit("TimeUpdate", ((new Date().getTime()+1000*60*5)/1000));
+        Main.GetData(true, () => {
+            ConsoleWin.webContents.send('print', `Done all`);
+            IntervallID = setInterval(()=>{
+                myEmitter.emit("UpdateMenu", "");
+            },500);
+        });
+    }, reason => {
+        throw reason;
+    });
 }
 
 
-function StopProductionBot(){
+function StopProductionBot() {
     if (null !== PWW) {
         PWW.webContents.send('stop');
         PWW.destroy();
@@ -89,3 +118,4 @@ exports.StartProductionBot = StartProductionBot;
 exports.StopProductionBot = StopProductionBot;
 exports.CollectManuel = CollectManuel;
 exports.StartManuel = StartManuel;
+exports.emitter = myEmitter;

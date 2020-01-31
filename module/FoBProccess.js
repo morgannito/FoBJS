@@ -142,14 +142,15 @@ function GetRewardResult(data) {
             let RewardResults = resData["responseData"];
             var Result = [];
             for (let i = 0; i < RewardResults.length; i++) {
-                const RewardResult = RewardResults[i];
+                if(RewardResults[i] === "default") continue;
+                const RewardResult = RewardResults[i][i];
                 Result.push({
                     type: RewardResult["subType"],
                     amount: RewardResult["amount"],
                     name: RewardResult["name"]
                 })
             }
-            return TavernResult;
+            return Result;
         }
         if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getPlayerResources") {
             GetResources(data);
@@ -180,6 +181,7 @@ function GetResources(data) {
     exports.ResourceDict = ResourceDict;
 }
 function GetResourceDefinitions(data) {
+    ResourceDefinitions = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "ResourceService" && resData["requestMethod"] === "getResourceDefinitions") {
@@ -201,17 +203,18 @@ function GetResourceDefinitions(data) {
     exports.ResourceDefinitions = ResourceDefinitions;
 }
 function GetHiddenRewards(data) {
+    HiddenRewards = [];
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
         if (resData["requestClass"] === "HiddenRewardService" && resData["requestMethod"] === "getOverview") {
             var _hiddenrewards = resData["responseData"]["hiddenRewards"];
             for (let x = 0; x < _hiddenrewards.length; x++) {
                 const _reward = _hiddenrewards[x];
-                let startTime = Math.floor(_reward["startTime"] / 1000);
-                let endTime = Math.floor(_reward["expireTime"] / 1000)
+                let startTime = _reward["startTime"];
+                let endTime = _reward["expireTime"];
                 var reward = {
                     id: _reward["hiddenRewardId"],
-                    isVisible: ((endTime > new Date().getTime()) && (startTime < new Date().getTime())),
+                    isVisible: ((endTime > new Date().getTime()/1000) && (startTime < new Date().getTime()/1000)),
                     rarity: _reward["rarity"],
                     position: _reward["position"]["context"]
                 }

@@ -24,7 +24,7 @@ const DoMotivate = (playerid) => {
     return Motivate(playerid);
 }
 const DoCollectReward = (rewardid) => {
-    return CollectReward(playerid);
+    return CollectReward(rewardid);
 }
 const VisitTavern = (playerid) => {
     return SittAtTavern(playerid);

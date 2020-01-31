@@ -3,7 +3,7 @@ const processer = require("./FoBProccess");
 const FoBCore = require("./FoBCore");
 const Main = require("../main");
 
-let FriendsList, NeighborList, ClanMemberList, TavernList = [];
+let FriendsList, NeighborList, ClanMemberList, TavernList, HiddenRewards = [];
 let ConsoleWin = null;
 let Failed = [];
 let Skipped = [];
@@ -26,7 +26,7 @@ function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
                 if (Skipped.length > 0)
                     ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
                 ConsoleWin.webContents.send('print', "All Player motivated! Total Reward: " + RewardMoney);
-                MainMain.GetData(false);
+                Main.GetData(true);
             })
         })
     })
@@ -67,13 +67,50 @@ function CollectTavern(Gwin) {
     ConsoleWin = Gwin;
     ConsoleWin.webContents.send('print', `Do: Collect Tavern`);
     FoBuilder.DoCollectTavern()
-    .then((data)=>{
-        let diff = processer.GetTavernCollectResult(data);
-        ConsoleWin.webContents.send('print', `Collected ${diff} Taver Silver`);
+        .then((data) => {
+            let diff = processer.GetTavernCollectResult(data);
+            ConsoleWin.webContents.send('print', `Collected ${diff} Taver Silver`);
+            Main.GetData(false);
+        });
+}
+
+function ExecuteCollectRewards(Gwin) {
+    ConsoleWin = Gwin;
+
+    CollectRewards(() => {
         Main.GetData(false);
     });
 }
-
+function CollectRewards(callback) {
+    HiddenRewards = processer.HiddenRewards.filter((reward) => { return (reward.isVisible === true); });
+    ConsoleWin.webContents.send('print', `Do: Collect Incidents (Count: ${HiddenRewards.length})`);
+    var i = 0;
+    if (HiddenRewards.length > 0) {
+        var interval = setInterval(function () {
+            if (i < HiddenRewards.length) {
+                var Incident = HiddenRewards[i];
+                FoBuilder.DoCollectReward(Incident.id)
+                    .then(body => {
+                        if (body !== JSON.parse("[]")) {
+                            var result = processer.GetRewardResult(body);
+                            ConsoleWin.webContents.send('info', `Incident collected, Reward: ${result[0].name}`);
+                        } else {
+                            Failed.push(Incident);
+                        }
+                    });
+            }
+            i++;
+            if (i >= HiddenRewards.length) {
+                clearInterval(interval);
+                ConsoleWin.webContents.send('print', `Incidents 1 done (Count: ${HiddenRewards.length})`);
+                return callback();
+            }
+        }, FoBCore.getRandomIntervall());
+    } else {
+        ConsoleWin.webContents.send('print', `Incidents 2 done (Count: ${HiddenRewards.length})`);
+        return callback();
+    }
+}
 function VisitTavern(callback) {
     TavernList = processer.GetVisitableTavern(FriendsList);
     ConsoleWin.webContents.send('print', `Do: Visit Friends Tavern (Count: ${TavernList.length})`);
@@ -271,7 +308,6 @@ function GetPLGINeighbor(callback) {
         }, FoBCore.getRandomIntervall());
     }
 }
-
 function Test() {
     FoBuilder.DoQueryProduction(35, 1)
         .then(data => {
@@ -286,6 +322,7 @@ exports.TavernList = TavernList;
 exports.NeighborList = NeighborList;
 exports.PossibleLGs = PossibleLGs;
 exports.ExecuteMoppelAll = ExecuteMoppelAll;
+exports.ExecuteCollectRewards = ExecuteCollectRewards;
 exports.ExecuteSnipLGs = ExecuteSnipLGs;
 exports.CollectTavern = CollectTavern;
 exports.ExecuteVisitTavern = ExecuteVisitTavern;

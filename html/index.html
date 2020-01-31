@@ -111,7 +111,7 @@
         consoleEx.log(data);
     });
     ipcRenderer.on('information', (e, data) => {
-        info.innerHTML = data.join('');
+        info.innerHTML = data;
     });
     ipcRenderer.on('progress', (e, data) => {
         consoleEx.inline(data);
@@ -121,6 +121,9 @@
     });
     ipcRenderer.on('clear', (e, data) => {
         consoleEx.clear();
+    });
+    ipcRenderer.on('clearInfoMenu', (e, data) => {
+        info.innerHTML = "";
     });
     ipcRenderer.on('requestUsername', (e, data) => {
         requestUsername = true;

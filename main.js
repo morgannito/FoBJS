@@ -31,6 +31,11 @@ storage.getAll((err, data) => {
 });
 
 moment.locale("de");
+moment.relativeTimeThreshold("ss", 10);
+moment.relativeTimeThreshold("s", 11);
+moment.relativeTimeThreshold("m", 59);
+moment.relativeTimeThreshold("h", 59);
+moment.relativeTimeThreshold("d", 24);
 
 let isDev = true;
 
@@ -59,14 +64,14 @@ var NeighborDict = [];
 var FriendsDict = [];
 var ClanMemberDict = [];
 var UpdateInfoID = null;
+var FinishTime = null;
+var HideBigRoad = true;
 
 function createWindow() {
-
-    const size = screen.getAllDisplays()[0].workAreaSize;
     let win = new BrowserWindow({
         title: "FoB v" + app.getVersion(),
-        width: size[0],
-        height: size[1],
+        width: 610,
+        height: 710,
         webPreferences: {
             nodeIntegration: true,
             webSecurity: false,
@@ -82,7 +87,7 @@ function createWindow() {
     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 
     ipcMain.on('loaded', () => {
-        FoBCore.pWL(Gwin, app, () => createMenuLogin());
+        FoBCore.pWL(Gwin, app);
         Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
     });
 
@@ -184,6 +189,8 @@ async function DoLogout() {
     storage.remove("PlayableWorld");
     //await session.defaultSession.clearStorageData();
     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+    FoBCore.pWL(Gwin, app);
+    Gwin.webContents.send('clearInfoMenu', "");
 }
 proxy.emitter.on("SID_Loaded", data => {
     if (UserIDs.SID === null || UserIDs.SID !== data) {
@@ -250,6 +257,13 @@ proxy.emitter.on("UID_Loaded", data => {
         }
     }
 });
+FoBProductionBot.emitter.on("TimeUpdate", data => {
+    FinishTime = data
+    exports.FinishTime = FinishTime;
+});
+FoBProductionBot.emitter.on("UpdateMenu", data => {
+    PrepareInfoMenu();
+});
 
 function GetData(clear = true, callback = null) {
     processer.clearLists();
@@ -290,38 +304,153 @@ function GetData(clear = true, callback = null) {
         });
 }
 function PrepareInfoMenu() {
+
     var s = "";
     if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
-        s = "READY TO COLLECT";
+        s = "full";
     else s = "sitting"
-    h = [];
-    p = [];
-    h.push("<span>#######################################################</span><br>");
-    h.push(`<span># Current world: ${UserIDs.WID}</span><br>`);
-    h.push("<span>#                                                     </span><br>");
-    h.push(`<span># Friends: ${FriendsDict.length}                                           </span><br>`);
-    h.push(`<span># Clanmembers: ${ClanMemberDict.length}                                           </span><br>`);
-    h.push(`<span># Neighbors: ${NeighborDict.length}                                           </span><br>`);
-    h.push(`<span>#                                                     </span><br>`);
-    h.push(`<span># Tavern you can visit: ${processer.GetVisitableTavern(FriendsDict).length}                                           </span><br>`);
-    h.push(`<span># Your Tavernstatus: ${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}                                           </span><br>`);
-    h.push("<span>#                                                     </span><br>");
-    h.push(`<span># Incidents: ${processer.HiddenRewards.filter((reward) => { return (reward.isVisible === true); }).length} to be collected                               </span><br>`);
-    h.push("<span>#                                                     </span><br>");
-    h.push(`<span># Production:                                            </span><br>`);
-    for (let x = 0; x < processer.ProductionDict.length; x++) {
-        const prod = processer.ProductionDict[x];
-        var s = "";
-        if (prod["state"]["__class__"] === "ProducingState") s = "Producing " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"] + " in " + moment.unix(prod["state"]["next_state_transition_at"]).fromNow()
-        else if (prod["state"]["__class__"] === "IdleState") s = "Nothing to do"
-        else if (prod["state"]["__class__"] === "ProductionFinishedState") s = "Finished " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"]
-        //h.push(`<span># | ${prod["name"]} | ${s} |</span><br>`);
-        p.push({Building:prod["name"],State: s});
+
+    let filePath = path.join('html', 'table.html');
+    var tableContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join('html', 'building.html');
+    var buildContent = fs.readFileSync(filePath, 'utf8');
+
+    tableContent = tableContent
+        .replace("###CurWorld###", UserIDs.WID)
+        .replace("###Friends###", FriendsDict.length)
+        .replace("###Clan###", ClanMemberDict.length)
+        .replace("###Neighbor###", NeighborDict.length)
+        .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
+        .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}`)
+
+    var visHidden = processer.HiddenRewards.filter((reward) => {
+        if (reward.position === "cityRoadBig") {
+            if (HideBigRoad)
+                return false;
+            else
+                if (reward.isVisible)
+                    return true;
+                else
+                    return false;
+        }
+    });
+    if (visHidden.length <= 4) {
+        for (let i = 0; i < 4; i++) {
+            const e = visHidden[i];
+            if (undefined === e || null === e)
+                tableContent = tableContent
+                    .replace("###IncRare" + i + "###", "")
+                    .replace("###IncLoc" + i + "###", "")
+            else
+                tableContent = tableContent
+                    .replace("###IncRare" + i + "###", e.rarity)
+                    .replace("###IncLoc" + i + "###", e.position)
+        }
+
+        var distinctProdList = {};
+        distinctProdList = FoBCore.GetDistinctCount(processer.ProductionDict);
+        for (let key in distinctProdList) {
+            if (!distinctProdList.hasOwnProperty(key)) return;
+            var localContent = buildContent;
+
+            const factor = distinctProdList[key].count;
+            const prod = distinctProdList[key];
+
+            var prodName = "idle";
+            if (prod["state"]["__class__"] === "ProducingState") {
+                if (FinishTime === null) {
+                    s = moment.unix(prod["state"]["next_state_transition_at"]).fromNow();
+                    FinishTime = prod["state"]["next_state_transition_at"];
+                    exports.FinishTime = FinishTime;
+                }
+                else
+                    s = moment.unix(FinishTime).fromNow();
+                prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+            }
+            else if (prod["state"]["__class__"] === "IdleState") s = "idle"
+            else if (prod["state"]["__class__"] === "ProductionFinishedState") {
+                s = "finished";
+                prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+            };
+
+            localContent = localContent
+                .replace("###BuildName###", prod["name"])
+                .replace("###ProdName###", prodName)
+                .replace("###ProdState###", s)
+                .replace("###IncRareX###", "")
+                .replace("###IncLocX###", "")
+            tableContent = tableContent.replace("###BuildingIncident###", localContent + "\n\r###BuildingIncident###");
+        }
+        tableContent = tableContent.replace("###BuildingIncident###", "");
+    } else {
+        var distinctProdList = {};
+        distinctProdList = FoBCore.GetDistinctCount(processer.ProductionDict);
+        var prodLength = distinctProdList.length;
+        var HiddenLength = visHidden.length;
+        for (let i = 0; i < 4; i++) {
+            const e = visHidden[i];
+            if (undefined === e || null === e)
+                tableContent = tableContent
+                    .replace("###IncRare" + i + "###", "")
+                    .replace("###IncLoc" + i + "###", "")
+            else
+                tableContent = tableContent
+                    .replace("###IncRare" + i + "###", e.rarity)
+                    .replace("###IncLoc" + i + "###", e.position)
+
+            visHidden = visHidden.filter((reward) => { return (reward.id !== e.id); });
+        }
+        HiddenLength = visHidden.length;
+        var maxLength = (HiddenLength > prodLength) ? HiddenLength : prodLength;
+        for (let i = 0; i < maxLength; i++) {
+            var localContent = buildContent;
+            const Hidden = visHidden[i];
+            const prod = distinctProdList[i];
+
+            if (undefined === Hidden || null === Hidden) {
+                localContent = localContent
+                    .replace("###IncRareX###", "")
+                    .replace("###IncLocX###", "");
+            } else {
+                localContent = localContent
+                    .replace("###IncRareX###", Hidden.rarity)
+                    .replace("###IncLocX###", Hidden.position)
+            }
+
+            if (undefined === prod || null === prod) {
+                localContent = localContent
+                    .replace("###BuildName###", "")
+                    .replace("###ProdName###", "")
+                    .replace("###ProdState###", "")
+            } else {
+                var factor = prod.count;
+                var prodName = "idle";
+                if (prod["state"]["__class__"] === "ProducingState") {
+                    if (FinishTime === null) {
+                        s = moment.unix(prod["state"]["next_state_transition_at"]).fromNow();
+                        FinishTime = prod["state"]["next_state_transition_at"];
+                        exports.FinishTime = FinishTime;
+                    }
+                    else
+                        s = moment.unix(FinishTime).fromNow();
+                    prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                }
+                else if (prod["state"]["__class__"] === "IdleState") s = "idle"
+                else if (prod["state"]["__class__"] === "ProductionFinishedState") {
+                    s = "finished";
+                    prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                };
+
+                localContent = localContent
+                    .replace("###BuildName###", prod["name"])
+                    .replace("###ProdName###", prodName)
+                    .replace("###ProdState###", s)
+            }
+            tableContent = tableContent.replace("###BuildingIncident###", localContent + "\n\r ###BuildingIncident###");
+        }
+        tableContent = tableContent.replace("###BuildingIncident###", "");
     }
-    h.push("<span> "+FoBCore.TableFromArrayObject(p.sort((a,b) => (a.Building > b.Building) ? 1 : ((b.Building > a.Building) ? -1 : 0)),"#")+"</span><br>");
-    h.push("<span>#                                                     </span><br>");
-    h.push("<span>#######################################################</span><br>");
-    FoBCore.printInfo(Gwin, h);
+    FoBCore.printInfo(Gwin, tableContent);
 }
 function createBrowserWindow(url) {
     const win = new BrowserWindow({
@@ -404,8 +533,9 @@ function assocFunction(command, args = null) {
             'VisitAll': async () => { return FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict); },
             'SearchSnipLG': async () => { return FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict); },
             'StartProductionBot': async () => { return FoBProductionBot.StartProductionBot(); }, // 
-            'CollectSelf': async () => { return FoBProductionBot.CollectManuel(); }, // 
-            'QueueSelf': async () => { return FoBProductionBot.StartManuel(); }, // 
+            'CollectSelf': async () => { return FoBProductionBot.CollectManuel(Gwin); }, // 
+            'QueueSelf': async () => { return FoBProductionBot.StartManuel(Gwin); }, // 
+            'CollectIncidnet': async () => { return FoBFunctions.ExecuteCollectRewards(Gwin); },
             'CollectTavern': async () => { return FoBFunctions.CollectTavern(Gwin); },
             'UpdateList': async () => { return GetData(); },
             'SwitchWorlds': async () => { return SwitchWorld(); }
@@ -517,12 +647,16 @@ function addFunctions(menu) {
             {
                 label: "Selbst Einsammeln",
                 id: "CollectSelf",
-                click: () => FoBProductionBot.CollectManuel()
+                click: () => FoBProductionBot.CollectManuel(Gwin)
             },
             {
                 label: "Selbst Starten",
                 id: "QueueSelf",
-                click: () => FoBProductionBot.StartManuel()
+                click: () => FoBProductionBot.StartManuel(Gwin)
+            }, {
+                label: "Incident einsammeln",
+                id: "CollectIncident",
+                click: () => FoBFunctions.ExecuteCollectRewards(Gwin)
             },
             {
                 label: "Taverne einsammeln",
@@ -550,6 +684,16 @@ function addSettings(menu, worlds) {
     }
     worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
     worldItem.push({ label: "Set max Intervall", id: "MaxIntervall" });
+    if (UserIDs.UID !== null) {
+        worldItem.push({
+            label: "Hide BigRoad: " + HideBigRoad, id: "hide_bigroad", click: () => {
+                HideBigRoad = !HideBigRoad;
+                BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                PrepareInfoMenu();
+                exports.HideBigRoad = HideBigRoad;
+            }
+        });
+    }
     worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click: () => { clearStorage() } });
     mitem = new MenuItem({
         label: "Settings",
@@ -595,3 +739,5 @@ function clearStorage() {
 
 exports.GetData = GetData;
 exports.eState = eState;
+exports.FinishTime = FinishTime;
+exports.HideBigRoad = HideBigRoad;

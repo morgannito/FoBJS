@@ -46,25 +46,11 @@
 
         DoWorker();
         IntervallID = timer.timeout;
-        /*IntervallID = setInterval(() => {
-          DoWorker();
-        }, (1000 * 60 * 5)+time);*/
       }
     }
 
     function DoWorker() {
-      for (var i = 0; i < ProdDict.length; i++) {
-        const prodUnit = ProdDict[i];
-        if (prodUnit["state"]["__class__"] === "IdleState") {
-          ipcRenderer.send('DoQuery', { Unit: prodUnit["id"], Product: 1 });
-        }
-        else if (prodUnit["state"]["__class__"] === "ProducingState") {
-          ipcRenderer.send('ChangeState', { Unit: prodUnit["id"], OldState: eState.Producing });
-        }
-        else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-          ipcRenderer.send('DoCollect', { Unit: prodUnit["id"]});
-        }
-      }
+          ipcRenderer.send('DoWork', "");
     }
 
   </script>
