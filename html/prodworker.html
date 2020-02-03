@@ -26,7 +26,11 @@
     });
 
     ipcRenderer.on('updateProdDict', (e, d) => {
-      ProdDict = d;
+      ProdDict = d.ProdDict;
+      console.log(ProdDict);
+      console.log(d.isAuto);
+      if(!d.isAuto)
+        DoWorker(false);
     });
 
     ipcRenderer.on('stop', () => {
@@ -37,20 +41,20 @@
 
     function startWorker() {
       if (IntervallID === null) {
-        timer.start(()=>{
+
+        IntervallID = setInterval(()=>{
           console.log(timer.iv);
           DoWorker();
-          timer.set_interval(FoBCore.getRandomInt((1000*60*7),(1000*60*5)));
           console.log(timer.iv);
-        }, FoBCore.getRandomInt((1000*60*7),(1000*60*5)));
+        },(1000*62*5));
 
         DoWorker();
         IntervallID = timer.timeout;
       }
     }
 
-    function DoWorker() {
-          ipcRenderer.send('DoWork', "");
+    function DoWorker(isAuto = true) {
+          ipcRenderer.send('DoWork', {ProdDict,isAuto});
     }
 
   </script>

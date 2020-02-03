@@ -271,7 +271,10 @@ async function fetchData(x, sig) {
     if (res.status === 200) {
         let body = await res.text();
         try {
-            return JSON.parse(body);
+            var json = JSON.parse(body);
+            if(json[0]["__class__"] === "Error")
+                throw "Error";
+            return json;
         } catch (error) {
             return JSON.parse("[]");
         }
@@ -300,7 +303,14 @@ async function fetchMetaData(url) {
     });
     if (res.status === 200) {
         let body = await res.text();
-        return JSON.parse(body);
+        try {
+            var json = JSON.parse(body);
+            if(json[0]["__class__"] === "Error")
+                throw "Error";
+            return json;
+        } catch (error) {
+            return JSON.parse("[]");
+        }
     }
     else
         return JSON.parse("[]");

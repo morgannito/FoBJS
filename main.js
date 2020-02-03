@@ -59,6 +59,7 @@ var UserIDs = {
     WID: null,
     ForgeHX: null,
 }
+var UserData = {};
 var stop = true;
 var NeighborDict = [];
 var FriendsDict = [];
@@ -70,8 +71,8 @@ var HideBigRoad = true;
 function createWindow() {
     let win = new BrowserWindow({
         title: "FoB v" + app.getVersion(),
-        width: 610,
-        height: 710,
+        width: 805,
+        height: 700,
         webPreferences: {
             nodeIntegration: true,
             webSecurity: false,
@@ -281,6 +282,7 @@ function GetData(clear = true, callback = null) {
                             //Gwin.webContents.send('print', "ClanMember Count: " + processer.ClanMemberDict.length);
                             builder.GetStartup()
                                 .then(body => {
+                                    UserData = processer.GetUserData(body);
                                     processer.GetResourceDefinitions(body);
                                     processer.GetTavernInfo(body);
                                     processer.GetResources(body);
@@ -322,6 +324,15 @@ function PrepareInfoMenu() {
         .replace("###Neighbor###", NeighborDict.length)
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
         .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}`)
+        .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "supplies")}).name}`)
+        .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "money")}).name}`)
+        .replace("###SupplyAmount###", `${processer.ResourceDict.supplies}`)
+        .replace("###MoneyAmount###", `${processer.ResourceDict.money}`)
+        .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "tavern_silver")}).name}`)
+        .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
+        .replace("###DiaName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "premium")}).name}`)
+        .replace("###DiaAmount###", `${processer.ResourceDict.premium}`)
+        .replace("###PlayerName###", `${UserData.UserName}`)
 
     var visHidden = processer.HiddenRewards.filter((reward) => {
         if (reward.position === "cityRoadBig") {

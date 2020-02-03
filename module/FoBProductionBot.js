@@ -12,6 +12,8 @@ var IntervallID = null;
 
 var PWW = null;
 
+var ProdDict = [];
+
 function StartProductionBot() {
 
     var ProductionWorker = new BrowserWindow({
@@ -30,35 +32,43 @@ function StartProductionBot() {
     });
 
     ipcMain.on('DoWork', (e, d) => {
-        var promArr = [];
-        var started = false;
-        for (var i = 0; i < ProdDict.length; i++) {
-            const prodUnit = ProdDict[i];
-            if (prodUnit["state"]["__class__"] === "IdleState") {
-                promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
-            }
-            else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-                promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
-                started = true;
-            }
-        }
+        ProdDict = d.ProdDict;
+        DoWork(d.isAuto);
+    });
+}
 
-        Promise.all(promArr).then(values => {
-            if(started){
-                myEmitter.emit("TimeUpdate", (new Date().getTime()/1000) + (1000*60*5));
-                IntervallID = setInterval(()=>{
-                    myEmitter.emit("UpdateMenu", "");
-                },500);
-            }else{
-                myEmitter.emit("TimeUpdate", null);
-                clearInterval(IntervallID);
-            }
-            Main.GetData(true, () => {
-                PWW.webContents.send('updateProdDict', processer.ProductionDict);
-            });
-        }, reason => {
-            throw reason;
+function DoWork(isAuto) {
+    var promArr = [];
+    var started = false;
+    for (var i = 0; i < ProdDict.length; i++) {
+        const prodUnit = ProdDict[i];
+        if (prodUnit["state"]["__class__"] === "IdleState") {
+            promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
+            started = true;
+        }
+        else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+            promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
+        }
+    }
+
+    Promise.all(promArr).then(values => {
+        if(!isAuto) isAuto = true;
+        if (started) {
+            myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * 5) / 1000));
+            IntervallID = setInterval(() => {
+                myEmitter.emit("UpdateMenu", "");
+            }, 500);
+        } else {
+            myEmitter.emit("TimeUpdate", null);
+            clearInterval(IntervallID);
+            isAuto = false;
+        }
+        Main.GetData(true, () => {
+            ProdDict = processer.ProductionDict;
+            PWW.webContents.send('updateProdDict',{ProdDict, isAuto});
         });
+    }, reason => {
+        throw reason;
     });
 }
 
@@ -78,7 +88,7 @@ function CollectManuel(ConsoleWin) {
             clearInterval(IntervallID);
         });
     }, reason => {
-        throw reason; 
+        throw reason;
     });
 }
 
@@ -92,12 +102,12 @@ function StartManuel(ConsoleWin) {
         }
     }
     Promise.all(promArr).then(values => {
-        myEmitter.emit("TimeUpdate", ((new Date().getTime()+1000*60*5)/1000));
+        myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * 5) / 1000));
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
-            IntervallID = setInterval(()=>{
+            IntervallID = setInterval(() => {
                 myEmitter.emit("UpdateMenu", "");
-            },500);
+            }, 500);
         });
     }, reason => {
         throw reason;

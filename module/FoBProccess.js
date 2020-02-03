@@ -121,9 +121,9 @@ function GetTavernCollectResult(data) {
         const resData = data[i];
         if (resData["requestClass"] === "FriendsTavernService" && resData["requestMethod"] === "collectReward") {
             if ((oldTavernSilver !== undefined && oldTavernSilver !== null) && (newTavernSilver !== undefined && newTavernSilver !== null)) {
-                if (oldTavernSilver < newTavernSilver){
+                if (oldTavernSilver < newTavernSilver) {
                     return (newTavernSilver - oldTavernSilver)
-                }else{
+                } else {
                     return 0;
                 }
             }
@@ -142,7 +142,7 @@ function GetRewardResult(data) {
             let RewardResults = resData["responseData"];
             var Result = [];
             for (let i = 0; i < RewardResults.length; i++) {
-                if(RewardResults[i] === "default") continue;
+                if (RewardResults[i] === "default") continue;
                 const RewardResult = RewardResults[i][i];
                 Result.push({
                     type: RewardResult["subType"],
@@ -214,7 +214,7 @@ function GetHiddenRewards(data) {
                 let endTime = _reward["expireTime"];
                 var reward = {
                     id: _reward["hiddenRewardId"],
-                    isVisible: ((endTime > new Date().getTime()/1000) && (startTime < new Date().getTime()/1000)),
+                    isVisible: ((endTime > new Date().getTime() / 1000) && (startTime < new Date().getTime() / 1000)),
                     rarity: _reward["rarity"],
                     position: _reward["position"]["context"]
                 }
@@ -306,7 +306,22 @@ function GetOnlySupplyUnits(data) {
     }
     exports.UseableSupplyProdutction = UseableSupplyProdutction;
 }
-
+function GetUserData(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "StartupService" && resData["requestMethod"] === "getData") {
+            for (const key in resData["responseData"]) {
+                if (resData["responseData"].hasOwnProperty(key)) {
+                    const item = resData["responseData"][key];
+                    if (item["__class__"] === "CityUserData") {
+                        return { UserID: item.player_id, UserName: item.user_name };
+                    }
+                }
+            }
+        }
+    }
+    exports.OwnTavernInfo = OwnTavernInfo;
+}
 function GetLGResult(data, ArcBonus) {
     let PossibleLGDict = [];
     for (let i = 0; i < data.length; i++) {
@@ -396,6 +411,7 @@ function FormatKurs(k) {
 }
 
 exports.GetRewardResult = GetRewardResult;
+exports.GetUserData = GetUserData;
 exports.GetProductionUnits = GetProductionUnits;
 exports.GetOnlySupplyUnits = GetOnlySupplyUnits;
 exports.GetHiddenRewards = GetHiddenRewards;

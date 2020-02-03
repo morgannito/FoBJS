@@ -1,27 +1,193 @@
 <style type="text/css">
-    .tg  {border-collapse:collapse;border-spacing:0;}
-    .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;}
-    .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;}
-    .tg .tg-17zb{font-weight:bold;font-size:20px;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-wqbb{font-size:10px;background-color:#ffffff;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-x028{font-weight:bold;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-mk6l{background-color:#000000;color:#ffffff;border-color:#000000;text-align:left;vertical-align:top}
-    .tg .tg-hfk9{background-color:#000000;border-color:#000000;text-align:left;vertical-align:top}
-    .tg .tg-wcfv{font-size:xx-small;font-family:"Arial Black", Gadget, sans-serif !important;;background-color:#ffffff;border-color:#000000;text-align:left;vertical-align:top}
-    .tg .tg-7fhs{font-style:italic;background-color:#ffffff;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-bvxb{background-color:#ffffff;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-kk4w{font-style:italic;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-    .tg .tg-p0kf{background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
+    .tg {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+
+    .tg td {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        padding: 10px 5px;
+        border-style: solid;
+        border-width: 0px;
+        overflow: hidden;
+        word-break: normal;
+    }
+
+    .tg th {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: normal;
+        padding: 10px 5px;
+        border-style: solid;
+        border-width: 0px;
+        overflow: hidden;
+        word-break: normal;
+    }
+
+    .tg .tg-17zb {
+        font-weight: bold;
+        font-size: 20px;
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-x028 {
+        font-weight: bold;
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-mk6l {
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-hfk9 {
+        background-color: #000000;
+        border-color: #000000;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-ntt9 {
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: #ffffff;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-twhk {
+        font-size: 20px;
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-kk4w {
+        font-style: italic;
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-p0kf {
+        background-color: #000000;
+        color: #ffffff;
+        border-color: #000000;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-c9up {
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: #ffffff;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-cqwb {
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: inherit;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-rfgp {
+        font-size: 10px;
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: #ffffff;
+        text-align: center;
+        vertical-align: top
+    }
+
+    .tg .tg-c2e9 {
+        font-size: xx-small;
+        font-family: "Arial Black", Gadget, sans-serif !important;
+        ;
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: #ffffff;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-gqa8 {
+        font-style: italic;
+        background-color: #ffffff;
+        color: #ffffff;
+        border-color: #ffffff;
+        text-align: center;
+        vertical-align: top
+    }
 </style>
 <table class="tg">
     <tr>
-        <th class="tg-17zb" colspan="11">Current World: ###CurWorld###</th>
+        <th class="tg-17zb" colspan="6">Current World: ###CurWorld###</th>
+        <th class="tg-twhk" colspan="5">Player: ###PlayerName###</th>
+    </tr>
+    <tr>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+    </tr>
+    <tr>
+        <td class="tg-p0kf" colspan="3">###SupplyName###</td>
+        <td class="tg-c9up" rowspan="2"></td>
+        <td class="tg-p0kf" colspan="3">###MoneyName###</td>
+        <td class="tg-c9up" rowspan="2"></td>
+        <td class="tg-p0kf" colspan="2">###TavernSilverName###</td>
+        <td class="tg-p0kf">###DiaName###</td>
+    </tr>
+    <tr>
+        <td class="tg-p0kf" colspan="3">###SupplyAmount###</td>
+        <td class="tg-p0kf" colspan="3">###MoneyAmount###</td>
+        <td class="tg-p0kf" colspan="2">###TavernSilverAmount###</td>
+        <td class="tg-p0kf">###DiaAmount###</td>
+    </tr>
+    <tr>
+        <td class="tg-cqwb"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
+        <td class="tg-ntt9"></td>
     </tr>
     <tr>
         <td class="tg-x028" colspan="3">Lists</td>
-        <td class="tg-wqbb"></td>
+        <td class="tg-rfgp" rowspan="3"></td>
         <td class="tg-x028" colspan="3">Tavern</td>
-        <td class="tg-bvxb"></td>
+        <td class="tg-c9up" rowspan="3"></td>
         <td class="tg-x028"></td>
         <td class="tg-p0kf" colspan="2">Incidents</td>
     </tr>
@@ -29,11 +195,9 @@
         <td class="tg-kk4w">Friends</td>
         <td class="tg-kk4w">Clanmember</td>
         <td class="tg-kk4w">Neighbor</td>
-        <td class="tg-wqbb"></td>
         <td class="tg-kk4w">Visitable</td>
         <td class="tg-kk4w"></td>
         <td class="tg-kk4w">Your Status</td>
-        <td class="tg-7fhs"></td>
         <td class="tg-kk4w"></td>
         <td class="tg-kk4w">Rarity</td>
         <td class="tg-mk6l">Location</td>
@@ -42,24 +206,22 @@
         <td class="tg-p0kf">###Friends###</td>
         <td class="tg-p0kf">###Clan###</td>
         <td class="tg-p0kf">###Neighbor###</td>
-        <td class="tg-wqbb"></td>
         <td class="tg-p0kf">###Visitable###<br></td>
         <td class="tg-p0kf"></td>
-        <td class="tg-p0kf">###State###</td>
-        <td class="tg-bvxb"></td>
+        <td class="tg-p0kf">###State### sitting</td>
         <td class="tg-p0kf"></td>
         <td class="tg-p0kf">###IncRare0###</td>
         <td class="tg-p0kf">###IncLoc0###</td>
     </tr>
     <tr>
-        <td class="tg-wcfv" colspan="8"></td>
+        <td class="tg-c2e9" colspan="8"></td>
         <td class="tg-hfk9"></td>
         <td class="tg-p0kf">###IncRare1###</td>
         <td class="tg-p0kf">###IncLoc1###</td>
     </tr>
     <tr>
         <td class="tg-x028" colspan="7">Production</td>
-        <td class="tg-bvxb"></td>
+        <td class="tg-c9up"></td>
         <td class="tg-p0kf"></td>
         <td class="tg-p0kf">###IncRare2###</td>
         <td class="tg-p0kf">###IncLoc2###</td>
@@ -69,7 +231,7 @@
         <td class="tg-kk4w"></td>
         <td class="tg-kk4w" colspan="2">Product</td>
         <td class="tg-kk4w">Status</td>
-        <td class="tg-7fhs"></td>
+        <td class="tg-gqa8"></td>
         <td class="tg-kk4w"></td>
         <td class="tg-p0kf">###IncRare3###</td>
         <td class="tg-p0kf">###IncLoc3###</td>
