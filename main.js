@@ -67,6 +67,7 @@ var ClanMemberDict = [];
 var UpdateInfoID = null;
 var FinishTime = null;
 var HideBigRoad = true;
+var CurrentProduction = { time: "5min", id: 1 };
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -244,8 +245,9 @@ proxy.emitter.on("UID_Loaded", data => {
                     Lwin.destroy();
                     Gwin.webContents.send('print', "init RequestBuilder");
                     builder.init(UserIDs.UID, VS, VMM, UserIDs.WID);
-                    GetData();
-                    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                    GetData(true, () => {
+                        BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                    });
                     if (UpdateInfoID === null) {
                         timer.start(() => {
                             GetData();
@@ -324,13 +326,13 @@ function PrepareInfoMenu() {
         .replace("###Neighbor###", NeighborDict.length)
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
         .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}`)
-        .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "supplies")}).name}`)
-        .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "money")}).name}`)
+        .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
+        .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "money") }).name}`)
         .replace("###SupplyAmount###", `${processer.ResourceDict.supplies}`)
         .replace("###MoneyAmount###", `${processer.ResourceDict.money}`)
-        .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "tavern_silver")}).name}`)
+        .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "tavern_silver") }).name}`)
         .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
-        .replace("###DiaName###", `${processer.ResourceDefinitions.find((v,i,r)=>{return (v.id === "premium")}).name}`)
+        .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
         .replace("###DiaAmount###", `${processer.ResourceDict.premium}`)
         .replace("###PlayerName###", `${UserData.UserName}`)
 
@@ -588,8 +590,15 @@ function createBrowserWindowAuto(url) {
     });
     Lwin = win;
 }
+function SwitchProduction(ProdID, Prodtime) {
+    CurrentProduction.id = ProdID;
+    CurrentProduction.time = Prodtime;
+    exports.CurrentProduction = CurrentProduction;
+    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+}
 function BuildMenu(login, logout, functions, settings, quit, devtools) {
     worlds = [];
+    productionOptions = [];
     Menu.setApplicationMenu(new Menu());
     menu = Menu.getApplicationMenu();
 
@@ -604,10 +613,22 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
                 else
                     worlds.push({ label: world, id: world, click: () => { SwitchWorld(world); } });
             });
-            addSettings(menu, worlds);
         }
+        if (processer.ProductionDict.length > 0) {
+            Options = FoBCore.getProductionOptions();
+            for (const key in Options) {
+                if (Options.hasOwnProperty(key)) {
+                    const element = Options[key];
+                    if (element === CurrentProduction.id)
+                        productionOptions.push({ label: key + " (Current)", id: element, click: () => { return; } });
+                    else
+                        productionOptions.push({ label: key, id: element, click: () => { SwitchProduction(element, key); } });
+                }
+            }
+        }
+        addSettings(menu, worlds, productionOptions);
     } else if (login && settings) {
-        if (settings) addSettings(menu, null);
+        if (settings) addSettings(menu);
     }
     if (quit) addQuit(menu);
     if (devtools) addDevTools(menu);
@@ -684,13 +705,13 @@ function addFunctions(menu) {
     });
     menu.append(mitem);
 }
-function addSettings(menu, worlds) {
+function addSettings(menu, worlds = null, prodOptions = null) {
     var worldItem = [];
-    if (null !== worlds) {
+    if (null !== prodOptions) {
         worldItem.push({
-            label: "Switch Worlds",
-            id: "SwitchWorlds",
-            submenu: worlds
+            label: "Switch Production",
+            id: "SwitchProduction",
+            submenu: prodOptions
         })
     }
     worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
@@ -704,6 +725,13 @@ function addSettings(menu, worlds) {
                 exports.HideBigRoad = HideBigRoad;
             }
         });
+    }
+    if (null !== worlds) {
+        worldItem.push({
+            label: "Switch Worlds",
+            id: "SwitchWorlds",
+            submenu: worlds
+        })
     }
     worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click: () => { clearStorage() } });
     mitem = new MenuItem({
@@ -752,3 +780,4 @@ exports.GetData = GetData;
 exports.eState = eState;
 exports.FinishTime = FinishTime;
 exports.HideBigRoad = HideBigRoad;
+exports.CurrentProduction = CurrentProduction;

@@ -8,6 +8,8 @@ exports.printInfo = printInfo;
 exports.GetP1 = GetP1;
 exports.TableFromArrayObject = TableFromArrayObject;
 exports.GetDistinctCount = GetDistinctCount;
+exports.getGoodsProductionOptions = getGoodsProductionOptions;
+exports.getProductionOptions = getProductionOptions;
 var reqID = 2;
 
 function getRandomInt(max, min = null) {
@@ -25,6 +27,25 @@ function getNextRequestID() {
 
 function getRandomIntervall() {
     return Math.floor(Math.random() * (2000 - 800) + 800);
+}
+
+function getProductionOptions() {
+    return {
+        "5min": 1,
+        "15min": 2,
+        "1h": 3,
+        "4h": 4,
+        "8h": 5,
+        "1d": 6
+    }
+}
+function getGoodsProductionOptions() {
+    return {
+        "4h": 1,
+        "8h": 2,
+        "1d": 3,
+        "2d": 4
+    }
 }
 
 function hasOnlySupplyProduction(availableProducts) {
