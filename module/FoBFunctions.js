@@ -90,7 +90,21 @@ function ExecuteCollectRewards(Gwin) {
     });
 }
 function CollectRewards(callback) {
-    HiddenRewards = processer.HiddenRewards.filter((reward) => { return (reward.isVisible === true); });
+    HiddenRewards = processer.HiddenRewards.filter((reward) => {
+        if (reward.position === "cityRoadBig") {
+            if (Main.HideBigRoad)
+                return false;
+            else
+                if (reward.isVisible)
+                    return true;
+                else
+                    return false;
+        } 
+        if (reward.isVisible)
+            return true;
+        else
+            return false;
+    });
     ConsoleWin.webContents.send('print', `Do: Collect Incidents (Count: ${HiddenRewards.length})`);
     var i = 0;
     if (HiddenRewards.length > 0) {
@@ -184,7 +198,7 @@ function MotivateMember(callback) {
     }
     else {
         callback();
-}
+    }
 }
 function MotivateFriends(callback) {
     ConsoleWin.webContents.send('print', "Do: Motivate all Friends (Count: " + FriendsList.length + ")");

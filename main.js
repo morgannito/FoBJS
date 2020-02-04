@@ -67,7 +67,7 @@ var ClanMemberDict = [];
 var UpdateInfoID = null;
 var FinishTime = null;
 var HideBigRoad = true;
-var CurrentProduction = { time: "5min", id: 1 };
+var CurrentProduction = { time: 5, id: 1, text: "5min" };
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -190,7 +190,7 @@ async function DoLogout() {
     storage.remove("LastWorld");
     storage.remove("PlayableWorld");
     //await session.defaultSession.clearStorageData();
-    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+    BuildMenu(true, false, false, true, true, isDev);
     FoBCore.pWL(Gwin, app);
     Gwin.webContents.send('clearInfoMenu', "");
 }
@@ -250,7 +250,7 @@ proxy.emitter.on("UID_Loaded", data => {
                     });
                     if (UpdateInfoID === null) {
                         timer.start(() => {
-                            GetData();
+                            GetData(false);
                             timer.set_interval(FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
                         }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
                         UpdateInfoID = timer.timeout;
@@ -346,6 +346,10 @@ function PrepareInfoMenu() {
                 else
                     return false;
         }
+        if (reward.isVisible)
+            return true;
+        else
+            return false;
     });
     if (visHidden.length <= 4) {
         for (let i = 0; i < 4; i++) {
@@ -361,12 +365,10 @@ function PrepareInfoMenu() {
         }
 
         var distinctProdList = {};
-        distinctProdList = FoBCore.GetDistinctCount(processer.ProductionDict);
+        distinctProdList = processer.ProductionDict;
         for (let key in distinctProdList) {
             if (!distinctProdList.hasOwnProperty(key)) return;
             var localContent = buildContent;
-
-            const factor = distinctProdList[key].count;
             const prod = distinctProdList[key];
 
             var prodName = "idle";
@@ -378,12 +380,12 @@ function PrepareInfoMenu() {
                 }
                 else
                     s = moment.unix(FinishTime).fromNow();
-                prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
             }
             else if (prod["state"]["__class__"] === "IdleState") s = "idle"
             else if (prod["state"]["__class__"] === "ProductionFinishedState") {
                 s = "finished";
-                prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
             };
 
             localContent = localContent
@@ -397,7 +399,7 @@ function PrepareInfoMenu() {
         tableContent = tableContent.replace("###BuildingIncident###", "");
     } else {
         var distinctProdList = {};
-        distinctProdList = FoBCore.GetDistinctCount(processer.ProductionDict);
+        distinctProdList = processer.ProductionDict;
         var prodLength = distinctProdList.length;
         var HiddenLength = visHidden.length;
         for (let i = 0; i < 4; i++) {
@@ -436,7 +438,6 @@ function PrepareInfoMenu() {
                     .replace("###ProdName###", "")
                     .replace("###ProdState###", "")
             } else {
-                var factor = prod.count;
                 var prodName = "idle";
                 if (prod["state"]["__class__"] === "ProducingState") {
                     if (FinishTime === null) {
@@ -446,12 +447,12 @@ function PrepareInfoMenu() {
                     }
                     else
                         s = moment.unix(FinishTime).fromNow();
-                    prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                    prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
                 }
                 else if (prod["state"]["__class__"] === "IdleState") s = "idle"
                 else if (prod["state"]["__class__"] === "ProductionFinishedState") {
                     s = "finished";
-                    prodName = factor + "x " + prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                    prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
                 };
 
                 localContent = localContent
@@ -590,9 +591,10 @@ function createBrowserWindowAuto(url) {
     });
     Lwin = win;
 }
-function SwitchProduction(ProdID, Prodtime) {
-    CurrentProduction.id = ProdID;
-    CurrentProduction.time = Prodtime;
+function SwitchProduction(element, id) {
+    CurrentProduction.id = element.id;
+    CurrentProduction.time = id;
+    CurrentProduction.text = element.text;
     exports.CurrentProduction = CurrentProduction;
     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 }
@@ -619,10 +621,10 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
             for (const key in Options) {
                 if (Options.hasOwnProperty(key)) {
                     const element = Options[key];
-                    if (element === CurrentProduction.id)
-                        productionOptions.push({ label: key + " (Current)", id: element, click: () => { return; } });
+                    if (parseInt(key) === CurrentProduction.time)
+                        productionOptions.push({ label: element.text + " (Current)", id: element.id, click: () => { return; } });
                     else
-                        productionOptions.push({ label: key, id: element, click: () => { SwitchProduction(element, key); } });
+                        productionOptions.push({ label: element.text, id: element.id, click: () => { SwitchProduction(element, parseInt(key)); } });
                 }
             }
         }

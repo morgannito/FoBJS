@@ -283,12 +283,11 @@ function GetProductionUnits(data, ceData) {
         }
     }
     if (Buildings.length > 0) {
-        for (let x = 0; x < Buildings.length; x++) {
-            const useable = Buildings[x];
-            ProductionDict = ProductionDict.concat(UseableSupplyProdutction.filter(entitie => {
-                if (entitie["id"] === useable["cityentity_id"]) {
-                    entitie["state"] = useable["state"];
-                    entitie["_id"] = useable["id"];
+        for (let x = 0; x < UseableSupplyProdutction.length; x++) {
+            const useable = UseableSupplyProdutction[x];
+            ProductionDict = ProductionDict.concat(Buildings.filter(entitie => {
+                if (useable["id"] === entitie["cityentity_id"]) {
+                    entitie["name"] = useable["name"];
                     return entitie;
                 }
             }));

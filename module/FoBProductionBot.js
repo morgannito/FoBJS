@@ -43,18 +43,18 @@ function DoWork(isAuto) {
     for (var i = 0; i < ProdDict.length; i++) {
         const prodUnit = ProdDict[i];
         if (prodUnit["state"]["__class__"] === "IdleState") {
-            promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
+            promArr.push(FoBuilder.DoQueryProduction(prodUnit["id"], Main.CurrentProduction.id));
             started = true;
         }
         else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-            promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
+            promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
         }
     }
 
     Promise.all(promArr).then(values => {
         if(!isAuto) isAuto = true;
         if (started) {
-            myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * 5) / 1000));
+            myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * Main.CurrentProduction.time) / 1000));
             IntervallID = setInterval(() => {
                 myEmitter.emit("UpdateMenu", "");
             }, 500);
@@ -78,14 +78,13 @@ function CollectManuel(ConsoleWin) {
     for (let i = 0; i < processer.ProductionDict.length; i++) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-            promArr.push(FoBuilder.DoCollectProduction([prodUnit["_id"]]));
+            promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
         }
     }
     Promise.all(promArr).then(values => {
         myEmitter.emit("TimeUpdate", null);
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
-            clearInterval(IntervallID);
         });
     }, reason => {
         throw reason;
@@ -98,11 +97,11 @@ function StartManuel(ConsoleWin) {
     for (let i = 0; i < processer.ProductionDict.length; i++) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "IdleState") {
-            promArr.push(FoBuilder.DoQueryProduction(prodUnit["_id"], 1));
+            promArr.push(FoBuilder.DoQueryProduction(prodUnit["id"], Main.CurrentProduction.id));
         }
     }
     Promise.all(promArr).then(values => {
-        myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * 5) / 1000));
+        myEmitter.emit("TimeUpdate", ((new Date().getTime() + 1000 * 60 * Main.CurrentProduction.time) / 1000));
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
             IntervallID = setInterval(() => {

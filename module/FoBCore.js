@@ -31,20 +31,20 @@ function getRandomIntervall() {
 
 function getProductionOptions() {
     return {
-        "5min": 1,
-        "15min": 2,
-        "1h": 3,
-        "4h": 4,
-        "8h": 5,
-        "1d": 6
+        5: {text: "5min", id: 1},
+        15: {text: "15min", id: 2},
+        60: {text: "1h", id: 3},
+        240: {text: "4h", id: 4},
+        480: {text: "8h", id: 5},
+        1440: {text: "1d", id: 6}
     }
 }
 function getGoodsProductionOptions() {
     return {
-        "4h": 1,
-        "8h": 2,
-        "1d": 3,
-        "2d": 4
+        240: {text: "4h", id: 1},
+        480: {text: "8h", id: 2},
+        1440: {text: "1d", id: 3},
+        2880: {text: "2d", id: 4}
     }
 }
 
