@@ -9,7 +9,17 @@ var LimitedBonuses = [];
 var HiddenRewards = [];
 var ResourceDefinitions = [];
 var ProductionDict = [];
-var UseableSupplyProdutction = [];
+var AllBuildings = [];
+var ResidentialDict = [];
+var DProductionDict = [];
+var DResidentialDict = [];
+var BuildingsDict = [];
+var AllBoosts = {
+    'happiness_amount': 0,
+    'coin_production': 0,
+    'supply_production': 0
+};
+var Boosts = [];
 
 var oldTavernSilver = null;
 var newTavernSilver = null;
@@ -35,7 +45,6 @@ function GetNeighbor(data) {
     exports.NeighborDict = NeighborDict;
     return NeighborDict;
 }
-
 function GetFriends(data) {
     FriendsDict = [];
     for (let i = 0; i < data.length; i++) {
@@ -58,7 +67,6 @@ function GetFriends(data) {
     exports.FriendsDict = FriendsDict;
     return FriendsDict;
 }
-
 function GetClanMember(data) {
     ClanMemberDict = [];
     for (let i = 0; i < data.length; i++) {
@@ -80,7 +88,6 @@ function GetClanMember(data) {
     exports.ClanMemberDict = ClanMemberDict;
     return ClanMemberDict;
 }
-
 function GetMotivateResult(data) {
     var reward = 0;
     var result = "";
@@ -96,7 +103,6 @@ function GetMotivateResult(data) {
     }
     return { result: result, reward: reward };
 }
-
 function GetTavernInfo(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -115,7 +121,6 @@ function GetTavernInfo(data) {
         }
     }
 }
-
 function GetTavernCollectResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -134,7 +139,6 @@ function GetTavernCollectResult(data) {
         }
     }
 }
-
 function GetRewardResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -160,7 +164,6 @@ function GetRewardResult(data) {
         }
     }
 }
-
 function GetTavernResult(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -260,51 +263,6 @@ function GetTavernReward(data) {
     }
     return result;
 }
-function GetProductionUnits(data, ceData) {
-    ProductionDict = [];
-    if (UseableSupplyProdutction.length === 0 && ceData !== null)
-        GetOnlySupplyUnits(ceData);
-    var Buildings = [];
-    for (let i = 0; i < data.length; i++) {
-        const resData = data[i];
-        if (resData["requestClass"] === "CityMapService" && resData["requestMethod"] === "getEntities") {
-            Buildings = resData["responseData"];
-        }
-        else if (resData["requestClass"] === "StartupService" && resData["requestMethod"] === "getData") {
-            for (const key in resData["responseData"]) {
-                if (resData["responseData"].hasOwnProperty(key)) {
-                    const element = resData["responseData"][key];
-                    if (element["__class__"] == "CityMap") {
-                        Buildings = element["entities"];
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    if (Buildings.length > 0) {
-        for (let x = 0; x < UseableSupplyProdutction.length; x++) {
-            const useable = UseableSupplyProdutction[x];
-            ProductionDict = ProductionDict.concat(Buildings.filter(entitie => {
-                if (useable["id"] === entitie["cityentity_id"]) {
-                    entitie["name"] = useable["name"];
-                    return entitie;
-                }
-            }));
-        }
-    }
-    exports.ProductionDict = ProductionDict;
-}
-function GetOnlySupplyUnits(data) {
-    for (let i = 0; i < data.length; i++) {
-        const Unit = data[i];
-        if (undefined !== Unit["available_products"]) {
-            if (FoBCore.hasOnlySupplyProduction(Unit["available_products"]))
-                UseableSupplyProdutction.push(Unit);
-        }
-    }
-    exports.UseableSupplyProdutction = UseableSupplyProdutction;
-}
 function GetUserData(data) {
     for (let i = 0; i < data.length; i++) {
         const resData = data[i];
@@ -397,22 +355,375 @@ function GetArcBonus(data) {
     }
     exports.ArcBonus = ArcBonus;
 }
-function clearLists() {
-    NeighborDict = [];
-    FriendsDict = [];
-    ClanMemberDict = [];
-}
-function FormatKurs(k) {
+function FormatKurs(Kurs) {
     if (Kurs === 0)
         return '-';
     else
         return Kurs + '%';
 }
+function GetBuildings(data) {
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "StartupService" && resData["requestMethod"] === "getData") {
+            for (const key in resData["responseData"]) {
+                if (resData["responseData"].hasOwnProperty(key)) {
+                    const item = resData["responseData"][key];
+                    if (item["__class__"] === "CityMap") {
+                        BuildingsDict = item["entities"];
+                    }
+                }
+            }
+        }
+    }
+    exports.BuildingsDict = BuildingsDict;
+}
+function GetHappinesBoost() {
+    let d = BuildingsDict;
+    var BuildingsAll = [];
+    let PopulationSum = 0,
+        HappinessSum = 0;
 
+    for (let i in d) {
+        if (d.hasOwnProperty(i) && d[i]['id'] < 2000000000) {
+            // jede einzelne Produktart holen
+            let building = readType(d[i]);
+
+            // das Gebäude produziert etwas?
+            if (building !== false) {
+                BuildingsAll.push(building);
+
+                if (building['products']['population'] !== undefined) {
+                    PopulationSum += building['products']['population'];
+                }
+                if (building['products']['happiness'] !== undefined) {
+                    HappinessSum += building['products']['happiness'];
+                }
+
+            }
+        }
+    }
+
+    let HappinessBonus = AllBoosts['happiness_amount'];
+    if (HappinessBonus !== undefined && HappinessBonus !== 0) {
+        let building = {
+            name: 'Adjacent buildings',
+            type: 'boost',
+            products: [],
+            motivatedproducts: [],
+            at: (new Date().getTime()) / 1000,
+            in: 0
+        }
+        building.products['happiness'] = HappinessBonus;
+        building.motivatedproducts['happiness'] = HappinessBonus;
+
+        HappinessSum += HappinessBonus;
+        BuildingsAll.push(building);
+    }
+
+    let ProdBonus = 0;
+    if (HappinessSum < PopulationSum) {
+        ProdBonus = 0.5;
+    }
+    else if (HappinessSum < 1.4 * PopulationSum) {
+        ProdBonus = 1;
+    }
+    else {
+        ProdBonus = 1.2;
+    }
+
+    Boosts['money'] = ProdBonus;
+    Boosts['supplies'] = ProdBonus;
+
+    exports.Boosts = Boosts;
+}
+function GetAllBuildings(metaCity) {
+    var j = metaCity;
+    BuildingNamesi18n = {};
+    for (const i in j) {
+        if (j.hasOwnProperty(i)) {
+            BuildingNamesi18n[j[i]['asset_id']] = {
+                id: j[i]['id'],
+                name: j[i]['name'],
+                width: j[i]['width'],
+                height: j[i]['length'],
+                type: j[i]['type'],
+                provided_happiness: j[i]['provided_happiness'],
+                population: undefined,
+                entity_levels: j[i]['entity_levels'],
+                available_products: j[i]['available_products'],
+            };
+
+            if (j[i]['abilities'] !== undefined) {
+                for (let x in j[i]['abilities']) {
+                    if (j[i]['abilities'].hasOwnProperty(x)) {
+                        let ar = j[i]['abilities'][x];
+
+                        if (ar['additionalResources'] !== undefined && ar['additionalResources']['AllAge'] !== undefined && ar['additionalResources']['AllAge']['resources'] !== undefined) {
+                            BuildingNamesi18n[j[i]['asset_id']]['additionalResources'] = ar['additionalResources']['AllAge']['resources'];
+                        }
+                    }
+                }
+            }
+
+            if (j[i]['staticResources'] !== undefined && j[i]['staticResources']['resources'] !== undefined) {
+                BuildingNamesi18n[j[i]['asset_id']]['population'] = j[i]['staticResources']['resources']['population'];
+            }
+        }
+    }
+    AllBuildings = BuildingNamesi18n;
+    exports.AllBuildings = AllBuildings;
+}
+function GetOwnBuildings() {
+    ResidentialDict = [];
+    ProductionDict = [];
+    var city = BuildingsDict;
+    var meta = AllBuildings;
+    for (let ci = 0; ci < city.length; ci++) {
+        const cb = city[ci];
+        for (const b in meta) {
+            if (meta.hasOwnProperty(b)) {
+                const mb = meta[b];
+                if (cb["cityentity_id"] === mb["id"]) {
+                    cb["name"] = mb.name;
+                    cb["available_products"] = mb["available_products"];
+                    cb["type"] = mb["type"];
+                    if (cb.type === 'production' && FoBCore.hasOnlySupplyProduction(cb["available_products"]))
+                        ProductionDict.push(cb);
+                    else if (cb.type === 'residential')
+                        ResidentialDict.push(cb);
+                }
+            }
+        }
+    }
+    BuildingsDict = city;
+
+    exports.ProductionDict = ProductionDict;
+    exports.ResidentialDict = ResidentialDict;
+    exports.BuildingsDict = BuildingsDict;
+}
+function GetBoosts() {
+    var d = BuildingsDict;
+
+    var BoostMapper = {
+        'supplies_boost': 'supply_production',
+        'happiness': 'happiness_amount',
+        'military_boost': 'att_boost_attacker',
+        'money_boost': 'coin_production'
+    };
+    for (let i in d) {
+        if (d.hasOwnProperty(i)) {
+            if (d[i]['type'] === 'greatbuilding') {
+                if (d[i]['bonus'] !== undefined && BoostMapper[d[i]['bonus']['type']] !== undefined) {
+                    if (d[i]['bonus']['type'] !== 'happiness') {
+                        AllBoosts[BoostMapper[d[i]['bonus']['type']]] += d[i]['bonus']['value']
+                    }
+                }
+            }
+        }
+    }
+    exports.AllBoosts = AllBoosts;
+}
+function GetDistinctProductList() {
+    DResidentialDict = [];
+    DProductionDict = [];
+    var add = true;
+    for (let i = 0; i < ProductionDict.length; i++) {
+        const prod = ProductionDict[i];
+        if (DProductionDict.length === 0) { DProductionDict.push({ count: 1, prod: prod }); continue; }
+        for (let j = 0; j < DProductionDict.length; j++) {
+            const dProd = DProductionDict[j];
+            if (prod["state"]["__class__"] === "ProducingState") {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                    var range = { min: dProd.prod.state["next_state_transition_at"] - 10, max: dProd.prod.state["next_state_transition_at"] + 10 };
+                    if (range.min < prod.state["next_state_transition_at"] < range.max) {
+                        if (dProd.prod.state["next_state_transition_at"] < prod.state["next_state_transition_at"])
+                            dProd.prod.state["next_state_transition_at"] = prod.state["next_state_transition_at"];
+                        dProd.count += 1;
+                        add = false;
+                    }
+                }
+                if (add) add = true;
+            } else {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                    dProd.count += 1;
+                    add = false;
+                }
+                if (add) add = true;
+            }
+        }
+        if (add)
+            DProductionDict.push({ count: 1, prod: prod });
+        add = true;
+    }
+    add = true;
+    for (let i = 0; i < ResidentialDict.length; i++) {
+        const res = ResidentialDict[i];
+        if (DResidentialDict.length === 0) { DResidentialDict.push({ count: 1, res: res }); continue; }
+        for (let j = 0; j < DResidentialDict.length; j++) {
+            const dRes = DResidentialDict[j];
+            if (res["state"]["__class__"] === "ProducingState") {
+                if (res["cityentity_id"] === dRes.res["cityentity_id"]) {
+                    var range = { min: dRes.res.state["next_state_transition_at"] - 30, max: dRes.res.state["next_state_transition_at"] + 30 };
+                    if (range.min < res.state["next_state_transition_at"] < range.max) {
+                         if (dRes.res.state["next_state_transition_at"] < res.state["next_state_transition_at"])
+                            dRes.res.state["next_state_transition_at"] = res.state["next_state_transition_at"];
+                        dRes.count += 1;
+                        add = false;
+                    }
+                }
+                if (add) add = true;
+            } else {
+                if (res["cityentity_id"] === dRes.res["cityentity_id"]) {
+                    dRes.count += 1;
+                    add = false;
+                }
+                if (add) add = true;
+            }
+        }
+        if (add)
+            DResidentialDict.push({ count: 1, res: res });
+        add = true;
+    }
+    exports.DResidentialDict = DResidentialDict;
+    exports.DProductionDict = DProductionDict;
+}
+
+function readType(d) {
+    let Products = [],
+        CurrentResources = undefined,
+        EntityID = d['cityentity_id'];
+
+    let BuildingData = AllBuildings[EntityID];
+
+    let AdditionalResources = BuildingData['additionalResources'];
+
+    let Ret = {
+        name: BuildingData['name'],
+        id: d['id'],
+        eid: d['cityentity_id'],
+        type: d['type'],
+        at: (new Date().getTime()) / 1000,
+        in: 0
+    }
+
+    if (d.state !== undefined && d.state.current_product !== undefined && d.state.current_product.product !== undefined) {
+        if (d.state.current_product.product.resources !== undefined) {
+            CurrentResources = d['state']['current_product']['product']['resources'];
+        }
+    }
+
+    for (let Resource in CurrentResources) {
+
+        if (!CurrentResources.hasOwnProperty(Resource)) {
+            break;
+        }
+
+        Products[Resource] = CurrentResources[Resource];
+    }
+
+    if (d['bonus'] !== undefined) {
+        if (d['bonus']['type'] === 'population') {
+            Products['population'] = (Products['population'] !== undefined ? Products['population'] : 0) + d['bonus']['value'];
+        }
+        else if (d['bonus']['type'] === 'happiness') {
+            Products['happiness'] = (Products['happiness'] !== undefined ? Products['happiness'] : 0) + d['bonus']['value'];
+        }
+    }
+
+    if (d['state'] !== undefined && d['state']['__class__'] !== 'ConstructionState' && d['state']['__class__'] !== 'UnconnectedState') {
+        if (BuildingData['population'] !== undefined) {
+            Products['population'] = (Products['population'] !== undefined ? Products['population'] : 0) + BuildingData['population'];
+        }
+        if (BuildingData['provided_happiness'] !== undefined) {
+            let Faktor = 1;
+            if (d['state']['__class__'] === 'PolishedState') {
+                Faktor = 2;
+            }
+            Products['happiness'] = BuildingData['provided_happiness'] * Faktor;
+        }
+    }
+
+    if (BuildingData['entity_levels'] !== undefined && BuildingData['entity_levels'][d['level']] !== undefined) {
+        let EntityLevel = BuildingData['entity_levels'][d['level']];
+        if (EntityLevel['provided_population'] !== undefined) {
+            Products['population'] = (Products['population'] !== undefined ? Products['population'] : 0) + EntityLevel['provided_population'];
+        }
+        if (EntityLevel['provided_happiness'] !== undefined) {
+            let Faktor = 1;
+            if (d['state']['__class__'] === 'PolishedState') {
+                Faktor = 2;
+            }
+            Products['happiness'] = (Products['happiness'] !== undefined ? Products['happiness'] : 0) + EntityLevel['provided_happiness'] * Faktor;
+        }
+    }
+
+    let AdditionalProduct,
+        MotivatedProducts = [];
+
+    for (let ProductName in Products) {
+        MotivatedProducts[ProductName] = Products[ProductName];
+    }
+
+    for (let Resource in AdditionalResources) {
+
+        if (!AdditionalResources.hasOwnProperty(Resource)) {
+            break;
+        }
+
+        if (Resource.startsWith('random_good') || Resource.startsWith('all_goods')) continue;
+
+        AdditionalProduct = AdditionalResources[Resource];
+
+        if (AdditionalProduct > 0) {
+            if (Products[Resource] === undefined) {
+                Products[Resource] = 0;
+                MotivatedProducts[Resource] = AdditionalProduct;
+            }
+            else if (Products[Resource] < AdditionalProduct) {
+                MotivatedProducts[Resource] += AdditionalProduct;
+            }
+        }
+    }
+
+    if (d['state'] !== undefined) {
+        let At = d['state']['next_state_transition_at'],
+            In = d['state']['next_state_transition_in'];
+
+        if (At !== undefined) Ret.at = At;
+        if (In !== undefined) Ret.in = In;
+    }
+
+    Ret.products = Products;
+    Ret.motivatedproducts = MotivatedProducts;
+
+    if (Object.keys(Ret.motivatedproducts).length > 0) {
+        return Ret;
+    }
+    else {
+        return false;
+    }
+}
+function clearLists() {
+    NeighborDict = [];
+    FriendsDict = [];
+    ClanMemberDict = [];
+}
+
+exports.AllBuildings = AllBuildings;
+exports.BuildingsDict = BuildingsDict;
+exports.ResidentialDict = ResidentialDict;
+exports.ProductionDict = ProductionDict;
+exports.DResidentialDict = DResidentialDict;
+exports.DProductionDict = DProductionDict;
+
+exports.GetDistinctProductList = GetDistinctProductList;
+exports.GetHappinesBoost = GetHappinesBoost;
+exports.GetOwnBuildings = GetOwnBuildings;
+exports.GetAllBuildings = GetAllBuildings;
 exports.GetRewardResult = GetRewardResult;
+exports.GetBoosts = GetBoosts;
+exports.GetBuildings = GetBuildings;
 exports.GetUserData = GetUserData;
-exports.GetProductionUnits = GetProductionUnits;
-exports.GetOnlySupplyUnits = GetOnlySupplyUnits;
 exports.GetHiddenRewards = GetHiddenRewards;
 exports.GetResourceDefinitions = GetResourceDefinitions;
 exports.GetBonuses = GetBonuses;

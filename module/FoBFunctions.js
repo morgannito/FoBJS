@@ -99,7 +99,7 @@ function CollectRewards(callback) {
                     return true;
                 else
                     return false;
-        } 
+        }
         if (reward.isVisible)
             return true;
         else
@@ -137,25 +137,29 @@ function VisitTavern(callback) {
     TavernList = processer.GetVisitableTavern(FriendsList);
     ConsoleWin.webContents.send('print', `Do: Visit Friends Tavern (Count: ${TavernList.length})`);
     var i = 0;
+    var doneTavern = [];
     if (TavernList.length > 0) {
         var interval = setInterval(function () {
-            if (i < TavernList.length) {
-                var Friend = TavernList[i];
-                FoBuilder.VisitTavern(Friend.key)
-                    .then(body => {
-                        if (body !== JSON.parse("[]")) {
-                            var result = processer.GetTavernResult(body);
-                            ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} - Reward: ${processer.GetTavernReward(result)}  (${i}/${TavernList.length})`);
-                        } else {
-                            Failed.push(Friend);
-                        }
-                    });
-            }
-            i++;
-            if (i >= TavernList.length) {
-                clearInterval(interval);
-                ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
-                callback();
+            if (!doneTavern.includes(i)) {
+                if (i < TavernList.length) {
+                    var Friend = TavernList[i];
+                    doneTavern.push(i);
+                    FoBuilder.VisitTavern(Friend.key)
+                        .then(body => {
+                            if (body !== JSON.parse("[]")) {
+                                var result = processer.GetTavernResult(body);
+                                ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} - Reward: ${processer.GetTavernReward(result)}  (${i+1}/${TavernList.length})`);
+                                i++;
+                                if (i >= TavernList.length) {
+                                    clearInterval(interval);
+                                    ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
+                                    callback();
+                                }
+                            } else {
+                                Failed.push(Friend);
+                            }
+                        });
+                }
             }
         }, FoBCore.getRandomIntervall());
     } else {
@@ -167,32 +171,36 @@ function MotivateMember(callback) {
     ConsoleWin.webContents.send('print', "Do: Motivate all Clanmember (Count: " + ClanMemberList.length + ")");
     var i = 0;
     var rewardMoney = 0;
+    var doneMotivate = [];
     if (ClanMemberList.length > 0) {
         var interval = setInterval(function () {
-            if (i < ClanMemberList.length) {
-                var Member = ClanMemberList[i];
-                if (Member.canMotivate) {
-                    FoBuilder.DoMotivate(Member.key)
-                        .then(body => {
-                            if (body !== JSON.parse("[]")) {
-                                var result = processer.GetMotivateResult(body);
-                                rewardMoney += result.reward;
-                                ConsoleWin.webContents.send('progress', `${Member.item["name"]}: ${result.result}  (${i}/${ClanMemberList.length})`);
-                            } else {
-                                Failed.push(Member);
-                            }
-                        });
+            if (!doneMotivate.includes(i)) {
+                if (i < ClanMemberList.length) {
+                    doneMotivate.push(i);
+                    var Member = ClanMemberList[i];
+                    if (Member.canMotivate) {
+                        FoBuilder.DoMotivate(Member.key)
+                            .then(body => {
+                                if (body !== JSON.parse("[]")) {
+                                    var result = processer.GetMotivateResult(body);
+                                    rewardMoney += result.reward;
+                                    ConsoleWin.webContents.send('progress', `${Member.item["name"]}: ${result.result}  (${i+1}/${ClanMemberList.length})`);
+                                    i++;
+                                    if (i >= ClanMemberList.length) {
+                                        clearInterval(interval);
+                                        RewardMoney += rewardMoney;
+                                        callback();
+                                    }
+                                } else {
+                                    Failed.push(Member);
+                                }
+                            });
+                    }
+                    else {
+                        ConsoleWin.webContents.send('progress', `Skipping ${Member.item["name"]} (${i}/${ClanMemberList.length})`);
+                        Skipped.push(Member);
+                    }
                 }
-                else {
-                    ConsoleWin.webContents.send('progress', `Skipping ${Member.item["name"]} (${i}/${ClanMemberList.length})`);
-                    Skipped.push(Member);
-                }
-            }
-            i++;
-            if (i >= ClanMemberList.length) {
-                clearInterval(interval);
-                RewardMoney += rewardMoney;
-                callback();
             }
         }, FoBCore.getRandomIntervall());
     }
@@ -204,32 +212,36 @@ function MotivateFriends(callback) {
     ConsoleWin.webContents.send('print', "Do: Motivate all Friends (Count: " + FriendsList.length + ")");
     var i = 0;
     var rewardMoney = 0;
+    var doneMotivate = [];
     if (FriendsList.length > 0) {
         var interval = setInterval(function () {
-            if (i < FriendsList.length) {
-                var Player = FriendsList[i];
-                if (Player.canMotivate) {
-                    FoBuilder.DoMotivate(Player.key)
-                        .then(body => {
-                            if (body !== JSON.parse("[]")) {
-                                var result = processer.GetMotivateResult(body);
-                                rewardMoney += result.reward;
-                                ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i}/${FriendsList.length})`);
-                            } else {
-                                Failed.push(Player);
-                            }
-                        });
+            if (!doneMotivate.includes(i)) {
+                if (i < FriendsList.length) {
+                    var Player = FriendsList[i];
+                    doneMotivate.push(i);
+                    if (Player.canMotivate) {
+                        FoBuilder.DoMotivate(Player.key)
+                            .then(body => {
+                                if (body !== JSON.parse("[]")) {
+                                    var result = processer.GetMotivateResult(body);
+                                    rewardMoney += result.reward;
+                                    ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i+1}/${FriendsList.length})`);
+                                    i++;
+                                    if (i >= FriendsList.length) {
+                                        clearInterval(interval);
+                                        RewardMoney += rewardMoney;
+                                        callback();
+                                    }
+                                } else {
+                                    Failed.push(Player);
+                                }
+                            });
+                    }
+                    else {
+                        ConsoleWin.webContents.send('progress', `Skipping ${Player.item["name"]} (${i}/${FriendsList.length})`);
+                        Skipped.push(Player);
+                    }
                 }
-                else {
-                    ConsoleWin.webContents.send('progress', `Skipping ${Player.item["name"]} (${i}/${FriendsList.length})`);
-                    Skipped.push(Player);
-                }
-            }
-            i++;
-            if (i >= FriendsList.length) {
-                clearInterval(interval);
-                RewardMoney += rewardMoney;
-                callback();
             }
         }, FoBCore.getRandomIntervall());
     }
@@ -241,32 +253,36 @@ function MotivateNeighbors(callback) {
     ConsoleWin.webContents.send('print', "Do: Motivate all Neighbors (Count: " + NeighborList.length + ")");
     var i = 0;
     var rewardMoney = 0;
+    var doneMotivate = [];
     if (NeighborList.length > 0) {
         var interval = setInterval(function () {
-            if (i < NeighborList.length) {
-                var Player = NeighborList[i];
-                if (Player.canMotivate) {
-                    FoBuilder.DoMotivate(Player.key)
-                        .then(body => {
-                            if (body !== JSON.parse("[]")) {
-                                var result = processer.GetMotivateResult(body);
-                                rewardMoney += result.reward;
-                                ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i}/${NeighborList.length})`);
-                            } else {
-                                Failed.push(Player);
-                            }
-                        });
+            if (!doneMotivate.includes(i)) {
+                if (i < NeighborList.length) {
+                    var Player = NeighborList[i];
+                    doneMotivate.push(i);
+                    if (Player.canMotivate) {
+                        FoBuilder.DoMotivate(Player.key)
+                            .then(body => {
+                                if (body !== JSON.parse("[]")) {
+                                    var result = processer.GetMotivateResult(body);
+                                    rewardMoney += result.reward;
+                                    ConsoleWin.webContents.send('progress', `${Player.item["name"]}: ${result.result}  (${i+1}/${NeighborList.length})`);
+                                    i++;
+                                    if (i >= NeighborList.length) {
+                                        clearInterval(interval);
+                                        RewardMoney += rewardMoney;
+                                        callback();
+                                    }
+                                } else {
+                                    Failed.push(Player);
+                                }
+                            });
+                    }
+                    else {
+                        ConsoleWin.webContents.send('progress', `Skipping ${Player.item["name"]} (${i}/${NeighborList.length})`);
+                        Skipped.push(Player);
+                    }
                 }
-                else {
-                    ConsoleWin.webContents.send('progress', `Skipping ${Player.item["name"]} (${i}/${NeighborList.length})`);
-                    Skipped.push(Player);
-                }
-            }
-            i++;
-            if (i >= NeighborList.length) {
-                clearInterval(interval);
-                RewardMoney += rewardMoney;
-                callback();
             }
         }, FoBCore.getRandomIntervall());
     }

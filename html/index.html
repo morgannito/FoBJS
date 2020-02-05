@@ -112,6 +112,7 @@
     });
     ipcRenderer.on('information', (e, data) => {
         info.innerHTML = data;
+        
     });
     ipcRenderer.on('progress', (e, data) => {
         consoleEx.inline(data);

@@ -13,6 +13,7 @@ var IntervallID = null;
 var PWW = null;
 
 var ProdDict = [];
+var ResDict = [];
 
 function StartProductionBot() {
 
@@ -28,11 +29,14 @@ function StartProductionBot() {
     PWW.loadFile('html/prodworker.html');
 
     ipcMain.on('worker_loaded', () => {
-        PWW.webContents.send('start', processer.ProductionDict);
+        ProdDict = processer.ProductionDict;
+        ResDict = processer.ResidentialDict;
+        PWW.webContents.send('start', {ProdDict,ResDict});
     });
 
     ipcMain.on('DoWork', (e, d) => {
         ProdDict = d.ProdDict;
+        ResDict = d.ResDict;
         DoWork(d.isAuto);
     });
 }
@@ -50,7 +54,12 @@ function DoWork(isAuto) {
             promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
         }
     }
-
+    for (var i = 0; i < ResDict.length; i++) {
+        const resUnit = ResDict[i];
+        if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
+            promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
+        }
+    }
     Promise.all(promArr).then(values => {
         if(!isAuto) isAuto = true;
         if (started) {
@@ -65,7 +74,8 @@ function DoWork(isAuto) {
         }
         Main.GetData(true, () => {
             ProdDict = processer.ProductionDict;
-            PWW.webContents.send('updateProdDict',{ProdDict, isAuto});
+            ResDict = processer.ResidentialDict;
+            PWW.webContents.send('updateProdDict',{ProdDict, ResDict,isAuto});
         });
     }, reason => {
         throw reason;
@@ -79,6 +89,12 @@ function CollectManuel(ConsoleWin) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
             promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
+        }
+    }
+    for (let i = 0; i < processer.ResidentialDict.length; i++) {
+        const resUnit = processer.ResidentialDict[i];
+        if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
+            promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
         }
     }
     Promise.all(promArr).then(values => {

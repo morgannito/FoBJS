@@ -16,19 +16,20 @@
 
     var IntervallID = null;
     var ProdDict = [];
+    var ResDict = [];
     const eState = { Producing: 1, Idle: 2, Finished: 3 };
 
     ipcRenderer.send('worker_loaded', true);
 
     ipcRenderer.on('start', (e, d) => {
-      ProdDict = d;
+      ProdDict = d.ProdDict;
+      ResDict = d.ResDict;
       startWorker();
     });
 
     ipcRenderer.on('updateProdDict', (e, d) => {
       ProdDict = d.ProdDict;
-      console.log(ProdDict);
-      console.log(d.isAuto);
+      ResDict = d.ResDict
       if(!d.isAuto)
         DoWorker(false);
     });
@@ -52,7 +53,7 @@
     }
 
     function DoWorker(isAuto = true) {
-          ipcRenderer.send('DoWork', {ProdDict,isAuto});
+          ipcRenderer.send('DoWork', {ProdDict,ResDict,isAuto});
     }
 
   </script>

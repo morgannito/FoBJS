@@ -65,7 +65,8 @@ var NeighborDict = [];
 var FriendsDict = [];
 var ClanMemberDict = [];
 var UpdateInfoID = null;
-var FinishTime = null;
+var RefreshInfoID = null;
+var UpdateList = false;
 var HideBigRoad = true;
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
 
@@ -255,6 +256,16 @@ proxy.emitter.on("UID_Loaded", data => {
                         }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
                         UpdateInfoID = timer.timeout;
                     }
+                    if(RefreshInfoID === null){
+                        timer.start(()=>{
+                            PrepareInfoMenu();
+                            if(UpdateList){
+                                GetData(false);
+                                UpdateList = false;
+                            }
+                        }, 999);
+                        RefreshInfoID = timer.timeout;
+                    }
                 }
             });
         }
@@ -262,7 +273,6 @@ proxy.emitter.on("UID_Loaded", data => {
 });
 FoBProductionBot.emitter.on("TimeUpdate", data => {
     FinishTime = data
-    exports.FinishTime = FinishTime;
 });
 FoBProductionBot.emitter.on("UpdateMenu", data => {
     PrepareInfoMenu();
@@ -290,10 +300,13 @@ function GetData(clear = true, callback = null) {
                                     processer.GetResources(body);
                                     processer.GetOwnTavernInfo(body);
                                     processer.GetHiddenRewards(body);
+                                    processer.GetBuildings(body);
                                     FoBFunctions.ArcBonus = processer.GetArcBonus(body);
                                     builder.GetMetaDataUrls(body).then(jsonbody => {
                                         if (jsonbody !== null) {
-                                            processer.GetProductionUnits(body, jsonbody);
+                                            processer.GetAllBuildings(jsonbody);
+                                            processer.GetOwnBuildings();
+                                            processer.GetDistinctProductList();
                                             if (clear) Gwin.webContents.send('clear', "");
                                             PrepareInfoMenu();
                                             if (callback !== null) {
@@ -318,6 +331,11 @@ function PrepareInfoMenu() {
     var tableContent = fs.readFileSync(filePath, 'utf8');
     filePath = path.join('html', 'building.html');
     var buildContent = fs.readFileSync(filePath, 'utf8');
+
+    var dProdList = processer.DProductionDict;
+    var dResList = processer.DResidentialDict;
+
+    var dList = dProdList.concat(dResList);
 
     tableContent = tableContent
         .replace("###CurWorld###", UserIDs.WID)
@@ -364,32 +382,32 @@ function PrepareInfoMenu() {
                     .replace("###IncLoc" + i + "###", e.position)
         }
 
-        var distinctProdList = {};
-        distinctProdList = processer.ProductionDict;
-        for (let key in distinctProdList) {
-            if (!distinctProdList.hasOwnProperty(key)) return;
+        for (let key in dList) {
+            if (!dList.hasOwnProperty(key)) return;
             var localContent = buildContent;
-            const prod = distinctProdList[key];
+            var prod = dList[key].res === undefined ? dList[key].prod : dList[key].res;
+            var count = dList[key].count;
 
             var prodName = "idle";
+            var production = "";
             if (prod["state"]["__class__"] === "ProducingState") {
-                if (FinishTime === null) {
-                    s = moment.unix(prod["state"]["next_state_transition_at"]).fromNow();
-                    FinishTime = prod["state"]["next_state_transition_at"];
-                    exports.FinishTime = FinishTime;
-                }
-                else
-                    s = moment.unix(FinishTime).fromNow();
-                prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                var end = moment.unix(prod["state"]["next_state_transition_at"]);
+                var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                if(start.isAfter(end)) UpdateList = true;
+                var dur = moment.duration(end.diff(start));
+                s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
+                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             }
             else if (prod["state"]["__class__"] === "IdleState") s = "idle"
             else if (prod["state"]["__class__"] === "ProductionFinishedState") {
                 s = "finished";
-                prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             };
 
             localContent = localContent
-                .replace("###BuildName###", prod["name"])
+                .replace("###BuildName###", count + "x " + prod["name"])
                 .replace("###ProdName###", prodName)
                 .replace("###ProdState###", s)
                 .replace("###IncRareX###", "")
@@ -398,9 +416,7 @@ function PrepareInfoMenu() {
         }
         tableContent = tableContent.replace("###BuildingIncident###", "");
     } else {
-        var distinctProdList = {};
-        distinctProdList = processer.ProductionDict;
-        var prodLength = distinctProdList.length;
+        var prodLength = dList.length;
         var HiddenLength = visHidden.length;
         for (let i = 0; i < 4; i++) {
             const e = visHidden[i];
@@ -420,7 +436,8 @@ function PrepareInfoMenu() {
         for (let i = 0; i < maxLength; i++) {
             var localContent = buildContent;
             const Hidden = visHidden[i];
-            const prod = distinctProdList[i];
+            var prod = dList[i].res === undefined ? dList[i].prod : dList[i].res;
+            var count = dList[i].count;
 
             if (undefined === Hidden || null === Hidden) {
                 localContent = localContent
@@ -439,20 +456,21 @@ function PrepareInfoMenu() {
                     .replace("###ProdState###", "")
             } else {
                 var prodName = "idle";
+                var production = "";
                 if (prod["state"]["__class__"] === "ProducingState") {
-                    if (FinishTime === null) {
-                        s = moment.unix(prod["state"]["next_state_transition_at"]).fromNow();
-                        FinishTime = prod["state"]["next_state_transition_at"];
-                        exports.FinishTime = FinishTime;
-                    }
-                    else
-                        s = moment.unix(FinishTime).fromNow();
-                    prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                    var end = moment.unix(prod["state"]["next_state_transition_at"]);
+                    var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                    if(start.isAfter(end)) UpdateList = true;
+                    var dur = moment.duration(end.diff(start));
+                    s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
+                    production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                    prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
                 }
-                else if (prod["state"]["__class__"] === "IdleState") s = "idle"
+                else if (prod["state"]["__class__"] === "IdleState") s = count + "x " + "idle"
                 else if (prod["state"]["__class__"] === "ProductionFinishedState") {
                     s = "finished";
-                    prodName = prod["state"]["current_product"]["product"]["resources"]["supplies"] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === "supplies"); })["name"];
+                    production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                    prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
                 };
 
                 localContent = localContent
@@ -780,6 +798,5 @@ function clearStorage() {
 
 exports.GetData = GetData;
 exports.eState = eState;
-exports.FinishTime = FinishTime;
 exports.HideBigRoad = HideBigRoad;
 exports.CurrentProduction = CurrentProduction;
