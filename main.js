@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, screen, Menu, ipcMain, MenuItem } = require("electron");
+const { app, BrowserWindow, session, dialog , Menu, ipcMain, MenuItem } = require("electron");
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
@@ -85,7 +85,7 @@ function createWindow() {
     });
     Gwin = win;
 
-    Gwin.loadFile(path.join(asarPath,"html","index.html"));
+    Gwin.loadFile(path.join(asarPath, "html", "index.html"));
 
     proxy.init();
 
@@ -104,6 +104,19 @@ function createWindow() {
                 return;
         else
             assocFunction(data)
+    });
+
+    process.on('uncaughtException', function (error) {
+        dialog.showMessageBox(null,{
+            type: 'error',
+            buttons: ['Ok', "Quit"],
+            defaultId: 0,
+            title: 'Exception occured',
+            message: 'Following Exception was thrown:',
+            detail: error.message
+        },(response) =>{
+            if(response == 1) app.quit();
+        })
     });
 
     Gwin.on('closed', () => {
@@ -258,10 +271,10 @@ proxy.emitter.on("UID_Loaded", data => {
                         }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
                         UpdateInfoID = timer.timeout;
                     }
-                    if(RefreshInfoID === null){
-                        timer.start(()=>{
+                    if (RefreshInfoID === null) {
+                        timer.start(() => {
                             PrepareInfoMenu();
-                            if(UpdateList){
+                            if (UpdateList) {
                                 GetData(false);
                                 UpdateList = false;
                             }
@@ -329,9 +342,9 @@ function PrepareInfoMenu() {
         s = "full";
     else s = "sitting"
 
-    let filePath = path.join(asarPath,'html', 'table.html');
+    let filePath = path.join(asarPath, 'html', 'table.html');
     var tableContent = fs.readFileSync(filePath, 'utf8');
-    filePath = path.join(asarPath,'html', 'building.html');
+    filePath = path.join(asarPath, 'html', 'building.html');
     var buildContent = fs.readFileSync(filePath, 'utf8');
 
     var dProdList = processer.DProductionDict;
@@ -395,7 +408,7 @@ function PrepareInfoMenu() {
             if (prod["state"]["__class__"] === "ProducingState") {
                 var end = moment.unix(prod["state"]["next_state_transition_at"]);
                 var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                if(start.isAfter(end)) UpdateList = true;
+                if (start.isAfter(end)) UpdateList = true;
                 var dur = moment.duration(end.diff(start));
                 s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
@@ -462,7 +475,7 @@ function PrepareInfoMenu() {
                 if (prod["state"]["__class__"] === "ProducingState") {
                     var end = moment.unix(prod["state"]["next_state_transition_at"]);
                     var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                    if(start.isAfter(end)) UpdateList = true;
+                    if (start.isAfter(end)) UpdateList = true;
                     var dur = moment.duration(end.diff(start));
                     s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
                     production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
@@ -495,7 +508,7 @@ function createBrowserWindow(url) {
     win.loadURL(url);
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
-        let filePath = path.join(asarPath,'js', 'preloadLogin.js');
+        let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
         console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         storage.set("UserName", UserName);
@@ -507,7 +520,7 @@ function createBrowserWindow(url) {
     });
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
-        let filePath = path.join(asarPath,'js', 'preloadLoginWorld.js');
+        let filePath = path.join(asarPath, 'js', 'preloadLoginWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
         win.webContents.executeJavaScript(`${content}`, true).then((result) => {
             data = JSON.parse(result)["player_worlds"];
@@ -527,7 +540,7 @@ function createBrowserWindow(url) {
                         storage.set("LastWorld", PlayableWorld[data]);
                         storage.set("PlayableWorld", PlayableWorld);
                         Gwin.webContents.send('clear', "");
-                        let filePath = path.join(asarPath,'js', 'preloadSelectWorld.js');
+                        let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
                         var content = fs.readFileSync(filePath, 'utf8');
                         content = content.replace("###WORLD_ID###", PlayableWorld[data]);
                         win.webContents.executeJavaScript(`${content}`);
@@ -595,7 +608,7 @@ function createBrowserWindowAuto(url) {
     win.loadURL(url);
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
-        let filePath = path.join(asarPath,'js', 'preloadLogin.js');
+        let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
         console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         let name = encodeURIComponent(UserName);
@@ -606,7 +619,7 @@ function createBrowserWindowAuto(url) {
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
         Gwin.webContents.send('clear', "");
-        let filePath = path.join(asarPath,'js', 'preloadSelectWorld.js');
+        let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
         content = content.replace("###WORLD_ID###", LastWorld);
         win.webContents.executeJavaScript(`${content}`);
