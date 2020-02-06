@@ -9,9 +9,11 @@ var LimitedBonuses = [];
 var HiddenRewards = [];
 var ResourceDefinitions = [];
 var ProductionDict = [];
+var GoodProdDict = [];
 var AllBuildings = [];
 var ResidentialDict = [];
 var DProductionDict = [];
+var DGoodProductionDict = [];
 var DResidentialDict = [];
 var BuildingsDict = [];
 var AllBoosts = {
@@ -476,6 +478,7 @@ function GetAllBuildings(metaCity) {
 function GetOwnBuildings() {
     ResidentialDict = [];
     ProductionDict = [];
+    GoodProdDict = [];
     var city = BuildingsDict;
     var meta = AllBuildings;
     for (let ci = 0; ci < city.length; ci++) {
@@ -487,10 +490,12 @@ function GetOwnBuildings() {
                     cb["name"] = mb.name;
                     cb["available_products"] = mb["available_products"];
                     cb["type"] = mb["type"];
-                    if (cb.type === 'production' && FoBCore.hasOnlySupplyProduction(cb["available_products"]))
+                    if (cb.type === 'production' && cb['connected'] && FoBCore.hasOnlySupplyProduction(cb["available_products"]))
                         ProductionDict.push(cb);
-                    else if (cb.type === 'residential')
+                    else if (cb.type === 'residential' && cb['connected'])
                         ResidentialDict.push(cb);
+                    else if (cb.type === 'goods' && cb['connected'])
+                        GoodProdDict.push(cb);
                 }
             }
         }
@@ -498,6 +503,7 @@ function GetOwnBuildings() {
     BuildingsDict = city;
 
     exports.ProductionDict = ProductionDict;
+    exports.GoodProdDict = GoodProdDict;
     exports.ResidentialDict = ResidentialDict;
     exports.BuildingsDict = BuildingsDict;
 }
@@ -526,6 +532,7 @@ function GetBoosts() {
 function GetDistinctProductList() {
     DResidentialDict = [];
     DProductionDict = [];
+    DGoodProductionDict = [];
     var add = true;
     for (let i = 0; i < ProductionDict.length; i++) {
         const prod = ProductionDict[i];
@@ -556,6 +563,35 @@ function GetDistinctProductList() {
         add = true;
     }
     add = true;
+    for (let i = 0; i < GoodProdDict.length; i++) {
+        const goodProd = GoodProdDict[i];
+        if (DGoodProductionDict.length === 0) { DGoodProductionDict.push({ count: 1, prod: goodProd }); continue; }
+        for (let j = 0; j < DGoodProductionDict.length; j++) {
+            const dGoodProd = DGoodProductionDict[j];
+            if (goodProd["state"]["__class__"] === "ProducingState") {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                    var range = { min: dGoodProd.prod.state["next_state_transition_at"] - 10, max: dGoodProd.prod.state["next_state_transition_at"] + 10 };
+                    if (range.min < goodProd.state["next_state_transition_at"] < range.max) {
+                        if (dGoodProd.prod.state["next_state_transition_at"] < goodProd.state["next_state_transition_at"])
+                            dGoodProd.prod.state["next_state_transition_at"] = goodProd.state["next_state_transition_at"];
+                        dGoodProd.count += 1;
+                        add = false;
+                    }
+                }
+                if (add) add = true;
+            } else {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                    dGoodProd.count += 1;
+                    add = false;
+                }
+                if (add) add = true;
+            }
+        }
+        if (add)
+            DGoodProductionDict.push({ count: 1, prod: goodProd });
+        add = true;
+    }
+    add = true;
     for (let i = 0; i < ResidentialDict.length; i++) {
         const res = ResidentialDict[i];
         if (DResidentialDict.length === 0) { DResidentialDict.push({ count: 1, res: res }); continue; }
@@ -565,7 +601,7 @@ function GetDistinctProductList() {
                 if (res["cityentity_id"] === dRes.res["cityentity_id"]) {
                     var range = { min: dRes.res.state["next_state_transition_at"] - 30, max: dRes.res.state["next_state_transition_at"] + 30 };
                     if (range.min < res.state["next_state_transition_at"] < range.max) {
-                         if (dRes.res.state["next_state_transition_at"] < res.state["next_state_transition_at"])
+                        if (dRes.res.state["next_state_transition_at"] < res.state["next_state_transition_at"])
                             dRes.res.state["next_state_transition_at"] = res.state["next_state_transition_at"];
                         dRes.count += 1;
                         add = false;
@@ -585,6 +621,7 @@ function GetDistinctProductList() {
         add = true;
     }
     exports.DResidentialDict = DResidentialDict;
+    exports.DGoodProductionDict = DGoodProductionDict;
     exports.DProductionDict = DProductionDict;
 }
 
@@ -713,6 +750,7 @@ exports.AllBuildings = AllBuildings;
 exports.BuildingsDict = BuildingsDict;
 exports.ResidentialDict = ResidentialDict;
 exports.ProductionDict = ProductionDict;
+exports.GoodProdDict = GoodProdDict;
 exports.DResidentialDict = DResidentialDict;
 exports.DProductionDict = DProductionDict;
 

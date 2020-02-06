@@ -1,9 +1,7 @@
-const { app, BrowserWindow, session, dialog , Menu, ipcMain, MenuItem } = require("electron");
+const { app, BrowserWindow, dialog, Menu, ipcMain, MenuItem } = require("electron");
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
-const fetch = require('electron-fetch').default;
-const cTable = require('console.table');
 const moment = require('moment');
 const storage = require('electron-json-storage');
 const proxy = require("./module/FoBProxy");
@@ -71,6 +69,7 @@ var RefreshInfoID = null;
 var UpdateList = false;
 var HideBigRoad = true;
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
+var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -107,15 +106,15 @@ function createWindow() {
     });
 
     process.on('uncaughtException', function (error) {
-        dialog.showMessageBox(null,{
+        dialog.showMessageBox(null, {
             type: 'error',
             buttons: ['Ok', "Quit"],
             defaultId: 0,
             title: 'Exception occured',
             message: 'Following Exception was thrown:',
             detail: error.message
-        },(response) =>{
-            if(response == 1) app.quit();
+        }, (response) => {
+            if (response == 1) app.quit();
         })
     });
 
@@ -286,9 +285,6 @@ proxy.emitter.on("UID_Loaded", data => {
         }
     }
 });
-FoBProductionBot.emitter.on("TimeUpdate", data => {
-    FinishTime = data
-});
 FoBProductionBot.emitter.on("UpdateMenu", data => {
     PrepareInfoMenu();
 });
@@ -349,14 +345,19 @@ function PrepareInfoMenu() {
 
     var dProdList = processer.DProductionDict;
     var dResList = processer.DResidentialDict;
+    var dGoodProdList = processer.DGoodProductionDict;
 
-    var dList = dProdList.concat(dResList);
+    var FriendMoppel = FriendsDict.filter((f) => f.canMotivate && f.is_friend).length;
+    var NeighborMoppel = NeighborDict.filter((f) => f.canMotivate).length;
+    var ClanMoppel = ClanMemberDict.filter((f) => f.canMotivate).length;
+
+    var dList = dProdList.concat(dResList,dGoodProdList);
 
     tableContent = tableContent
         .replace("###CurWorld###", UserIDs.WID)
-        .replace("###Friends###", FriendsDict.length)
-        .replace("###Clan###", ClanMemberDict.length)
-        .replace("###Neighbor###", NeighborDict.length)
+        .replace("###Friends###", `${FriendMoppel}/${FriendsDict.length}`)
+        .replace("###Clan###", `${ClanMoppel}/${ClanMemberDict.length}`)
+        .replace("###Neighbor###", `${NeighborMoppel}/${NeighborDict.length}`)
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
         .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${s}`)
         .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
@@ -509,7 +510,6 @@ function createBrowserWindow(url) {
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
         let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
-        console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         storage.set("UserName", UserName);
         storage.set("Password", Password);
@@ -609,7 +609,6 @@ function createBrowserWindowAuto(url) {
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
         let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
-        console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         let name = encodeURIComponent(UserName);
         let pass = encodeURIComponent(Password);
@@ -633,9 +632,17 @@ function SwitchProduction(element, id) {
     exports.CurrentProduction = CurrentProduction;
     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 }
+function SwitchGoodProduction(element, id) {
+    CurrentGoodProduction.id = element.id;
+    CurrentGoodProduction.time = id;
+    CurrentGoodProduction.text = element.text;
+    exports.CurrentGoodProduction = CurrentGoodProduction;
+    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+}
 function BuildMenu(login, logout, functions, settings, quit, devtools) {
     worlds = [];
     productionOptions = [];
+    goodproductionOptions = [];
     Menu.setApplicationMenu(new Menu());
     menu = Menu.getApplicationMenu();
 
@@ -663,7 +670,19 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
                 }
             }
         }
-        addSettings(menu, worlds, productionOptions);
+        if (processer.GoodProdDict.length > 0) {
+            Options = FoBCore.getGoodsProductionOptions();
+            for (const key in Options) {
+                if (Options.hasOwnProperty(key)) {
+                    const element = Options[key];
+                    if (parseInt(key) === CurrentGoodProduction.time)
+                        goodproductionOptions.push({ label: element.text + " (Current)", id: element.id, click: () => { return; } });
+                    else
+                        goodproductionOptions.push({ label: element.text, id: element.id, click: () => { SwitchGoodProduction(element, parseInt(key)); } });
+                }
+            }
+        }
+        addSettings(menu, worlds, productionOptions,goodproductionOptions);
     } else if (login && settings) {
         if (settings) addSettings(menu);
     }
@@ -742,13 +761,20 @@ function addFunctions(menu) {
     });
     menu.append(mitem);
 }
-function addSettings(menu, worlds = null, prodOptions = null) {
+function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = null) {
     var worldItem = [];
     if (null !== prodOptions) {
         worldItem.push({
             label: "Switch Production",
             id: "SwitchProduction",
             submenu: prodOptions
+        })
+    }
+    if (null !== goodProdOptions) {
+        worldItem.push({
+            label: "Switch Goods Production",
+            id: "SwitchGoodsProduction",
+            submenu: goodProdOptions
         })
     }
     worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
@@ -817,3 +843,4 @@ exports.GetData = GetData;
 exports.eState = eState;
 exports.HideBigRoad = HideBigRoad;
 exports.CurrentProduction = CurrentProduction;
+exports.CurrentGoodProduction = CurrentGoodProduction;

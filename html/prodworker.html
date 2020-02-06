@@ -11,12 +11,13 @@
   <script>
     const electron = require('electron');
     const ipcRenderer = electron.ipcRenderer;
-    
+
     const FoBCore = require('../module/FoBCore');
 
     var IntervallID = null;
     var ProdDict = [];
     var ResDict = [];
+    var GoodProdDict = [];
     const eState = { Producing: 1, Idle: 2, Finished: 3 };
 
     ipcRenderer.send('worker_loaded', true);
@@ -24,13 +25,15 @@
     ipcRenderer.on('start', (e, d) => {
       ProdDict = d.ProdDict;
       ResDict = d.ResDict;
+      GoodProdDict = d.GoodProdDict;
       startWorker();
     });
 
     ipcRenderer.on('updateProdDict', (e, d) => {
       ProdDict = d.ProdDict;
       ResDict = d.ResDict
-      if(!d.isAuto)
+      GoodProdDict = d.GoodProdDict;
+      if (!d.isAuto)
         DoWorker(false);
     });
 
@@ -43,9 +46,9 @@
     function startWorker() {
       if (IntervallID === null) {
 
-        IntervallID = setInterval(()=>{
+        IntervallID = setInterval(() => {
           DoWorker();
-        },(1000*62*5));
+        }, (1000 * 62 * 5));
 
         DoWorker();
         IntervallID = timer.timeout;
@@ -53,7 +56,7 @@
     }
 
     function DoWorker(isAuto = true) {
-          ipcRenderer.send('DoWork', {ProdDict,ResDict,isAuto});
+      ipcRenderer.send('DoWork', { ProdDict, ResDict, GoodProdDict, isAuto });
     }
 
   </script>
