@@ -5,6 +5,9 @@ const FoBuilder = require("./FoBuilder");
 const FoBCore = require("./FoBCore");
 const Main = require("../main");
 const events = require('events');
+const path = require('path');
+
+const asarPath = path.join(app.getAppPath());
 
 const myEmitter = new events.EventEmitter();
 
@@ -26,7 +29,7 @@ function StartProductionBot() {
         }
     });
     PWW = ProductionWorker;
-    PWW.loadFile('html/prodworker.html');
+    PWW.loadFile(path.join(asarPath,"html","prodworker.html"));
 
     ipcMain.on('worker_loaded', () => {
         ProdDict = processer.ProductionDict;

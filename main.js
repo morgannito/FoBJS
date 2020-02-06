@@ -16,6 +16,8 @@ const FoBProductionBot = require("./module/FoBProductionBot");
 
 const timer = require("./js/timer").timer;
 
+const asarPath = path.join(app.getAppPath());
+
 electronDl();
 
 storage.setDataPath(path.join(app.getPath("userData")));
@@ -83,7 +85,7 @@ function createWindow() {
     });
     Gwin = win;
 
-    Gwin.loadFile('html/index.html');
+    Gwin.loadFile(path.join(asarPath,"html","index.html"));
 
     proxy.init();
 
@@ -327,9 +329,9 @@ function PrepareInfoMenu() {
         s = "full";
     else s = "sitting"
 
-    let filePath = path.join('html', 'table.html');
+    let filePath = path.join(asarPath,'html', 'table.html');
     var tableContent = fs.readFileSync(filePath, 'utf8');
-    filePath = path.join('html', 'building.html');
+    filePath = path.join(asarPath,'html', 'building.html');
     var buildContent = fs.readFileSync(filePath, 'utf8');
 
     var dProdList = processer.DProductionDict;
@@ -493,7 +495,8 @@ function createBrowserWindow(url) {
     win.loadURL(url);
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
-        let filePath = path.join('js', 'preloadLogin.js');
+        let filePath = path.join(asarPath,'js', 'preloadLogin.js');
+        console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         storage.set("UserName", UserName);
         storage.set("Password", Password);
@@ -504,7 +507,7 @@ function createBrowserWindow(url) {
     });
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
-        let filePath = path.join('js', 'preloadLoginWorld.js');
+        let filePath = path.join(asarPath,'js', 'preloadLoginWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
         win.webContents.executeJavaScript(`${content}`, true).then((result) => {
             data = JSON.parse(result)["player_worlds"];
@@ -524,7 +527,7 @@ function createBrowserWindow(url) {
                         storage.set("LastWorld", PlayableWorld[data]);
                         storage.set("PlayableWorld", PlayableWorld);
                         Gwin.webContents.send('clear', "");
-                        let filePath = path.join('js', 'preloadSelectWorld.js');
+                        let filePath = path.join(asarPath,'js', 'preloadSelectWorld.js');
                         var content = fs.readFileSync(filePath, 'utf8');
                         content = content.replace("###WORLD_ID###", PlayableWorld[data]);
                         win.webContents.executeJavaScript(`${content}`);
@@ -592,7 +595,8 @@ function createBrowserWindowAuto(url) {
     win.loadURL(url);
     //win.webContents.openDevTools();
     win.webContents.once('dom-ready', () => {
-        let filePath = path.join('js', 'preloadLogin.js');
+        let filePath = path.join(asarPath,'js', 'preloadLogin.js');
+        console.log(filePath);
         var content = fs.readFileSync(filePath, 'utf8');
         let name = encodeURIComponent(UserName);
         let pass = encodeURIComponent(Password);
@@ -602,7 +606,7 @@ function createBrowserWindowAuto(url) {
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
         Gwin.webContents.send('clear', "");
-        let filePath = path.join('js', 'preloadSelectWorld.js');
+        let filePath = path.join(asarPath,'js', 'preloadSelectWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
         content = content.replace("###WORLD_ID###", LastWorld);
         win.webContents.executeJavaScript(`${content}`);
