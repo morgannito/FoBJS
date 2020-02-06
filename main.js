@@ -344,14 +344,14 @@ function PrepareInfoMenu() {
     var buildContent = fs.readFileSync(filePath, 'utf8');
 
     var dProdList = processer.DProductionDict;
-    var dResList = processer.DResidentialDict;
+    //var dResList = processer.DResidentialDict;
     var dGoodProdList = processer.DGoodProductionDict;
 
-    var FriendMoppel = FriendsDict.filter((f) => f.canMotivate && f.is_friend).length;
+    var FriendMoppel = FriendsDict.filter((f) => f.canMotivate).length;
     var NeighborMoppel = NeighborDict.filter((f) => f.canMotivate).length;
     var ClanMoppel = ClanMemberDict.filter((f) => f.canMotivate).length;
 
-    var dList = dProdList.concat(dResList,dGoodProdList);
+    var dList = dProdList.concat(dGoodProdList);
 
     tableContent = tableContent
         .replace("###CurWorld###", UserIDs.WID)
@@ -401,7 +401,7 @@ function PrepareInfoMenu() {
         for (let key in dList) {
             if (!dList.hasOwnProperty(key)) return;
             var localContent = buildContent;
-            var prod = dList[key].res === undefined ? dList[key].prod : dList[key].res;
+            var prod = dList[key].prod;
             var count = dList[key].count;
 
             var prodName = "idle";
@@ -452,7 +452,7 @@ function PrepareInfoMenu() {
         for (let i = 0; i < maxLength; i++) {
             var localContent = buildContent;
             const Hidden = visHidden[i];
-            var prod = dList[i].res === undefined ? dList[i].prod : dList[i].res;
+            var prod = dList[i].prod;
             var count = dList[i].count;
 
             if (undefined === Hidden || null === Hidden) {
