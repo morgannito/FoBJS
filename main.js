@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog, Menu, ipcMain, MenuItem } = require("electro
 const electronDl = require('electron-dl');
 const fs = require('fs');
 const path = require('path');
+const prompt = require('electron-prompt');
 const moment = require('moment');
 const storage = require('electron-json-storage');
 const proxy = require("./module/FoBProxy");
@@ -68,13 +69,21 @@ var UpdateInfoID = null;
 var RefreshInfoID = null;
 var UpdateList = false;
 var HideBigRoad = true;
+var BotsRunning = {
+    ProductionBot: false,
+}
+var BotsIntervall = {
+    ProductionBot: null,
+    TavernBot: 60,
+    MoppelBot: (60 * 24) + 5
+}
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
 var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
 
 function createWindow() {
     let win = new BrowserWindow({
         title: "FoB v" + app.getVersion(),
-        width: 805,
+        width: 950,
         height: 700,
         webPreferences: {
             nodeIntegration: true,
@@ -208,6 +217,7 @@ async function DoLogout() {
     BuildMenu(true, false, false, true, true, isDev);
     FoBCore.pWL(Gwin, app);
     Gwin.webContents.send('clearInfoMenu', "");
+    PrepareInfoMenu();
 }
 proxy.emitter.on("SID_Loaded", data => {
     if (UserIDs.SID === null || UserIDs.SID !== data) {
@@ -262,11 +272,15 @@ proxy.emitter.on("UID_Loaded", data => {
                     builder.init(UserIDs.UID, VS, VMM, UserIDs.WID);
                     GetData(true, () => {
                         BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                        if (BotsRunning.ProductionBot) {
+                            FoBProductionBot.StartProductionBot();
+                        }
                     });
                     if (UpdateInfoID === null) {
                         timer.start(() => {
-                            GetData(false);
-                            timer.set_interval(FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
+                            GetData(false, () => {
+                                timer.set_interval(FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
+                            });
                         }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
                         UpdateInfoID = timer.timeout;
                     }
@@ -274,8 +288,9 @@ proxy.emitter.on("UID_Loaded", data => {
                         timer.start(() => {
                             PrepareInfoMenu();
                             if (UpdateList) {
-                                GetData(false);
-                                UpdateList = false;
+                                GetData(false, () => {
+                                    UpdateList = false;
+                                });
                             }
                         }, 999);
                         RefreshInfoID = timer.timeout;
@@ -332,7 +347,10 @@ function GetData(clear = true, callback = null) {
         });
 }
 function PrepareInfoMenu() {
-
+    if (UserIDs.CID === null && UserIDs.UID === null && UserIDs.SID === null) {
+        Gwin.webContents.send('clearInfoMenu', "");
+        return;
+    }
     var s = "";
     if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
         s = "full";
@@ -369,6 +387,10 @@ function PrepareInfoMenu() {
         .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
         .replace("###DiaAmount###", `${processer.ResourceDict.premium}`)
         .replace("###PlayerName###", `${UserData.UserName}`)
+        .replace("###InactiveFriends###", `Inactive Player`)
+        .replace("###Click###", `<script>openGoodsStock();</script>`)
+        .replace("###GoodsStock###", `Goods Stock`)
+        .replace("###Click2###", `<script>openInactiveFriends();</script>`)
 
     var visHidden = processer.HiddenRewards.filter((reward) => {
         if (reward.position === "cityRoadBig") {
@@ -682,7 +704,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
                 }
             }
         }
-        addSettings(menu, worlds, productionOptions,goodproductionOptions);
+        addSettings(menu, worlds, productionOptions, goodproductionOptions);
     } else if (login && settings) {
         if (settings) addSettings(menu);
     }
@@ -708,30 +730,56 @@ function addLogout(menu) {
     menu.append(mitem);
 }
 function addFunctions(menu) {
-    mitem = new MenuItem({
-        label: "Functions",
-        id: "functions",
+    var botItems = [];
+    //Aid
+    botItems.push({
+        label: "Aid",
+        id: "aid",
         submenu: [
             {
-                label: "Alle Moppeln",
-                id: "MoppleAll",
-                click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict)
+                label: `Aid Friends${FriendsDict.length > 0 ? "" : " (No Friends xD)"}`,
+                id: "aidFriends",
+                click: () => FriendsDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, FriendsDict) : {}
             },
             {
-                label: "Alle Besuchen",
-                id: "VisitAll",
+                label: `Aid Neighbors${NeighborDict.length > 0 ? "" : " (No Neighbors)"}`,
+                id: "aidNeighbors",
+                click: () => NeighborDict.length > 0 ? FoBFunctions.ExecuteMotivateNeighbors(Gwin, NeighborDict) : {}
+            },
+            {
+                label: `Aid Members${ClanMemberDict.length > 0 ? "" : " (No Members)"}`,
+                id: "aidMembers",
+                click: () => ClanMemberDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, ClanMemberDict) : {}
+            },
+            {
+                label: `Aid All`,
+                id: "aidAll",
+                click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict)
+            },
+        ]
+    });
+    //Tavern
+    botItems.push({
+        label: "Tavern",
+        id: "tavern",
+        submenu: [
+            {
+                label: "Visit all Tavern ",
+                id: "prodBot",
                 click: () => FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict)
             },
             {
-                label: "Starte Produktions-Bot",
-                id: "StartProductionBot",
-                click: () => FoBProductionBot.StartProductionBot()
+                label: "Taverne einsammeln",
+                id: "CollectTavern",
+                click: () => FoBFunctions.CollectTavern(Gwin)
             },
-            {
-                label: "Suche snippbare LGs",
-                id: "SearchSnipLG",
-                click: () => FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict)
-            },
+        ]
+    });
+    //Self
+    botItems.push({
+        label: "Do self",
+        id: "self",
+        submenu: [
             {
                 label: "Selbst Einsammeln",
                 id: "CollectSelf",
@@ -746,18 +794,36 @@ function addFunctions(menu) {
                 id: "CollectIncident",
                 click: () => FoBFunctions.ExecuteCollectRewards(Gwin)
             },
+        ]
+    });
+    //Bots
+    botItems.push({
+        label: "Bots",
+        id: "bots",
+        submenu: [
             {
-                label: "Taverne einsammeln",
-                id: "CollectTavern",
-                click: () => FoBFunctions.CollectTavern(Gwin)
+                label: `${BotsRunning.ProductionBot ? "Stop" : "Start"} Production-Bot`,
+                id: "prodBot",
+                click: () => BotsRunning.ProductionBot ? FoBProductionBot.StopProductionBot() : FoBProductionBot.StartProductionBot()
             },
             {
-                label: "Update Lists",
-                id: "UpdateList",
-                click: () => GetData()
+                label: "Suche snippbare LGs",
+                id: "SearchSnipLG",
+                click: () => FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict)
             }
-
         ]
+    });
+    //Others
+    botItems.push({
+        label: "Update Lists",
+        id: "UpdateList",
+        click: () => GetData()
+    });
+
+    mitem = new MenuItem({
+        label: "Functions",
+        id: "functions",
+        submenu: botItems
     });
     menu.append(mitem);
 }
@@ -777,8 +843,11 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
             submenu: goodProdOptions
         })
     }
-    worldItem.push({ label: "Set min Intervall", id: "MinIntervall" });
-    worldItem.push({ label: "Set max Intervall", id: "MaxIntervall" });
+    worldItem.push({
+        label: "Set Tavern-Bot Checkintervall",
+        id: "TavernbotIntervall",
+        click: () => setTavernBotIntervall()
+    });
     if (UserIDs.UID !== null) {
         worldItem.push({
             label: "Hide BigRoad: " + HideBigRoad, id: "hide_bigroad", click: () => {
@@ -820,6 +889,23 @@ function addDevTools(menu) {
     })
     menu.append(mitem);
 }
+function setTavernBotIntervall() {
+    prompt({
+        title: 'Set Tavern-Bot Intervall',
+        label: 'Intervall in minutes: ',
+        value: '60',
+        inputAttrs: {
+            type: 'number'
+        },
+        alwaysOnTop: true
+    }, Gwin).then(r => {
+        if (r !== null) {
+            BotsIntervall.TavernBot = parseInt(r);
+        }
+    }).catch(err => {
+        throw err;
+    })
+}
 function clearStorage() {
     UserIDs = {
         XSRF: null,
@@ -838,9 +924,19 @@ function clearStorage() {
         Gwin.webContents.send('print', "Userdata was cleared!");
     });
 }
+function SessionExpired() {
+    if (BotsRunning.ProductionBot)
+        FoBProductionBot.StopProductionBot();
+    Gwin.webContents.send('print', "Session Expired! SignIn again in 10 minutes");
+    setTimeout(() => {
+        clickDO();
+    }, 1000 * 60 * 10);
+}
 
+exports.BotsRunning = BotsRunning;
 exports.GetData = GetData;
 exports.eState = eState;
 exports.HideBigRoad = HideBigRoad;
 exports.CurrentProduction = CurrentProduction;
+exports.SessionExpired = SessionExpired;
 exports.CurrentGoodProduction = CurrentGoodProduction;

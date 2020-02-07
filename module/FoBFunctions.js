@@ -11,6 +11,7 @@ let PossibleLGs = [];
 let ArcBonus = 0;
 let RewardMoney = 0;
 var oldRewardMoney = 0;
+var RewardTavern = [];
 
 function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
     FriendsList = fList;
@@ -37,6 +38,51 @@ function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
             })
         })
     })
+}
+
+function ExecuteMotivateMember(Gwin, List) {
+    ClanMemberList = List;
+    ConsoleWin = Gwin;
+    Failed, Skipped = [];
+    RewardMoney = 0;
+    MotivateMember(() => {
+        ConsoleWin.webContents.send('print', `ClanMember Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${ClanMemberList.length})`);
+        if (Failed.length > 0)
+            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+        if (Skipped.length > 0)
+            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+        Main.GetData(true);
+    });
+}
+
+function ExecuteMotivateFriends(Gwin, List) {
+    FriendsList = List;
+    ConsoleWin = Gwin;
+    Failed, Skipped = [];
+    RewardMoney = 0;
+    MotivateFriends(() => {
+        ConsoleWin.webContents.send('print', `Friends Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${FriendsList.length})`);
+        if (Failed.length > 0)
+            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+        if (Skipped.length > 0)
+            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+        Main.GetData(true);
+    });
+}
+
+function ExecuteMotivateNeighbors(Gwin, List) {
+    NeighborList = List;
+    ConsoleWin = Gwin;
+    Failed, Skipped = [];
+    RewardMoney = 0;
+    MotivateNeighbors(() => {
+        ConsoleWin.webContents.send('print', `Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
+        if (Failed.length > 0)
+            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+        if (Skipped.length > 0)
+            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+        Main.GetData(true);
+    });
 }
 
 function ExecuteVisitTavern(Gwin, fList) {
@@ -148,6 +194,7 @@ function VisitTavern(callback) {
     ConsoleWin.webContents.send('print', `Do: Visit Friends Tavern (Count: ${TavernList.length})`);
     var i = 0;
     var doneTavern = [];
+    RewardTavern = [];
     if (TavernList.length > 0) {
         var interval = setInterval(function () {
             if (!doneTavern.includes(i)) {
@@ -159,10 +206,11 @@ function VisitTavern(callback) {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetTavernResult(body);
                                 ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} - Reward: ${processer.GetTavernReward(result)}  (${i + 1}/${TavernList.length})`);
+                                RewardTavern.push(processer.GetTavernReward(result));
                                 i++;
                                 if (i >= TavernList.length) {
                                     clearInterval(interval);
-                                    ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
+                                    ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length}) Reward: ${RewardTavern.join(", ")}`);
                                     callback();
                                 }
                             } else {
@@ -399,11 +447,16 @@ exports.ClanMemberList = ClanMemberList;
 exports.TavernList = TavernList;
 exports.NeighborList = NeighborList;
 exports.PossibleLGs = PossibleLGs;
+exports.ConsoleWin = ConsoleWin;
+exports.ArcBonus = ArcBonus;
+
 exports.ExecuteMoppelAll = ExecuteMoppelAll;
+exports.ExecuteMotivateFriends = ExecuteMotivateFriends;
+exports.ExecuteMotivateMember = ExecuteMotivateMember;
+exports.ExecuteMotivateNeighbors = ExecuteMotivateNeighbors;
 exports.ExecuteCollectRewards = ExecuteCollectRewards;
 exports.ExecuteSnipLGs = ExecuteSnipLGs;
 exports.CollectTavern = CollectTavern;
 exports.ExecuteVisitTavern = ExecuteVisitTavern;
-exports.ConsoleWin = ConsoleWin;
-exports.ArcBonus = ArcBonus;
+
 exports.Test = Test;
