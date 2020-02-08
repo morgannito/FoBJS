@@ -79,6 +79,7 @@ var BotsIntervall = {
 }
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
 var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
+var RunningTime = moment.now();
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -370,9 +371,12 @@ function PrepareInfoMenu() {
     var ClanMoppel = ClanMemberDict.filter((f) => f.canMotivate).length;
 
     var dList = dProdList.concat(dGoodProdList);
-
+    
+    var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
+    var DurString = (!durRunning.days()?(!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d "+ durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
     tableContent = tableContent
         .replace("###CurWorld###", UserIDs.WID)
+        .replace('###RunningTime###',`${DurString}`)
         .replace("###Friends###", `${FriendMoppel}/${FriendsDict.length}`)
         .replace("###Clan###", `${ClanMoppel}/${ClanMemberDict.length}`)
         .replace("###Neighbor###", `${NeighborMoppel}/${NeighborDict.length}`)
@@ -431,7 +435,7 @@ function PrepareInfoMenu() {
             if (prod["state"]["__class__"] === "ProducingState") {
                 var end = moment.unix(prod["state"]["next_state_transition_at"]);
                 var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                if (start.isAfter(end)) UpdateList = true;
+                if (start.isAfter(end) || start.isSame(end)) UpdateList = true;
                 var dur = moment.duration(end.diff(start));
                 s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
@@ -467,15 +471,15 @@ function PrepareInfoMenu() {
                     .replace("###IncRare" + i + "###", e.rarity)
                     .replace("###IncLoc" + i + "###", e.position)
 
-            visHidden = visHidden.filter((reward) => { return (reward.id !== e.id); });
+            visHidden = visHidden.filter((reward) => { return (e !== undefined ||reward.id !== e.id); });
         }
         HiddenLength = visHidden.length;
         var maxLength = (HiddenLength > prodLength) ? HiddenLength : prodLength;
         for (let i = 0; i < maxLength; i++) {
             var localContent = buildContent;
             const Hidden = visHidden[i];
-            var prod = dList[i].prod;
-            var count = dList[i].count;
+            var prod = dList[i];
+            var count = dList[i];
 
             if (undefined === Hidden || null === Hidden) {
                 localContent = localContent
@@ -493,6 +497,8 @@ function PrepareInfoMenu() {
                     .replace("###ProdName###", "")
                     .replace("###ProdState###", "")
             } else {
+                prod = prod.prod;
+                count = prod.count;
                 var prodName = "idle";
                 var production = "";
                 if (prod["state"]["__class__"] === "ProducingState") {
