@@ -2,6 +2,7 @@ global.fetch = require('electron-fetch').default;
 const events = require('events');
 const crypto = require('crypto');
 const FoBCore = require("./FoBCore");
+const FoBMain = require("../main");
 
 const myEmitter = new events.EventEmitter();
 
@@ -272,8 +273,8 @@ async function fetchData(x, sig) {
         let body = await res.text();
         try {
             var json = JSON.parse(body);
-            if(json[0]["__class__"] === "Error")
-                throw "Error";
+            if(json[0]["__class__"] === "Error" || json[0]["__class__"] === "Redirect")
+                FoBMain.SessionExpired();
             return json;
         } catch (error) {
             return JSON.parse("[]");

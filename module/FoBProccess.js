@@ -55,7 +55,7 @@ function GetFriends(data) {
             let Friends = resData["responseData"];
             for (let x = 0; x < Friends.length; x++) {
                 const friend = Friends[x];
-                if (friend["is_self"] !== true) {
+                if (friend["is_self"] !== true && friend["is_friend"]) {
                     FriendsDict.push({
                         key: friend["player_id"],
                         canMotivate: (undefined === friend["next_interaction_in"] ? true : false),
@@ -100,7 +100,10 @@ function GetMotivateResult(data) {
             reward = rew['money'];
         }
         if (resData["requestClass"] === "OtherPlayerService" && resData["requestMethod"] === "polivateRandomBuilding") {
-            result = resData["responseData"]["action"];
+            if (resData["responseData"]["__class__"] === "Error")
+                result = "failed";
+            else
+                result = resData["responseData"]["action"];
         }
     }
     return { result: result, reward: reward };

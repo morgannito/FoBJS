@@ -37,6 +37,7 @@ function StartProductionBot() {
         ResDict = processer.ResidentialDict;
         GoodProdDict = processer.GoodProdDict;
         PWW.webContents.send('start', {ProdDict,ResDict, GoodProdDict});
+        Main.BotsRunning.ProductionBot = true;
     });
 
     ipcMain.on('DoWork', (e, d) => {
@@ -158,6 +159,7 @@ function StopProductionBot() {
         PWW.destroy();
     }
     PWW = null;
+    Main.BotsRunning.ProductionBot = false;
     Main.GetData();
 }
 

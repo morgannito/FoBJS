@@ -39,7 +39,7 @@
 
     ipcRenderer.on('stop', () => {
       if (IntervallID !== null) {
-        timer.stop();
+        clearInterval(IntervallID);
       }
     });
 
@@ -51,7 +51,6 @@
         }, (1000 * 62 * 5));
 
         DoWorker();
-        IntervallID = timer.timeout;
       }
     }
 
