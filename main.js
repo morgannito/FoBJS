@@ -478,8 +478,8 @@ function PrepareInfoMenu() {
         for (let i = 0; i < maxLength; i++) {
             var localContent = buildContent;
             const Hidden = visHidden[i];
-            var prod = dList[i];
-            var count = dList[i];
+            var prod = dList[i].prod;
+            var count = dList[i].count;
 
             if (undefined === Hidden || null === Hidden) {
                 localContent = localContent
