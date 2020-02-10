@@ -5,6 +5,7 @@ let FriendsDict = [];
 let ClanMemberDict = [];
 var ResourceDict = [];
 var OwnTavernInfo = {};
+var OwnTavernData = [];
 var LimitedBonuses = [];
 var HiddenRewards = [];
 var ResourceDefinitions = [];
@@ -125,6 +126,16 @@ function GetTavernInfo(data) {
             }
         }
     }
+}
+function GetOwnTavernData(data) {
+    OwnTavernData = [];
+    for (let i = 0; i < data.length; i++) {
+        const resData = data[i];
+        if (resData["requestClass"] === "FriendsTavernService" && resData["requestMethod"] === "getOwnTavern") {
+            OwnTavernData = resData["responseData"];
+        }
+    }
+    exports.OwnTavernData = OwnTavernData;
 }
 function GetTavernCollectResult(data) {
     for (let i = 0; i < data.length; i++) {
@@ -750,6 +761,7 @@ function clearLists() {
 }
 
 exports.AllBuildings = AllBuildings;
+exports.OwnTavernData = OwnTavernData;
 exports.BuildingsDict = BuildingsDict;
 exports.ResidentialDict = ResidentialDict;
 exports.ProductionDict = ProductionDict;
@@ -769,6 +781,7 @@ exports.GetHiddenRewards = GetHiddenRewards;
 exports.GetResourceDefinitions = GetResourceDefinitions;
 exports.GetBonuses = GetBonuses;
 exports.GetOwnTavernInfo = GetOwnTavernInfo;
+exports.GetOwnTavernData = GetOwnTavernData;
 exports.GetNeighbor = GetNeighbor;
 exports.GetResources = GetResources;
 exports.GetClanMember = GetClanMember;

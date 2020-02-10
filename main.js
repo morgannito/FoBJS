@@ -71,6 +71,10 @@ var UpdateList = false;
 var HideBigRoad = true;
 var BotsRunning = {
     ProductionBot: false,
+    SQBot: -1,
+    TavernBot: -1,
+    MoppelBot: -1,
+    IncidentBot: -1
 }
 var BotsIntervall = {
     ProductionBot: null,
@@ -128,6 +132,8 @@ function createWindow() {
         })
     });
 
+    SetupIpcMain();
+
     Gwin.on('closed', () => {
         Gwin, win = null
     });
@@ -144,7 +150,7 @@ app.on('activate', () => {
     }
 })
 function clickDO() {
-    if (null === UserIDs.UID && UserName !== null && Password !== null) {
+    if (null === UserIDs.UID && UserName !== null && Password !== null && LastWorld !== null) {
         createBrowserWindowAuto("https://de.forgeofempires.com/");
     } else {
         Gwin.webContents.send('requestUsername', "Please enter your Username: ");
@@ -334,11 +340,15 @@ function GetData(clear = true, callback = null) {
                                             processer.GetAllBuildings(jsonbody);
                                             processer.GetOwnBuildings();
                                             processer.GetDistinctProductList();
-                                            if (clear) Gwin.webContents.send('clear', "");
-                                            PrepareInfoMenu();
-                                            if (callback !== null) {
-                                                callback();
-                                            }
+                                            builder.DoGetOwnTavern()
+                                                .then(body => {
+                                                    processer.GetOwnTavernData(body);
+                                                    if (clear) Gwin.webContents.send('clear', "");
+                                                    PrepareInfoMenu();
+                                                    if (callback !== null) {
+                                                        callback();
+                                                    }
+                                                })
                                         }
                                     });
                                     //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
@@ -352,15 +362,34 @@ function PrepareInfoMenu() {
         Gwin.webContents.send('clearInfoMenu', "");
         return;
     }
-    var s = "";
+    var tavernState = "";
     if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
-        s = "full";
-    else s = "sitting"
+        tavernState = "full";
+    else tavernState = "sitting"
 
-    let filePath = path.join(asarPath, 'html', 'table.html');
-    var tableContent = fs.readFileSync(filePath, 'utf8');
-    filePath = path.join(asarPath, 'html', 'building.html');
-    var buildContent = fs.readFileSync(filePath, 'utf8');
+    let filePath = path.join(asarPath, 'html', 'window.html');
+    var windowContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableOverview.html');
+    var tableOverview = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableOtherPlayers.html');
+    var tableOtherPlayers = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableTavern.html');
+    var tableTavern = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableBots.html');
+    var tableBots = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableProductionList.html');
+    var tableProductionList = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'tableContent', 'tableManually.html');
+    var tableManually = fs.readFileSync(filePath, 'utf8');
+
+    filePath = path.join(asarPath, 'html', 'insertContent', 'building.html');
+    var buildingContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'insertContent', 'goods.html');
+    var goodsContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'insertContent', 'inactiveFriends.html');
+    var inactiveFriendsContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'insertContent', 'sittingPlayers.html');
+    var sittingPlayersContent = fs.readFileSync(filePath, 'utf8');
 
     var dProdList = processer.DProductionDict;
     //var dResList = processer.DResidentialDict;
@@ -371,12 +400,128 @@ function PrepareInfoMenu() {
     var ClanMoppel = ClanMemberDict.filter((f) => f.canMotivate).length;
 
     var dList = dProdList.concat(dGoodProdList);
-    
+
     var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
-    var DurString = (!durRunning.days()?(!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d "+ durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
-    tableContent = tableContent
+    var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
+
+    tableOverview = tableOverview
         .replace("###CurWorld###", UserIDs.WID)
-        .replace('###RunningTime###',`${DurString}`)
+        .replace('###RunningTime###', `${DurString}`)
+        .replace("###PlayerName###", `${UserData.UserName}`)
+        .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
+        .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "money") }).name}`)
+        .replace("###SupplyAmount###", `${Math.floor(processer.ResourceDict.supplies).toLocaleString()}`)
+        .replace("###MoneyAmount###", `${Math.floor(processer.ResourceDict.money).toLocaleString()}`)
+        .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
+        .replace("###DiaAmount###", `${Math.floor(processer.ResourceDict.premium).toLocaleString()}`)
+        .replace("###MedsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "medals") }).name}`)
+        .replace("###Meds###", `${Math.floor(processer.ResourceDict.medals).toLocaleString()}`);
+
+
+    var FriendInactive = FriendsDict.filter((f) => !f.item.is_active);
+    tableOtherPlayers = tableOtherPlayers
+        .replace("###Friends###", `${FriendMoppel}/${FriendsDict.length}`)
+        .replace("###Clan###", `${ClanMoppel}/${ClanMemberDict.length}`)
+        .replace("###Neighbor###", `${NeighborMoppel}/${NeighborDict.length}`)
+    for (let i = 0; i < FriendInactive.length; i++) {
+        const iFriend = FriendInactive[i];
+        let local = inactiveFriendsContent;
+        local = local
+            .replace("###Name###", iFriend.item.name)
+            .replace("###Score###", iFriend.item.score)
+            .replace("###playerid###", iFriend.item.player_id)
+
+        tableOtherPlayers = tableOtherPlayers
+            .replace("###inactiveFriends###", local);
+    }
+    tableOtherPlayers = tableOtherPlayers
+        .replace("###inactiveFriends###", "");
+
+
+
+    tableTavern = tableTavern
+        .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "tavern_silver") }).name}`)
+        .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
+        .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
+        .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
+    var visitableTavern = processer.GetVisitableTavern(FriendsDict);
+    var SittingPlayers = processer.OwnTavernData["view"]["visitors"];
+    for (let i = 0; i < SittingPlayers.length; i++) {
+        const sPlayer = SittingPlayers[i];
+        let local = sittingPlayersContent;
+        local = local
+            .replace("###PlayerName###", sPlayer.name)
+            .replace("###PlayerID###", sPlayer.player_id);
+        if (visitableTavern.find((v, i, a) => { i.key === sPlayer.player_id }))
+            local = local.replace("###SitAtTavern###", `<button class="SitAtTavern" style="border: none; outline: none; font-size: 13px; padding: 5px 16px;">Sit at Tavern</button>`);
+        else
+            local = local.replace("###SitAtTavern###", `CAN NOT SIT DOWN`);
+
+        tableTavern = tableTavern
+            .replace("###SittingPlayers###", local);
+    }
+    tableTavern = tableTavern
+        .replace("###SittingPlayers###", "");
+
+
+    tableBots = tableBots.replace("###ProdBotState###", BotsRunning.ProductionBot === true ? "running" : (BotsRunning.ProductionBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.ProductionBot === true) tableBots = tableBots.replace("###ProdBotColor###", "#00ff00").replace("###ProdBotButtonName###", "Stop");
+    else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", "Start");
+    else if (BotsRunning.ProductionBot == -1) tableBots = tableBots.replace("###ProdBotColor###", "#0000ff".replace("###ProdBotButtonName###", "Nothing"));
+
+    tableBots = tableBots.replace("###SQBotState###", BotsRunning.SQBot === true ? "running" : (BotsRunning.SQBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.SQBot === true) tableBots = tableBots.replace("###SQBotColor###", "#00ff00").replace("###SQBotButtonName###", "Stop");
+    else if (BotsRunning.SQBot === false) tableBots = tableBots.replace("###SQBotColor###", "#ff0000").replace("###SQBotButtonName###", "Start");
+    else if (BotsRunning.SQBot == -1) tableBots = tableBots.replace("###SQBotColor###", "#0000ff").replace("###SQBotButtonName###", "Nothing");
+
+    tableBots = tableBots.replace("###TavernBotState###", BotsRunning.TavernBot === true ? "running" : (BotsRunning.TavernBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.TavernBot === true) tableBots = tableBots.replace("###TavernBotState###", "#00ff00").replace("###TavernBotButtonName###", "Stop");
+    else if (BotsRunning.TavernBot === false) tableBots = tableBots.replace("###TavernBotState###", "#ff0000").replace("###TavernBotButtonName###", "Start");
+    else if (BotsRunning.TavernBot == -1) tableBots = tableBots.replace("###TavernBotState###", "#0000ff").replace("###TavernBotButtonName###", "Nothing");
+
+    tableBots = tableBots.replace("###MoppelBotState###", BotsRunning.MoppelBot === true ? "running" : (BotsRunning.MoppelBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.MoppelBot === true) tableBots = tableBots.replace("###MoppelBotState###", "#00ff00").replace("###MoppelBotButtonName###", "Stop");
+    else if (BotsRunning.MoppelBot === false) tableBots = tableBots.replace("###MoppelBotState###", "#ff0000").replace("###MoppelBotButtonName###", "Start");
+    else if (BotsRunning.MoppelBot == -1) tableBots = tableBots.replace("###MoppelBotState###", "#0000ff").replace("###MoppelBotButtonName###", "Nothing");
+
+    tableBots = tableBots.replace("###IncidentBotState###", BotsRunning.IncidentBot === true ? "running" : (BotsRunning.IncidentBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.IncidentBot === true) tableBots = tableBots.replace("###IncidentBotState###", "#00ff00").replace("###IncidentBotButtonName###", "Stop");
+    else if (BotsRunning.IncidentBot === false) tableBots = tableBots.replace("###IncidentBotState###", "#ff0000").replace("###IncidentBotButtonName###", "Start");
+    else if (BotsRunning.IncidentBot == -1) tableBots = tableBots.replace("###IncidentBotState###", "#0000ff").replace("###IncidentBotButtonName###", "Nothing");
+
+
+    for (let key in dList) {
+        if (!dList.hasOwnProperty(key)) return;
+        var localContent = buildingContent;
+        var prod = dList[key].prod;
+        var count = dList[key].count;
+        var prodName, s = "idle";
+        var production = "";
+        if (prod["state"]["__class__"] === "ProducingState") {
+            var end = moment.unix(prod["state"]["next_state_transition_at"]);
+            var start = moment.unix(Math.round(new Date().getTime() / 1000));
+            if (start.isAfter(end) || start.isSame(end)) UpdateList = true;
+            var dur = moment.duration(end.diff(start));
+            s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
+            production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+            prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+        }
+        else if (prod["state"]["__class__"] === "IdleState") s = "idle"
+        else if (prod["state"]["__class__"] === "ProductionFinishedState") {
+            s = "finished";
+            production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+            prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+        };
+        localContent = localContent
+            .replace("###BuildName###", count + "x " + prod["name"])
+            .replace("###ProdName###", prodName)
+            .replace("###ProdState###", s)
+        tableProductionList = tableProductionList.replace("###Building###", localContent);
+    }
+    tableProductionList = tableProductionList.replace("###Building###","");
+    /* tableContent = tableContent
+        .replace("###CurWorld###", UserIDs.WID)
+        .replace('###RunningTime###', `${DurString}`)
         .replace("###Friends###", `${FriendMoppel}/${FriendsDict.length}`)
         .replace("###Clan###", `${ClanMoppel}/${ClanMemberDict.length}`)
         .replace("###Neighbor###", `${NeighborMoppel}/${NeighborDict.length}`)
@@ -395,8 +540,7 @@ function PrepareInfoMenu() {
         .replace("###Click###", `<script>openGoodsStock();</script>`)
         .replace("###GoodsStock###", `Goods Stock`)
         .replace("###Click2###", `<script>openInactiveFriends();</script>`)
-
-    var visHidden = processer.HiddenRewards.filter((reward) => {
+     var visHidden = processer.HiddenRewards.filter((reward) => {
         if (reward.position === "cityRoadBig") {
             if (HideBigRoad)
                 return false;
@@ -457,76 +601,17 @@ function PrepareInfoMenu() {
             tableContent = tableContent.replace("###BuildingIncident###", localContent + "\n\r###BuildingIncident###");
         }
         tableContent = tableContent.replace("###BuildingIncident###", "");
-    } else {
-        var prodLength = dList.length;
-        var HiddenLength = visHidden.length;
-        for (let i = 0; i < 4; i++) {
-            const e = visHidden[i];
-            if (undefined === e || null === e)
-                tableContent = tableContent
-                    .replace("###IncRare" + i + "###", "")
-                    .replace("###IncLoc" + i + "###", "")
-            else
-                tableContent = tableContent
-                    .replace("###IncRare" + i + "###", e.rarity)
-                    .replace("###IncLoc" + i + "###", e.position)
+    } */
 
-            visHidden = visHidden.filter((reward) => { return (e !== undefined ||reward.id !== e.id); });
-        }
-        HiddenLength = visHidden.length;
-        var maxLength = (HiddenLength > prodLength) ? HiddenLength : prodLength;
-        for (let i = 0; i < maxLength; i++) {
-            var localContent = buildContent;
-            const Hidden = visHidden[i];
-            var prod = dList[i];
-            var count = dList[i];
+    windowContent
+        .replace("###Overview###", tableOverview)
+        .replace("###OtherPlayers###", tableOtherPlayers)
+        .replace("###Tavern###", tableTavern)
+        .replace("###Bots###", tableBots)
+        .replace("###ProductionList###", tableProductionList)
+        .replace("###Manually###", tableManually)
 
-            if (undefined === Hidden || null === Hidden) {
-                localContent = localContent
-                    .replace("###IncRareX###", "")
-                    .replace("###IncLocX###", "");
-            } else {
-                localContent = localContent
-                    .replace("###IncRareX###", Hidden.rarity)
-                    .replace("###IncLocX###", Hidden.position)
-            }
-
-            if (undefined === prod || null === prod) {
-                localContent = localContent
-                    .replace("###BuildName###", "")
-                    .replace("###ProdName###", "")
-                    .replace("###ProdState###", "")
-            } else {
-                prod = prod.prod;
-                count = prod.count;
-                var prodName = "idle";
-                var production = "";
-                if (prod["state"]["__class__"] === "ProducingState") {
-                    var end = moment.unix(prod["state"]["next_state_transition_at"]);
-                    var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                    if (start.isAfter(end)) UpdateList = true;
-                    var dur = moment.duration(end.diff(start));
-                    s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
-                    production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-                    prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-                }
-                else if (prod["state"]["__class__"] === "IdleState") s = count + "x " + "idle"
-                else if (prod["state"]["__class__"] === "ProductionFinishedState") {
-                    s = "finished";
-                    production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-                    prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-                };
-
-                localContent = localContent
-                    .replace("###BuildName###", prod["name"])
-                    .replace("###ProdName###", prodName)
-                    .replace("###ProdState###", s)
-            }
-            tableContent = tableContent.replace("###BuildingIncident###", localContent + "\n\r ###BuildingIncident###");
-        }
-        tableContent = tableContent.replace("###BuildingIncident###", "");
-    }
-    FoBCore.printInfo(Gwin, tableContent);
+    FoBCore.printInfo(Gwin, windowContent);
 }
 function createBrowserWindow(url) {
     const win = new BrowserWindow({
@@ -773,33 +858,7 @@ function addFunctions(menu) {
                 label: "Visit all Tavern ",
                 id: "prodBot",
                 click: () => FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict)
-            },
-            {
-                label: "Taverne einsammeln",
-                id: "CollectTavern",
-                click: () => FoBFunctions.CollectTavern(Gwin)
-            },
-        ]
-    });
-    //Self
-    botItems.push({
-        label: "Do self",
-        id: "self",
-        submenu: [
-            {
-                label: "Selbst Einsammeln",
-                id: "CollectSelf",
-                click: () => FoBProductionBot.CollectManuel(Gwin)
-            },
-            {
-                label: "Selbst Starten",
-                id: "QueueSelf",
-                click: () => FoBProductionBot.StartManuel(Gwin)
-            }, {
-                label: "Incident einsammeln",
-                id: "CollectIncident",
-                click: () => FoBFunctions.ExecuteCollectRewards(Gwin)
-            },
+            }
         ]
     });
     //Bots
@@ -807,11 +866,6 @@ function addFunctions(menu) {
         label: "Bots",
         id: "bots",
         submenu: [
-            {
-                label: `${BotsRunning.ProductionBot ? "Stop" : "Start"} Production-Bot`,
-                id: "prodBot",
-                click: () => BotsRunning.ProductionBot ? FoBProductionBot.StopProductionBot() : FoBProductionBot.StartProductionBot()
-            },
             {
                 label: "Suche snippbare LGs",
                 id: "SearchSnipLG",
@@ -917,8 +971,6 @@ function clearStorage() {
         XSRF: null,
         CSRF: null,
         CID: null,
-        SID: null,
-        UID: null,
         WID: null,
         ForgeHX: null,
     }
@@ -931,12 +983,35 @@ function clearStorage() {
     });
 }
 function SessionExpired() {
-    if (BotsRunning.ProductionBot)
-        FoBProductionBot.StopProductionBot();
+    FoBProductionBot.StopProductionBot();
+    UserIDs.UID = null;
     Gwin.webContents.send('print', "Session Expired! SignIn again in 10 minutes");
     setTimeout(() => {
         clickDO();
     }, 1000 * 60 * 10);
+}
+function SetupIpcMain(){
+    ipcMain.on('window_loaded', () => {
+        Gwin.webContents.executeJavaScript("loadEventHandler()").then(result => console.log(result));
+    });
+    ipcMain.on('removeFriend', (e,data) => {
+        builder.RemoveFriend(data);
+    });
+    ipcMain.on('collectTavern', () => {
+        FoBFunctions.CollectTavern(Gwin);
+    });
+    ipcMain.on('startProduction', () => {
+        FoBProductionBot.StartManuel(Gwin)
+    });
+    ipcMain.on('collectProduction', () => {
+        FoBProductionBot.CollectManuel(Gwin);
+    });
+    ipcMain.on('cancelProduction', () => {
+        //FoBFunctions.CancelProduction();
+    });
+    ipcMain.on('collectIncidents', () => {
+        FoBFunctions.ExecuteCollectRewards(Gwin)
+    });
 }
 
 exports.BotsRunning = BotsRunning;

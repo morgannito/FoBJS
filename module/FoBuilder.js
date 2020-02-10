@@ -60,6 +60,9 @@ const DoCancelProduction = (id) => {
 const DoCollectTavern = () => {
     return CollectTavern();
 }
+const DoGetOwnTavern = () =>{
+    return GetOwnTavern();
+}
 
 const CollectProduction = (ids) => {
     var x = [{}];
@@ -168,6 +171,18 @@ const SittAtTavern = (playerID) => {
     return fetchData(x, sig);
 }
 
+const GetOwnTavern = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "FriendsTavernService";
+    x[0]["requestMethod"] = "getOwnTavern";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
 const CollectTavern = () =>{
     var x = [{}];
     x[0]["__class__"] = "ServerRequest";
@@ -222,6 +237,18 @@ const GetEntitiesData = () => {
     x[0]["requestData"] = [];
     x[0]["requestClass"] = "CityMapService";
     x[0]["requestMethod"] = "getEntities";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
+const RemoveFriend = (playerID) =>{
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [playerID];
+    x[0]["requestClass"] = "FriendService";
+    x[0]["requestMethod"] = "deleteFriend";
     x[0]["requestId"] = FoBCore.getNextRequestID();
     
     let sig = calcSig(x);
@@ -336,7 +363,9 @@ exports.DoCollectReward = DoCollectReward;
 exports.DoCollectProduction = DoCollectProduction;
 exports.DoQueryProduction = DoQueryProduction;
 exports.DoCancelProduction = DoCancelProduction;
+exports.DoGetOwnTavern = DoGetOwnTavern;
 exports.VisitTavern = VisitTavern;
+exports.RemoveFriend = RemoveFriend;
 
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;

@@ -1,27 +1,162 @@
 <style type="text/css">
-  .tg  {border-collapse:collapse;border-spacing:0;}
-  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;}
-  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;}
-  .tg .tg-17zb{font-weight:bold;font-size:20px;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-  .tg .tg-x028{font-weight:bold;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-  .tg .tg-mk6l{background-color:#000000;color:#ffffff;border-color:#000000;text-align:left;vertical-align:top}
-  .tg .tg-hfk9{background-color:#000000;border-color:#000000;text-align:left;vertical-align:top}
-  .tg .tg-ntt9{background-color:#ffffff;color:#ffffff;border-color:#ffffff;text-align:left;vertical-align:top}
-  .tg .tg-0usf{background-color:#000000;color:#ffffff;border-color:#ffffff;text-align:center;vertical-align:top}
-  .tg .tg-tizx{background-color:#000000;color:#ffffff;border-color:#ffffff;text-align:left;vertical-align:top}
-  .tg .tg-twhk{font-size:20px;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-  .tg .tg-kk4w{font-style:italic;background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-  .tg .tg-p0kf{background-color:#000000;color:#ffffff;border-color:#000000;text-align:center;vertical-align:top}
-  .tg .tg-c9up{background-color:#ffffff;color:#ffffff;border-color:#ffffff;text-align:center;vertical-align:top}
-  .tg .tg-cqwb{background-color:#ffffff;color:#ffffff;border-color:inherit;text-align:left;vertical-align:top}
-  .tg .tg-rfgp{font-size:10px;background-color:#ffffff;color:#ffffff;border-color:#ffffff;text-align:center;vertical-align:top}
-  .tg .tg-c2e9{font-size:xx-small;font-family:"Arial Black", Gadget, sans-serif !important;;background-color:#ffffff;color:#ffffff;border-color:#ffffff;text-align:left;vertical-align:top}
-  .tg .tg-gqa8{font-style:italic;background-color:#ffffff;color:#ffffff;border-color:#ffffff;text-align:center;vertical-align:top}
-  </style>
+  .tg {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .tg td {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    padding: 10px 5px;
+    border-style: solid;
+    border-width: 0px;
+    overflow: hidden;
+    word-break: normal;
+  }
+
+  .tg th {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: normal;
+    padding: 10px 5px;
+    border-style: solid;
+    border-width: 0px;
+    overflow: hidden;
+    word-break: normal;
+  }
+
+  .tg .tg-17zb {
+    font-weight: bold;
+    font-size: 20px;
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-x028 {
+    font-weight: bold;
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-mk6l {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-hfk9 {
+    background-color: #000000;
+    border-color: #000000;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-ntt9 {
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-0usf {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-tizx {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-twhk {
+    font-size: 20px;
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-kk4w {
+    font-style: italic;
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-p0kf {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #000000;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-c9up {
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-cqwb {
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: inherit;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-rfgp {
+    font-size: 10px;
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: center;
+    vertical-align: top
+  }
+
+  .tg .tg-c2e9 {
+    font-size: xx-small;
+    font-family: "Arial Black", Gadget, sans-serif !important;
+    ;
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: left;
+    vertical-align: top
+  }
+
+  .tg .tg-gqa8 {
+    font-style: italic;
+    background-color: #ffffff;
+    color: #ffffff;
+    border-color: #ffffff;
+    text-align: center;
+    vertical-align: top
+  }
+</style>
 <table class="tg">
   <tr>
-    <th class="tg-17zb" colspan="7">Current World: ###CurWorld###</th>
-    <th class="tg-17zb" colspan="2">Running since: ###RunningTime###</th>
+    <th class="tg-17zb" colspan="9">Current World: ###CurWorld###</th>
     <th class="tg-twhk" colspan="7">Player: ###PlayerName###</th>
   </tr>
   <tr>
