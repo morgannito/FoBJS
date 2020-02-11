@@ -47,7 +47,6 @@ function StartProductionBot() {
         DoWork(d.isAuto);
     });
 }
-
 function DoWork(isAuto) {
     var promArr = [];
     var started = false;
@@ -97,7 +96,6 @@ function DoWork(isAuto) {
         throw reason;
     });
 }
-
 function CollectManuel(ConsoleWin) {
     var promArr = [];
     ConsoleWin.webContents.send('print', `Do: Self-Collect productions`);
@@ -145,9 +143,6 @@ function StartManuel(ConsoleWin) {
     Promise.all(promArr).then(values => {
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
-            IntervallID = setInterval(() => {
-                myEmitter.emit("UpdateMenu", "");
-            }, 500);
         });
     }, reason => {
         throw reason;

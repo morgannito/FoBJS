@@ -1,15 +1,6 @@
 function getAllCommands(){
     return [
-        'MoppleAll',
-        'VisitAll',
-        'SearchSnipLG',
-        'StartProductionBot',
-        'CollectSelf',
-        'QueueSelf',
-        'CollectIncident',
-        'CollectTavern',
-        'UpdateList',
-        'Logout'
+        'Login'
     ]
 }
 

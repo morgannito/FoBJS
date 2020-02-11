@@ -10,6 +10,7 @@ exports.TableFromArrayObject = TableFromArrayObject;
 exports.GetDistinctCount = GetDistinctCount;
 exports.getGoodsProductionOptions = getGoodsProductionOptions;
 exports.getProductionOptions = getProductionOptions;
+exports.GetGoodsEraSorted = GetGoodsEraSorted;
 var reqID = 2;
 
 function getRandomInt(max, min = null) {
@@ -31,20 +32,20 @@ function getRandomIntervall() {
 
 function getProductionOptions() {
     return {
-        5: {text: "5min", id: 1},
-        15: {text: "15min", id: 2},
-        60: {text: "1h", id: 3},
-        240: {text: "4h", id: 4},
-        480: {text: "8h", id: 5},
-        1440: {text: "1d", id: 6}
+        5: { text: "5min", id: 1 },
+        15: { text: "15min", id: 2 },
+        60: { text: "1h", id: 3 },
+        240: { text: "4h", id: 4 },
+        480: { text: "8h", id: 5 },
+        1440: { text: "1d", id: 6 }
     }
 }
 function getGoodsProductionOptions() {
     return {
-        240: {text: "4h", id: 1},
-        480: {text: "8h", id: 2},
-        1440: {text: "1d", id: 3},
-        2880: {text: "2d", id: 4}
+        240: { text: "4h", id: 1 },
+        480: { text: "8h", id: 2 },
+        1440: { text: "1d", id: 3 },
+        2880: { text: "2d", id: 4 }
     }
 }
 
@@ -78,6 +79,7 @@ function printWelcomeMessage(Gwin, app) {
 
 function printInfo(Gwin, htmltext) {
     Gwin.webContents.send('information', htmltext);
+    Gwin.webContents.executeJavaScript("init();");
 }
 
 function GetP1(AgeString, Level) {
@@ -223,4 +225,71 @@ function TableFromArrayObject(data) {
     }
     html += '</table>';
     return html;
+}
+
+function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
+    var Goods = {};
+    var isEraGood, toAdd = true;
+    for (let e = 0; e < eraDict.length; e++) {
+        const era = eraDict[e];
+        for (let rd = 0; rd < ResourceDefinition.length; rd++) {
+            const resD = ResourceDefinition[rd];
+            if (Goods[era["era"]] !== undefined && Goods[era["era"]]["Goods"].length >= 5) break;
+            if (resD["era"] === era["era"]) {
+                isEraGood = true;
+                toAdd = true;
+                for (const res in Resources) {
+                    if (Resources.hasOwnProperty(res)) {
+                        const _amount = Resources[res];
+                        if (resD["id"] === res) {
+                            if (Goods[era["era"]] !== undefined) {
+                                Goods[era["era"]]["Name"] = era["name"];
+                                if (Goods[era["era"]]["Goods"] !== undefined) {
+                                    Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: _amount });
+                                    toAdd = false;
+                                    break;
+                                } else {
+                                    Goods[era["era"]]["Name"] = era["name"];
+                                    Goods[era["era"]]["Goods"] = [];
+                                    Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: _amount });
+                                    toAdd = false;
+                                    break;
+                                }
+                            }
+                            else {
+                                Goods[era["era"]] = {};
+                                Goods[era["era"]]["Name"] = era["name"];
+                                if (Goods[era["era"]]["Goods"] !== undefined) {
+                                    Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: _amount });
+                                    toAdd = false;
+                                    break;
+                                } else {
+                                    Goods[era["era"]]["Goods"] = [];
+                                    Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: _amount });
+                                    toAdd = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                /* if (isEraGood && toAdd) {
+                    if (Goods[era["era"]] === undefined) {
+                        Goods[era["era"]] = {};
+                        Goods[era["era"]]["Name"] = era["name"];
+                    }
+                    if (Goods[era["era"]]["Goods"] !== undefined) {
+                        Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: 0 });
+                        toAdd, isEraGood = false;
+                    } else {
+                        Goods[era["era"]]["Goods"] = [];
+                        Goods[era["era"]]["Goods"].push({ id: resD["id"], name: resD["name"], amount: 0 });
+                        toAdd, isEraGood = false;
+                    }
+                } */
+            }
+        }
+    }
+
+    return Goods;
 }

@@ -2,18 +2,17 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="../css/window.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
     <div class="tab">
-        <button class="tablinks" onclick="openTab(event, 'Overview')" id="defaultOpen">Overview</button>
-        <button class="tablinks" onclick="openTab(event, 'OtherPlayers')">Other Players</button>
-        <button class="tablinks" onclick="openTab(event, 'Tavern')">Tavern</button>
-        <button class="tablinks" onclick="openTab(event, 'Bots')">Bots</button>
-        <button class="tablinks" onclick="openTab(event, 'ProductionList')">Production</button>
-        <button class="tablinks" onclick="openTab(event, 'Manually')">Manually</button>
+        <button class="tablinks" id="btnOverview" onclick="openTab(event,'Overview')">Overview</button>
+        <button class="tablinks" id="btnOtherPlayers" onclick="openTab(event,'OtherPlayers')">Other Players</button>
+        <button class="tablinks" id="btnTavern" onclick="openTab(event,'Tavern')">Tavern</button>
+        <button class="tablinks" id="btnBots" onclick="openTab(event,'Bots')">Bots</button>
+        <button class="tablinks" id="btnProduction" onclick="openTab(event,'Production')">Production</button>
+        <button class="tablinks" id="btnManually" onclick="openTab(event,'Manually')">Manually</button>
     </div>
 
     <div id="Overview" class="tabcontent">
@@ -28,58 +27,12 @@
     <div id="Bots" class="tabcontent">
         ###Bots###
     </div>
-    <div id="ProductionList" class="tabcontent">
+    <div id="Production" class="tabcontent">
         ###ProductionList###
     </div>
     <div id="Manually" class="tabcontent">
         ###Manually###
     </div>
-
-    <script>
-
-        var { ipcRenderer } = require('electron');
-
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tablinks");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-
-        document.getElementById("defaultOpen").click();
-
-        function loadEventHandler() {
-            document.querySelectorAll('.rFFL').forEach(item => {
-                item.addEventListener('click', event => {
-                    ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
-                })
-            });
-            document.querySelector('.CollectTavern').addEventListener('click', event => {
-                ipcRenderer.send('collectTavern', "");
-            });
-            document.querySelector('.StartProduction').addEventListener('click', event => {
-                ipcRenderer.send('startProduction', "");
-            });
-            document.querySelector('.CollectProduction').addEventListener('click', event => {
-                ipcRenderer.send('collectProduction', "");
-            });
-            document.querySelector('.CancelProduction').addEventListener('click', event => {
-                ipcRenderer.send('cancelProduction', "");
-            });
-            document.querySelector('.CollectIncidents').addEventListener('click', event => {
-                ipcRenderer.send('collectIncidents', "");
-            });
-        }
-        ipcRenderer.send('window_loaded', "");
-    </script>
-
 </body>
 
 </html>

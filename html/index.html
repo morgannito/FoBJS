@@ -11,143 +11,80 @@
 
 <body>
     <div id="information" class="console">
-    </div>
-    <div id="console" class="console">
-    </div>
-    <div class="freeSpace">
-    </div>
-    <div id="input" class="Input">
-        <input list="commands" name="consoleInput" class="command">
-        <datalist id="commands">
-
-        </datalist>
+        ###Display###
     </div>
 </body>
 
 <script>
-    var div = document.querySelector('div#console');
     var info = document.querySelector('div#information');
-    var datalist = document.querySelector('datalist#commands');
-    consoleEx.init(div);
     var { ipcRenderer } = require('electron');
-    ipcRenderer.send('loaded', true);
-    var blocked, requestUsername, requestPassword, chooseWorld = false;
-    var Username = "", Password = "", preText = "";
-    var possWorlds = [];
-    var commands = [];
 
-    var input = document.getElementsByName("consoleInput");
-    if (input.length === 1) {
-        input[0].addEventListener('keyup', (e) => {
-            if (event.which === 13 && !blocked) {
-                event.preventDefault();
-                if (requestUsername || requestPassword) {
-                    if (requestPassword) {
-                        ipcRenderer.send('getPassword', Password);
-                        requestPassword = false;
-                        input[0].value = ""
-                        input[0].focus();
-                    }
-                    if (requestUsername) {
-                        ipcRenderer.send('getUsername', Username);
-                        requestUsername = false;
-                        input[0].value = ""
-                        input[0].focus();
-                    }
-                }
-                else if (chooseWorld) {
-                    var val = input[0].value;
-                    var foundWorld = possWorlds.findIndex((v, i, o) => v === val);
-                    if (foundWorld !== -1) {
-                        ipcRenderer.send('loadWorld', foundWorld);
-                        chooseWorld = false;
-                        input[0].value = ""
-                        input[0].focus();
-                    } else {
-                        input[0].value = ""
-                    }
-                }
-                else {
-                    if (input[0].value.trim().split(" ").length == 2) {
-                        var args = input[0].value.trim().split(" ")[1];
-                        var command = input[0].value.trim().split(" ")[0];
-                        if (commands.indexOf(command) > -1) {
-                            ipcRenderer.send('executeCommand', command, args);
-                        }
-                    }
-                    else
-                        ipcRenderer.send('executeCommand', input[0].value.trim());
-                    input[0].value = ""
-                    input[0].focus();
-                }
-            }
-            else if (blocked) { input[0].value = ""; return; }
-            else if (requestUsername) {
-                Username = input[0].value.trim();
-                consoleEx.inline(preText + Username);
-                input[0].focus();
-            }
-            else if (requestPassword) {
-                Password = input[0].value.trim();
-                consoleEx.inline(preText + ("*".repeat(Password.length)));
-                input[0].focus();
-            }
-        });
-        input[0].focus();
+    function openTab(e,xtab) {
+        if(document.getElementById(xtab) === undefined) return;
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(xtab).style.display = "block";
+        document.getElementById("btn"+xtab).className += " active";
+        ipcRenderer.send('setActiveTab', xtab);
     }
 
-    ipcRenderer.on('block', (e, data) => {
-        blocked = data;
-    });
-    ipcRenderer.on('fillCommands', (e, data) => {
-        var options = '';
-        for (var i = 0; i < data.length; i++) {
-            options += "<option value='" + data[i] + "'>";
+    function loadEventHandler() {
+        document.querySelectorAll('.rFFL').forEach(item => {
+            item.style.cursor = "pointer";
+            item.addEventListener('click', event => {
+                ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
+            })
+        });
+        document.querySelector('.CollectTavern').addEventListener('click', event => {
+            ipcRenderer.send('collectTavern', "");
+        });
+        document.querySelector('.StartProduction').addEventListener('click', event => {
+            ipcRenderer.send('startProduction', "");
+        });
+        document.querySelector('.CollectProduction').addEventListener('click', event => {
+            ipcRenderer.send('collectProduction', "");
+        });
+        document.querySelector('.CancelProduction').addEventListener('click', event => {
+            ipcRenderer.send('cancelProduction', "");
+        });
+        document.querySelector('.CollectIncidents').addEventListener('click', event => {
+            ipcRenderer.send('collectIncidents', "");
+        });
+        document.querySelector('.CollectTavern').style.cursor = "pointer";
+        document.querySelector('.StartProduction').style.cursor = "pointer";
+        document.querySelector('.CollectProduction').style.cursor = "pointer";
+        document.querySelector('.CancelProduction').style.cursor = "pointer";
+        document.querySelector('.CollectIncidents').style.cursor = "pointer";
+    }
+
+    function init(tabName){
+        if(tabName != null && typeof(tabName) !== "object"){
+            openTab(tabName);
+        }else{
+            document.getElementById("btnOverview").click();
         }
-        commands = data;
-        datalist.innerHTML = options;
-    });
-    ipcRenderer.on('print', (e, data) => {
-        consoleEx.log(data);
-    });
+    }
+
     ipcRenderer.on('information', (e, data) => {
         info.innerHTML = data;
-        
-    });
-    ipcRenderer.on('progress', (e, data) => {
-        consoleEx.inline(data);
-    });
-    ipcRenderer.on('info', (e, data) => {
-        consoleEx.info(data);
-    });
-    ipcRenderer.on('clear', (e, data) => {
-        consoleEx.clear();
     });
     ipcRenderer.on('clearInfoMenu', (e, data) => {
         info.innerHTML = "";
     });
-    ipcRenderer.on('requestUsername', (e, data) => {
-        requestUsername = true;
-        preText = data;
-        consoleEx.inline(data);
+    ipcRenderer.on('updateElement', (e,data)=>{
+        if(document.getElementById(data[0]) !== null){
+            document.getElementById(data[0]).innerHTML = data[1];
+        }
     });
-    ipcRenderer.on('requestPassword', (e, data) => {
-        requestPassword = true;
-        preText = data;
-        consoleEx.inline(data);
-    });
-    ipcRenderer.on('chooseWorld', (e, data) => {
-        chooseWorld = true;
-        possWorlds = data.slice(0, -1).split(",");
-    });
-
-function openGoodsStock(){
-
-}
-function openInactiveFriends(){
-
-}
-
+    
+    openTab(ipcRenderer.sendSync('windowLoaded', ""));
 </script>
 
 </html>

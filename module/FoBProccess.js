@@ -23,6 +23,7 @@ var AllBoosts = {
     'supply_production': 0
 };
 var Boosts = [];
+var GoodsDict = [];
 
 var oldTavernSilver = null;
 var newTavernSilver = null;
@@ -207,7 +208,7 @@ function GetResourceDefinitions(data) {
             let res = resData["responseData"];
             for (let i = 0; i < res.length; i++) {
                 const Definition = res[i];
-                if (Definition["id"] === "premium" || Definition["id"] === "money" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver") {
+                if (Definition["id"] === "premium" || Definition["id"] === "money" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver" || Definition["id"] === "medals") {
                     ResourceDefinitions.push(Definition)
                 }
                 else if (Definition["abilities"] !== undefined) {
@@ -638,6 +639,10 @@ function GetDistinctProductList() {
     exports.DGoodProductionDict = DGoodProductionDict;
     exports.DProductionDict = DProductionDict;
 }
+function SetGoodsDict(dict){
+    GoodsDict = dict;
+    exports.GoodsDict = GoodsDict;
+}
 
 function readType(d) {
     let Products = [],
@@ -768,6 +773,8 @@ exports.ProductionDict = ProductionDict;
 exports.GoodProdDict = GoodProdDict;
 exports.DResidentialDict = DResidentialDict;
 exports.DProductionDict = DProductionDict;
+exports.GoodsDict = GoodsDict;
+exports.SetGoodsDict = SetGoodsDict;
 
 exports.GetDistinctProductList = GetDistinctProductList;
 exports.GetHappinesBoost = GetHappinesBoost;

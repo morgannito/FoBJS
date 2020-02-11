@@ -255,14 +255,14 @@ const RemoveFriend = (playerID) =>{
     return fetchData(x, sig);
 }
 
-const GetMetaDataUrls = (body) => {
+const GetMetaDataUrls = (body, identifier) => {
     url = "";
     for (let i = 0; i < body.length; i++) {
         const resData = body[i];
         if (resData["requestClass"] === "StaticDataService" && resData["requestMethod"] === "getMetadata") {
             var meta = resData["responseData"];
             meta.forEach(obj => {
-                if (obj["identifier"] === "city_entities")
+                if (obj["identifier"] === identifier)
                     url = obj["url"];
             });
         }
