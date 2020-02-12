@@ -57,7 +57,16 @@
                 }
                 else if (chooseWorld) {
                     var val = input[0].value;
-                    var foundWorld = possWorlds.findIndex((v, i, o) => v === val);
+                    var foundWorld = -1;
+                    for (const key in possWorlds) {
+                        if (possWorlds.hasOwnProperty(key)) {
+                            const element = possWorlds[key];
+                            if (val === key)
+                                foundWorld = key;
+                            else if (val === element)
+                                foundWorld = key;
+                        }
+                    }
                     if (foundWorld !== -1) {
                         ipcRenderer.send('loadWorld', foundWorld);
                         chooseWorld = false;
@@ -137,7 +146,7 @@
     });
     ipcRenderer.on('chooseWorld', (e, data) => {
         chooseWorld = true;
-        possWorlds = data.slice(0, -1).split(",");
+        possWorlds = data;
     });
 
 </script>

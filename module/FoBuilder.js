@@ -275,6 +275,18 @@ const GetMetaDataUrls = (body, identifier) => {
         return null;
 }
 
+const GetAllWorld = () => {
+    var x = [{}];
+    x[0]["__class__"] = "ServerRequest";
+    x[0]["requestData"] = [];
+    x[0]["requestClass"] = "WorldService";
+    x[0]["requestMethod"] = "getWorlds";
+    x[0]["requestId"] = FoBCore.getNextRequestID();
+    
+    let sig = calcSig(x);
+    return fetchData(x, sig);
+}
+
 async function fetchData(x, sig) {
     let res = await fetch("https://" + WorldID + ".forgeofempires.com/game/json?h=" + User_Key, {
         "credentials": "include",
@@ -374,3 +386,4 @@ exports.GetLGs = GetLGs;
 exports.GetEntities = GetEntities;
 exports.GetStartup = GetStartup;
 exports.GetMetaDataUrls = GetMetaDataUrls;
+exports.GetAllWorld = GetAllWorld;

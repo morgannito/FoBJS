@@ -12,6 +12,7 @@ const FoBCore = require("./module/FoBCore");
 const FoBFunctions = require("./module/FoBFunctions");
 const FoBCommands = require("./module/FoBCommands");
 const FoBProductionBot = require("./module/FoBProductionBot");
+const FoBWorldParser = require("./module/FoBWorldParser");
 
 const TimerClass = require("./js/timer").Timer;
 
@@ -40,6 +41,7 @@ moment.relativeTimeThreshold("d", 24);
 
 let isDev = true;
 
+/** @type {Array} */
 const eState = { Producing: 1, Idle: 2, Finished: 3 };
 
 /** @type {BrowserWindow} */
@@ -47,7 +49,9 @@ var Gwin = null;
 var menu = null;
 var VS = null;
 var VMM = null;
-var Lwin = UserName = Password = LastWorld = null, PlayableWorld = [];
+/** @type {Array} */
+var Lwin = UserName = Password = LastWorld = null, PlayableWorld = {};
+/** @type {Array} */
 var UserIDs = {
     XSRF: null,
     CSRF: null,
@@ -57,31 +61,44 @@ var UserIDs = {
     WID: null,
     ForgeHX: null,
 }
+/** @type {Array} */
 var UserData = {};
 var stop = true;
+/** @type {Array} */
 var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMemberDict = ClanMemberMoppelDict = [];
 var RefreshInfoID = null;
 /** @type {Array} */
 var ProductionTimerID = {};
 var HideBigRoad = true;
+/** @type {Array} */
 var BotsRunning = {
     ProductionBot: false,
     SQBot: -1,
     TavernBot: -1,
     MoppelBot: -1,
     IncidentBot: -1
-}
+};
+/** @type {Array} */
 var BotsIntervall = {
     ProductionBot: null,
     TavernBot: 60,
     MoppelBot: (60 * 24) + 5
-}
+};
+/** @type {Array} */
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
+/** @type {Array} */
 var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
 var RunningTime = moment.now();
 var SelectedTab = "Overview";
 var CSSdata = null;
 var timeString = null;
+/** @type {Array} */
+var Worlds = {};
+
+if (fs.existsSync(path.join(app.getPath("userData"), "worlds.json"))) {
+    var worlds = fs.readFileSync(path.join(app.getPath("userData"), "worlds.json"), "utf-8");
+    Worlds = JSON.parse(worlds);
+}
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -146,7 +163,6 @@ function createWindow() {
             CSSdata = formatedData;
         }
     });
-
 }
 app.on('ready', createWindow);
 app.on('window-all-closed', () => {
@@ -317,6 +333,7 @@ FoBProductionBot.emitter.on("UpdateMenu", data => {
 
 function GetData(clear = true, callback = null) {
     processer.clearLists();
+    FoBWorldParser.GetWorlds(() => Worlds = FoBWorldParser.Worlds);
     builder.GetFriends()
         .then(body => {
             FriendsDict = processer.GetFriends(body);
@@ -416,7 +433,7 @@ function PrepareInfoMenu() {
     var dList = dProdList.concat(dGoodProdList);
 
     tableOverview = tableOverview
-        .replace("###CurWorld###", UserIDs.WID)
+        .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID] : UserIDs.WID)
         .replace('###RunningTime###', ``)
         .replace("###PlayerName###", `${UserData.UserName}`)
         .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
@@ -594,7 +611,7 @@ function PrepareInfoMenu() {
     if (visHidden.length === 0) {
         var localContent = incidentsContent;
         localContent = localContent
-            .replace("###IncidentLocation###","")
+            .replace("###IncidentLocation###", "")
             .replace("###IncidentRarity###", "")
             .replace("###NoIncidentText###", "NO INCIDENTS")
         tableManually = tableManually.replace("###Incidents###", localContent)
@@ -645,26 +662,32 @@ function createBrowserWindow(url) {
         let filePath = path.join(asarPath, 'js', 'preloadLoginWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
         win.webContents.executeJavaScript(`${content}`, true).then((result) => {
-            data = JSON.parse(result)["player_worlds"];
-            if ("" !== data) {
+            let parsed = JSON.parse(result);
+            data = parsed["player_worlds"];
+            let worlds = parsed["worlds"];
+            FoBWorldParser.FillWorldList(worlds,false,data);
+            if (undefined !== FoBWorldParser.Worlds) {
                 Gwin.webContents.send('print', "Choose from one of yours Worlds: ");
                 var possWorlds = "";
-                for (const key in data) {
+                for (const key in FoBWorldParser.PlayerWorlds) {
                     if (data.hasOwnProperty(key)) {
-                        Gwin.webContents.send('print', `${data[key] + 1}: ${key}`);
-                        possWorlds += `${key},`
+                        Gwin.webContents.send('print', `${FoBWorldParser.PlayerWorlds[key].name}: ${key}`);
+                        possWorlds += `${FoBWorldParser.PlayerWorlds[key].name}:${key},`
                     }
                 }
-                PlayableWorld = possWorlds.slice(0, -1).split(',');
-                Gwin.webContents.send('chooseWorld', possWorlds);
+                possWorlds.slice(0, -1).split(',').forEach((v)=>{
+                    let o = v.split(":");
+                    PlayableWorld[o[1]] = o[0];
+                });
+                Gwin.webContents.send('chooseWorld', PlayableWorld);
                 ipcMain.once('loadWorld', (event, data) => {
                     if (undefined !== PlayableWorld[data]) {
-                        storage.set("LastWorld", PlayableWorld[data]);
+                        storage.set("LastWorld", data);
                         storage.set("PlayableWorld", PlayableWorld);
                         Gwin.webContents.send('clear', "");
                         let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
                         var content = fs.readFileSync(filePath, 'utf8');
-                        content = content.replace("###WORLD_ID###", PlayableWorld[data]);
+                        content = content.replace("###WORLD_ID###", data);
                         win.webContents.executeJavaScript(`${content}`);
                     }
                 });
@@ -756,13 +779,14 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
     if (logout) addLogout(menu);
     if (functions) addFunctions(menu);
     if (!login && settings) {
-        if (PlayableWorld.length > 0) {
-            PlayableWorld.forEach(world => {
-                if (world === UserIDs.WID)
-                    worlds.push({ label: world + " (Current)", id: world, click: () => { return; } });
+        for (const worldid in PlayableWorld) {
+            if (PlayableWorld.hasOwnProperty(worldid)) {
+                const element = PlayableWorld[worldid];
+                if (worldid === UserIDs.WID)
+                    worlds.push({ label: (Worlds[world] !== undefined ? Worlds[world] : world) + " (Current)", id: world, click: () => { return; } });
                 else
-                    worlds.push({ label: world, id: world, click: () => { SwitchWorld(world); } });
-            });
+                    worlds.push({ label: (Worlds[world] !== undefined ? Worlds[world] : world), id: world, click: () => { SwitchWorld(worldid); } });
+            }
         }
         if (processer.ProductionDict.length > 0) {
             Options = FoBCore.getProductionOptions();

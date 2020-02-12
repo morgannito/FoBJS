@@ -268,7 +268,6 @@ function GetVisitableTavern(FriendsList) {
     });
 }
 function GetTavernReward(data, RewardTavern) {
-    if(RewardTavern )
     if (typeof (data["rewardResources"]["resources"]) === "object") {
         if (undefined !== data["rewardResources"]["resources"]["tavern_silver"])
             RewardTavern.Silver += data["rewardResources"]["resources"]["tavern_silver"];
