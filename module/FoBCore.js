@@ -79,7 +79,6 @@ function printWelcomeMessage(Gwin, app) {
 
 function printInfo(Gwin, htmltext) {
     Gwin.webContents.send('information', htmltext);
-    Gwin.webContents.executeJavaScript("init();");
 }
 
 function GetP1(AgeString, Level) {
@@ -229,7 +228,7 @@ function TableFromArrayObject(data) {
 
 function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
     var Goods = {};
-    var isEraGood, toAdd = true;
+    var isEraGood = toAdd = true;
     for (let e = 0; e < eraDict.length; e++) {
         const era = eraDict[e];
         for (let rd = 0; rd < ResourceDefinition.length; rd++) {

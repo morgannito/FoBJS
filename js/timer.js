@@ -1,28 +1,61 @@
-var timer = {
-    running: false,
-    iv: 5000,
-    timeout: false,
-    cb : function(){},
-    start : function(cb,iv){
+class Timer {
+
+    _running = false;
+    _iv = null;
+    _timeout = null;
+    _cb = null;
+
+    get timeout(){
+        return this._timeout;
+    }
+
+    set iv(val){
+        this._iv = val;
+    }
+    get iv(){
+        return this._timeout;
+    }
+
+    set cb(val){
+        this._cb = val;
+    }
+    get cb(){
+        return this._cb;
+    }
+    
+    set running(val){
+        this._running = val;
+    }
+    get running(){
+        return this._running;
+    }
+
+    constructor(iv, cb) {
+        this._iv = iv;
+        this._cb = cb;
+    }
+
+    start = function (cb = false,iv = false) {
         var elm = this;
-        clearInterval(this.timeout);
-        this.running = true;
-        if(cb) this.cb = cb;
-        if(iv) this.iv = iv;
-        this.timeout = setTimeout(function(){elm.execute(elm)}, this.iv);
-    },
-    execute : function(e){
-        if(!e.running) return false;
+        clearInterval(this._timeout);
+        this._running = true;
+        if(cb) this._cb = cb;
+        if(iv) this._iv = iv;
+        this._timeout = setTimeout(function () { elm.execute(elm); }, this.iv);
+    };
+    execute = function (e) {
+        if (!e._running)
+            return false;
         e.cb();
         e.start();
-    },
-    stop : function(){
-        this.running = false;
-    },
-    set_interval : function(iv){
-        clearInterval(this.timeout);
+    };
+    stop = function () {
+        this._running = false;
+    };
+    set_interval = function (iv) {
+        clearInterval(this._timeout);
         this.start(false, iv);
-    }
-};
+    };
+}
 
-exports.timer = timer;
+exports.Timer = Timer;

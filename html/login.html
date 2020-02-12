@@ -31,7 +31,7 @@
     consoleEx.init(div);
     var { ipcRenderer } = require('electron');
     ipcRenderer.send('loaded', true);
-    var blocked, requestUsername, requestPassword, chooseWorld = false;
+    var blocked = requestUsername = requestPassword = chooseWorld = false;
     var Username = "", Password = "", preText = "";
     var possWorlds = [];
     var commands = [];

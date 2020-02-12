@@ -267,18 +267,18 @@ function GetVisitableTavern(FriendsList) {
         return (undefined !== friend.taverninfo && undefined === friend.taverninfo["state"] && friend.taverninfo["sittingPlayerCount"] < friend.taverninfo["unlockedChairCount"])
     });
 }
-function GetTavernReward(data) {
-    var result = "";
+function GetTavernReward(data, RewardTavern) {
+    if(RewardTavern )
     if (typeof (data["rewardResources"]["resources"]) === "object") {
         if (undefined !== data["rewardResources"]["resources"]["tavern_silver"])
-            result += `${data["rewardResources"]["resources"]["tavern_silver"]} Silver `;
+            RewardTavern.Silver += data["rewardResources"]["resources"]["tavern_silver"];
         if (undefined !== data["rewardResources"]["resources"]["strategy_points"])
-            result += `${data["rewardResources"]["resources"]["strategy_points"]} FPs `;
+            RewardTavern.FP += data["rewardResources"]["resources"]["strategy_points"];
     }
     else {
-        return "none"
+        return RewardTavern;
     }
-    return result;
+    return RewardTavern;
 }
 function GetUserData(data) {
     for (let i = 0; i < data.length; i++) {
@@ -370,7 +370,6 @@ function GetArcBonus(data) {
             return ArcBonus;
         }
     }
-    exports.ArcBonus = ArcBonus;
 }
 function FormatKurs(Kurs) {
     if (Kurs === 0)
@@ -639,7 +638,7 @@ function GetDistinctProductList() {
     exports.DGoodProductionDict = DGoodProductionDict;
     exports.DProductionDict = DProductionDict;
 }
-function SetGoodsDict(dict){
+function SetGoodsDict(dict) {
     GoodsDict = dict;
     exports.GoodsDict = GoodsDict;
 }

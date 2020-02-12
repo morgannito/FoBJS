@@ -13,7 +13,7 @@ const FoBFunctions = require("./module/FoBFunctions");
 const FoBCommands = require("./module/FoBCommands");
 const FoBProductionBot = require("./module/FoBProductionBot");
 
-const timer = require("./js/timer").timer;
+const TimerClass = require("./js/timer").Timer;
 
 const asarPath = path.join(app.getAppPath());
 
@@ -47,11 +47,7 @@ var Gwin = null;
 var menu = null;
 var VS = null;
 var VMM = null;
-var Lwin = null,
-    UserName = null,
-    Password = null,
-    LastWorld = null,
-    PlayableWorld = [];
+var Lwin = UserName = Password = LastWorld = null, PlayableWorld = [];
 var UserIDs = {
     XSRF: null,
     CSRF: null,
@@ -63,12 +59,10 @@ var UserIDs = {
 }
 var UserData = {};
 var stop = true;
-var NeighborDict = [];
-var FriendsDict = [];
-var ClanMemberDict = [];
-var UpdateInfoID = null;
+var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMemberDict = ClanMemberMoppelDict = [];
 var RefreshInfoID = null;
-var UpdateList = false;
+/** @type {Array} */
+var ProductionTimerID = {};
 var HideBigRoad = true;
 var BotsRunning = {
     ProductionBot: false,
@@ -87,6 +81,7 @@ var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
 var RunningTime = moment.now();
 var SelectedTab = "Overview";
 var CSSdata = null;
+var timeString = null;
 
 function createWindow() {
     let win = new BrowserWindow({
@@ -112,8 +107,8 @@ function createWindow() {
         Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
     });
 
-    ipcMain.on("windowLoaded",(e,a)=>{
-        e.returnValue = SelectedTab;
+    ipcMain.on("windowLoaded", (e, a) => {
+        Gwin.webContents.send('toggleTab', SelectedTab);
     });
 
     ipcMain.on('executeCommand', (e, data) => {
@@ -296,28 +291,20 @@ proxy.emitter.on("UID_Loaded", data => {
                             FoBProductionBot.StartProductionBot();
                         }
                     });
-                    if (UpdateInfoID === null) {
-                        timer.start(() => {
-                            GetData(false, () => {
-                                timer.set_interval(FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
-                            });
-                        }, FoBCore.getRandomInt((1000 * 60), (1000 * 90)));
-                        UpdateInfoID = timer.timeout;
-                    }
                     if (RefreshInfoID === null) {
-                        timer.start(() => {
+                        var refreshTimer = new TimerClass(999, () => {
                             var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
                             var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
-                            Gwin.webContents.send('updateElement', ["RunningSince", DurString]);
+                            try {
+                                Gwin.webContents.send('updateElement', ["RunningSince", DurString]);
+                            } catch (error) {
+                                app.exit();
+                            }
                             durRunning = "";
                             DurString = "";
-                            if (UpdateList) {
-                                GetData(false, () => {
-                                    UpdateList = false;
-                                });
-                            }
-                        }, 999);
-                        RefreshInfoID = timer.timeout;
+                        });
+                        refreshTimer.start();
+                        RefreshInfoID = refreshTimer.timeout;
                     }
                 }
             });
@@ -369,6 +356,7 @@ function GetData(clear = true, callback = null) {
                                                         processer.SetGoodsDict(GoodsDict);
                                                     }
                                                     if (clear) Gwin.webContents.send('clear', "");
+                                                    Gwin.webContents.send('toggleOverlay', [false, ""]);
                                                     PrepareInfoMenu();
                                                     if (callback !== null) {
                                                         callback();
@@ -415,14 +403,15 @@ function PrepareInfoMenu() {
     var inactiveFriendsContent = fs.readFileSync(filePath, 'utf8');
     filePath = path.join(asarPath, 'html', 'insertContent', 'sittingPlayers.html');
     var sittingPlayersContent = fs.readFileSync(filePath, 'utf8');
+    filePath = path.join(asarPath, 'html', 'insertContent', 'incidents.html');
+    var incidentsContent = fs.readFileSync(filePath, 'utf8');
 
     var dProdList = processer.DProductionDict;
-    //var dResList = processer.DResidentialDict;
     var dGoodProdList = processer.DGoodProductionDict;
 
-    var FriendMoppel = FriendsDict.filter((f) => f.canMotivate).length;
-    var NeighborMoppel = NeighborDict.filter((f) => f.canMotivate).length;
-    var ClanMoppel = ClanMemberDict.filter((f) => f.canMotivate).length;
+    NeighborMoppelDict = NeighborDict.filter((f) => f.canMotivate);
+    FriendsMoppelDict = FriendsDict.filter((f) => f.canMotivate);
+    ClanMemberMoppelDict = ClanMemberDict.filter((f) => f.canMotivate);
 
     var dList = dProdList.concat(dGoodProdList);
 
@@ -457,9 +446,9 @@ function PrepareInfoMenu() {
 
     var FriendInactive = FriendsDict.filter((f) => !f.item.is_active);
     tableOtherPlayers = tableOtherPlayers
-        .replace("###Friends###", `${FriendMoppel}/${FriendsDict.length}`)
-        .replace("###Clan###", `${ClanMoppel}/${ClanMemberDict.length}`)
-        .replace("###Neighbor###", `${NeighborMoppel}/${NeighborDict.length}`)
+        .replace("###Friends###", `${FriendsMoppelDict.length}/${FriendsDict.length}`)
+        .replace("###Clan###", `${ClanMemberMoppelDict.length}/${ClanMemberDict.length}`)
+        .replace("###Neighbor###", `${NeighborMoppelDict.length}/${NeighborDict.length}`)
     for (let i = 0; i < FriendInactive.length; i++) {
         const iFriend = FriendInactive[i];
         let local = inactiveFriendsContent;
@@ -532,16 +521,35 @@ function PrepareInfoMenu() {
         var localContent = buildingContent;
         var prod = dList[key].prod;
         var count = dList[key].count;
-        var prodName, s, production = "idle";
+        var prodName = s = production = "idle";
         if (prod["state"]["__class__"] === "ProducingState") {
-            /* var end = moment.unix(prod["state"]["next_state_transition_at"]);
+            var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
-            if (start.isAfter(end) || start.isSame(end)) UpdateList = true;
-            var dur = moment.duration(end.diff(start));
-            s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`; */
-            s = "producing";
-            production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-            prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+            if (start.isAfter(end) || start.isSame(end)) {
+                clearInterval(ProductionTimerID[key].timout);
+                ProductionTimerID[key] = undefined;
+            }
+            else {
+                if (ProductionTimerID[key] === undefined) {
+                    var prodTimer = new TimerClass(999 - parseInt(key), () => {
+                        var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
+                        var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                        var dur = moment.duration(end.diff(start));
+                        timeString = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
+                        try {
+                            Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, timeString]);
+                        } catch (error) {
+                            app.exit();
+                        }
+                        durRunning = "";
+                        DurString = "";
+                    });
+                    prodTimer.start();
+                    ProductionTimerID[key] = { timout: prodTimer.timeout, item: dList[key], _timer: prodTimer };
+                }
+                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+            }
         }
         else if (prod["state"]["__class__"] === "IdleState") s = "idle"
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
@@ -553,11 +561,12 @@ function PrepareInfoMenu() {
             .replace("###BuildName###", count + "x " + prod["name"])
             .replace("###ProdName###", prodName)
             .replace("###ProdState###", s)
+            .replace("###id###", key)
         tableProductionList = tableProductionList.replace("###Building###", localContent);
     }
     tableProductionList = tableProductionList.replace("###Building###", "");
-    /*
-     var visHidden = processer.HiddenRewards.filter((reward) => {
+
+    var visHidden = processer.HiddenRewards.filter((reward) => {
         if (reward.position === "cityRoadBig") {
             if (HideBigRoad)
                 return false;
@@ -572,53 +581,26 @@ function PrepareInfoMenu() {
         else
             return false;
     });
-    if (visHidden.length <= 4) {
-        for (let i = 0; i < 4; i++) {
-            const e = visHidden[i];
-            if (undefined === e || null === e)
-                tableContent = tableContent
-                    .replace("###IncRare" + i + "###", "")
-                    .replace("###IncLoc" + i + "###", "")
-            else
-                tableContent = tableContent
-                    .replace("###IncRare" + i + "###", e.rarity)
-                    .replace("###IncLoc" + i + "###", e.position)
-        }
 
-        for (let key in dList) {
-            if (!dList.hasOwnProperty(key)) return;
-            var localContent = buildContent;
-            var prod = dList[key].prod;
-            var count = dList[key].count;
+    for (let i = 0; i < visHidden.length; i++) {
+        const incident = visHidden[i];
+        var localContent = incidentsContent;
+        localContent = localContent
+            .replace("###IncidentLocation###", incident.position)
+            .replace("###IncidentRarity###", incident.rarity)
+            .replace("###NoIncidentText###", "")
+        tableManually = tableManually.replace("###Incidents###", localContent)
+    }
+    if (visHidden.length === 0) {
+        var localContent = incidentsContent;
+        localContent = localContent
+            .replace("###IncidentLocation###","")
+            .replace("###IncidentRarity###", "")
+            .replace("###NoIncidentText###", "NO INCIDENTS")
+        tableManually = tableManually.replace("###Incidents###", localContent)
+    }
 
-            var prodName = "idle";
-            var production = "";
-            if (prod["state"]["__class__"] === "ProducingState") {
-                var end = moment.unix(prod["state"]["next_state_transition_at"]);
-                var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                if (start.isAfter(end) || start.isSame(end)) UpdateList = true;
-                var dur = moment.duration(end.diff(start));
-                s = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
-                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-            }
-            else if (prod["state"]["__class__"] === "IdleState") s = "idle"
-            else if (prod["state"]["__class__"] === "ProductionFinishedState") {
-                s = "finished";
-                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-            };
-
-            localContent = localContent
-                .replace("###BuildName###", count + "x " + prod["name"])
-                .replace("###ProdName###", prodName)
-                .replace("###ProdState###", s)
-                .replace("###IncRareX###", "")
-                .replace("###IncLocX###", "")
-            tableContent = tableContent.replace("###BuildingIncident###", localContent + "\n\r###BuildingIncident###");
-        }
-        tableContent = tableContent.replace("###BuildingIncident###", "");
-    } */
+    tableManually = tableManually.replace("###Incidents###", "")
 
     windowContent = windowContent
         .replace("###Overview###", tableOverview)
@@ -841,22 +823,22 @@ function addFunctions(menu) {
             {
                 label: `Aid Friends${FriendsDict.length > 0 ? "" : " (No Friends xD)"}`,
                 id: "aidFriends",
-                click: () => FriendsDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, FriendsDict) : {}
+                click: () => FriendsMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, FriendsMoppelDict) : {}
             },
             {
                 label: `Aid Neighbors${NeighborDict.length > 0 ? "" : " (No Neighbors)"}`,
                 id: "aidNeighbors",
-                click: () => NeighborDict.length > 0 ? FoBFunctions.ExecuteMotivateNeighbors(Gwin, NeighborDict) : {}
+                click: () => NeighborMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateNeighbors(Gwin, NeighborMoppelDict) : {}
             },
             {
                 label: `Aid Members${ClanMemberDict.length > 0 ? "" : " (No Members)"}`,
                 id: "aidMembers",
-                click: () => ClanMemberDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, ClanMemberDict) : {}
+                click: () => ClanMemberMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateMember(Gwin, ClanMemberMoppelDict) : {}
             },
             {
                 label: `Aid All`,
                 id: "aidAll",
-                click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsDict, NeighborDict, ClanMemberDict)
+                click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsMoppelDict, NeighborMoppelDict, ClanMemberMoppelDict)
             },
         ]
     });
@@ -1004,8 +986,9 @@ function SessionExpired() {
 }
 function SetupIpcMain() {
     ipcMain.on('removeFriend', (e, data) => {
-        builder.RemoveFriend(data).then(()=>{
+        builder.RemoveFriend(data).then(() => {
             GetData(false);
+            Gwin.webContents.send('toggleOverlay', [false, ""]);
         });
     });
     ipcMain.on('collectTavern', () => {
