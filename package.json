@@ -1,28 +1,21 @@
 {
   "name": "fobjs",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "linux": "electron-packager . fobjs --overwrite --asar --platform=linux --arch=x64 --prune=true --out=release-builds",
-    "win": "electron-packager . fobjs --overwrite --asar --platform=win32 --arch=x64 --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE"
+    "linux": "electron-packager . fobjs --overwrite --asar --platform=linux --arch=x64 --prune=true --out=release-builds --icon=icons/png/favicon.png",
+    "win": "electron-packager . fobjs --overwrite --asar --platform=win32 --arch=x64 --prune=true --out=release-builds --icon=icons/win/favicon.ico --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName='Forge of Bot'",
+    "build": "npm run linux && npm run win && powershell Compress-Archive release-builds/fobjs-win32-x64 release-builds/fobjs_windows.zip && powershell Compress-Archive release-builds/fobjs-linux-x64 release-builds/fobjs_linux.zip"
   },
   "dependencies": {
-    "child_process": "^1.0.2",
-    "console.table": "^0.10.0",
-    "cron": "^1.8.2",
     "crypto": "^1.0.1",
     "electron-dl": "^3.0.0",
     "electron-fetch": "^1.4.0",
     "electron-json-storage": "^4.1.8",
     "electron-prompt": "^1.5.1",
-    "electron-winstaller": "^4.0.0",
-    "http": "0.0.0",
     "moment": "^2.24.0",
-    "node-fetch": "^2.6.0",
-    "path": "^0.12.7",
-    "request": "^2.88.0",
-    "xmlhttprequest": "^1.8.0"
+    "path": "^0.12.7"
   },
   "devDependencies": {
     "electron": "^8.0.0",
@@ -30,6 +23,6 @@
   },
   "author": "TH3C0D3R",
   "license": "ISC",
-  "description": "",
+  "description": "Forge of Empires Bot, written in Javascript (ElectronJs)",
   "productName": "Forge of Bots JS"
 }

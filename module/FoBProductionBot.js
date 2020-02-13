@@ -11,8 +11,6 @@ const asarPath = path.join(app.getAppPath());
 
 const myEmitter = new events.EventEmitter();
 
-var IntervallID = null;
-
 var PWW = null;
 
 var ProdDict = [];
@@ -30,31 +28,36 @@ function StartProductionBot() {
         }
     });
     PWW = ProductionWorker;
-    PWW.loadFile(path.join(asarPath,"html","prodworker.html"));
+    PWW.loadFile(path.join(asarPath, "html", "prodworker.html"));
 
     ipcMain.on('worker_loaded', () => {
         ProdDict = processer.ProductionDict;
         ResDict = processer.ResidentialDict;
         GoodProdDict = processer.GoodProdDict;
-        PWW.webContents.send('start', {ProdDict,ResDict, GoodProdDict});
-        Main.BotsRunning.ProductionBot = true;
+        if (HasProdFinished()) {
+            DoWork(false, () => {
+                PWW.webContents.send('start', { ProdDict, ResDict, GoodProdDict });
+                Main.BotsRunning.ProductionBot = true;
+            });
+        } else {
+            PWW.webContents.send('start', { ProdDict, ResDict, GoodProdDict });
+            Main.BotsRunning.ProductionBot = true;
+        }
     });
 
     ipcMain.on('DoWork', (e, d) => {
         ProdDict = d.ProdDict;
         ResDict = d.ResDict;
         GoodProdDict = d.GoodProdDict;
-        DoWork(d.isAuto);
+        DoWork();
     });
 }
-function DoWork(isAuto) {
+function DoWork(doRefresh = false, cb = null) {
     var promArr = [];
-    var started = false;
     for (var i = 0; i < ProdDict.length; i++) {
         const prodUnit = ProdDict[i];
-        if (prodUnit["state"]["__class__"] === "IdleState") {
+        if (prodUnit["state"]["__class__"] === "IdleState" && cb == null) {
             promArr.push(FoBuilder.DoQueryProduction(prodUnit["id"], Main.CurrentProduction.id));
-            started = true;
         }
         else if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
             promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
@@ -68,35 +71,46 @@ function DoWork(isAuto) {
     }
     for (var i = 0; i < GoodProdDict.length; i++) {
         const goodUnit = GoodProdDict[i];
-        if (goodUnit["state"]["__class__"] === "IdleState") {
+        if (goodUnit["state"]["__class__"] === "IdleState" && cb == null) {
             promArr.push(FoBuilder.DoQueryProduction(goodUnit["id"], Main.CurrentGoodProduction.id));
-            started = true;
         }
         else if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
             promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
         }
     }
     Promise.all(promArr).then(values => {
-        if(!isAuto) isAuto = true;
-        if (started) {
-            IntervallID = setInterval(() => {
-                myEmitter.emit("UpdateMenu", "");
-            }, 500);
-        } else {
-            clearInterval(IntervallID);
-            isAuto = false;
-        }
         Main.GetData(true, () => {
             ProdDict = processer.ProductionDict;
             ResDict = processer.ResidentialDict;
             GoodProdDict = processer.GoodProdDict;
-            PWW.webContents.send('updateProdDict',{ProdDict, ResDict,GoodProdDict,isAuto});
-        });
+            var x = HasProdFinished();
+            console.log(x);
+            PWW.webContents.send('updateProdDict', { ProdDict, ResDict, GoodProdDict, x });
+            if (cb) cb();
+        }, doRefresh);
     }, reason => {
         throw reason;
     });
 }
-function CollectManuel(ConsoleWin) {
+
+function HasProdFinished() {
+    var ProdFinished = [];
+    for (var i = 0; i < ProdDict.length; i++) {
+        const prodUnit = ProdDict[i];
+        if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+            ProdFinished.push(prodUnit["id"]);
+        }
+    }
+    for (var i = 0; i < GoodProdDict.length; i++) {
+        const goodUnit = GoodProdDict[i];
+        if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
+            ProdFinished.push(goodUnit["id"]);
+        }
+    }
+    return ProdFinished.length;
+}
+
+function CollectManuel(ConsoleWin, cb = null) {
     var promArr = [];
     ConsoleWin.webContents.send('print', `Do: Self-Collect productions`);
     for (let i = 0; i < processer.ProductionDict.length; i++) {
@@ -120,12 +134,13 @@ function CollectManuel(ConsoleWin) {
     Promise.all(promArr).then(values => {
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
-        });
+            if (cb) cb();
+        }, true);
     }, reason => {
         throw reason;
     });
 }
-function StartManuel(ConsoleWin) {
+function StartManuel(ConsoleWin, cb = null) {
     var promArr = [];
     ConsoleWin.webContents.send('print', `Do: Self-Start productions`);
     for (let i = 0; i < processer.ProductionDict.length; i++) {
@@ -143,7 +158,8 @@ function StartManuel(ConsoleWin) {
     Promise.all(promArr).then(values => {
         Main.GetData(true, () => {
             ConsoleWin.webContents.send('print', `Done all`);
-        });
+            if (cb) cb();
+        }, true);
     }, reason => {
         throw reason;
     });
@@ -155,7 +171,7 @@ function StopProductionBot() {
     }
     PWW = null;
     Main.BotsRunning.ProductionBot = false;
-    Main.GetData();
+    Main.GetData(true, null, true);
 }
 
 exports.StartProductionBot = StartProductionBot;

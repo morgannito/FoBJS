@@ -163,8 +163,10 @@ function CollectRewards(callback) {
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetRewardResult(body);
-                                ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i+1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
-                                ConsoleWin.webContents.send('info', `Incident collected, Reward: ${result[0].name}`);
+                                if(result !== undefined){
+                                    ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i+1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
+                                    ConsoleWin.webContents.send('info', `Incident collected, Reward: ${result[0].name}`);
+                                }
                                 i++;
                                 if (i >= HiddenRewards.length) {
                                     clearInterval(interval);
@@ -207,7 +209,7 @@ function VisitTavern(callback) {
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetTavernResult(body);
-                                ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} - Reward: ${processer.GetTavernReward(result)}  (${i + 1}/${TavernList.length})`);
+                                ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} (${i + 1}/${TavernList.length})`);
                                 RewardTavern = processer.GetTavernReward(result,RewardTavern);
                                 i++;
                                 if (i >= TavernList.length) {

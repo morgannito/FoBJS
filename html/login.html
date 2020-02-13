@@ -31,10 +31,11 @@
     consoleEx.init(div);
     var { ipcRenderer } = require('electron');
     ipcRenderer.send('loaded', true);
-    var blocked = requestUsername = requestPassword = chooseWorld = false;
+    var blocked = requestUsername = requestPassword = chooseWorld = chooseServer = false;
     var Username = "", Password = "", preText = "";
     var possWorlds = [];
     var commands = [];
+    var chooseServerData = {};
 
     var input = document.getElementsByName("consoleInput");
     if (input.length === 1) {
@@ -70,6 +71,27 @@
                     if (foundWorld !== -1) {
                         ipcRenderer.send('loadWorld', foundWorld);
                         chooseWorld = false;
+                        input[0].value = ""
+                        input[0].focus();
+                    } else {
+                        input[0].value = ""
+                    }
+                }
+                else if (chooseServer) {
+                    var val = input[0].value;
+                    var foundServer = -1;
+                    for (const key in chooseServerData) {
+                        if (chooseServerData.hasOwnProperty(key)) {
+                            const element = chooseServerData[key];
+                            if (val === key)
+                                foundServer = key;
+                            else if (val === element)
+                                foundServer = key;
+                        }
+                    }
+                    if (foundServer !== -1) {
+                        ipcRenderer.send('loadServer', foundServer);
+                        chooseServer = false;
                         input[0].value = ""
                         input[0].focus();
                     } else {
@@ -116,6 +138,20 @@
         commands = data;
         datalist.innerHTML = options;
     });
+    ipcRenderer.on('chooseServer', (e, data) => {
+        input[0].focus();
+        consoleEx.log(`Please choose the server you are playing on: `);
+        var counter = 1;
+        for (const key in data) {
+            if (data.hasOwnProperty(key)) {
+                const element = data[key];
+                consoleEx.log(`${counter}: ${key} (${element})`);
+                counter += 1;
+            }
+        }
+        chooseServer = true;
+        chooseServerData = data;
+    });
     ipcRenderer.on('print', (e, data) => {
         consoleEx.log(data);
     });
@@ -145,6 +181,7 @@
         consoleEx.inline(data);
     });
     ipcRenderer.on('chooseWorld', (e, data) => {
+        input[0].focus();
         chooseWorld = true;
         possWorlds = data;
     });

@@ -1,4 +1,4 @@
-fetch("https://de0.forgeofempires.com/start/index?action=play_now_login", {
+fetch("https://###WorldServer###0.forgeofempires.com/start/index?action=play_now_login", {
     "credentials": "include",
     "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0",
@@ -9,7 +9,7 @@ fetch("https://de0.forgeofempires.com/start/index?action=play_now_login", {
         "Pragma": "no-cache",
         "Cache-Control": "no-cache"
     },
-    "referrer": "https://de0.forgeofempires.com/page/",
+    "referrer": "https://###WorldServer###0.forgeofempires.com/page/",
     "body": "json=%7B%22world_id%22%3A%22###WORLD_ID###%22%7D",
     "method": "POST",
     "mode": "cors"

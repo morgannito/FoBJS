@@ -20,6 +20,9 @@ const asarPath = path.join(app.getAppPath());
 
 electronDl();
 
+eApp = app;
+exports.eApp = this.eApp;
+
 storage.setDataPath(path.join(app.getPath("userData")));
 
 storage.getAll((err, data) => {
@@ -29,10 +32,12 @@ storage.getAll((err, data) => {
         Password = data["Password"];
         LastWorld = data["LastWorld"];
         PlayableWorld = data["PlayableWorld"];
+        WorldServer = data["WorldServer"];
+
     }
 });
 
-moment.locale("de");
+moment.locale("en");
 moment.relativeTimeThreshold("ss", 10);
 moment.relativeTimeThreshold("s", 11);
 moment.relativeTimeThreshold("m", 59);
@@ -50,7 +55,7 @@ var menu = null;
 var VS = null;
 var VMM = null;
 /** @type {Array} */
-var Lwin = UserName = Password = LastWorld = null, PlayableWorld = {};
+var Lwin = UserName = Password = LastWorld = WorldServer = null, PlayableWorld = {};
 /** @type {Array} */
 var UserIDs = {
     XSRF: null,
@@ -69,11 +74,12 @@ var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMe
 var RefreshInfoID = null;
 /** @type {Array} */
 var ProductionTimerID = {};
-var HideBigRoad = true;
+/** @type {Boolean} */
+var HideBigRoad = true, BotStarted = false;
 /** @type {Array} */
 var BotsRunning = {
     ProductionBot: false,
-    SQBot: -1,
+    RQBot: -1,
     TavernBot: -1,
     MoppelBot: -1,
     IncidentBot: -1
@@ -109,7 +115,8 @@ function createWindow() {
             nodeIntegration: true,
             webSecurity: false,
             allowRunningInsecureContent: true
-        }
+        },
+        icon: path.join(asarPath, "icons","png", "favicon.png")
     });
     Gwin = win;
 
@@ -120,8 +127,22 @@ function createWindow() {
     BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
 
     ipcMain.on('loaded', () => {
-        FoBCore.pWL(Gwin, app);
-        Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
+        if (typeof WorldServer !== "string") {
+            FoBCore.pWL(Gwin, app, false);
+            Gwin.webContents.send('chooseServer', FoBCore.Servers);
+            ipcMain.once("loadServer", (e, data) => {
+                if (undefined !== FoBCore.Servers[data]) {
+                    storage.set("WorldServer", data);
+                    WorldServer = data;
+                    Gwin.webContents.send('clear', "");
+                    FoBCore.pWL(Gwin, app);
+                    Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
+                }
+            });
+        } else {
+            FoBCore.pWL(Gwin, app);
+            Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
+        }
     });
 
     ipcMain.on("windowLoaded", (e, a) => {
@@ -176,8 +197,8 @@ app.on('activate', () => {
     }
 })
 function clickDO() {
-    if (null === UserIDs.UID && UserName !== null && Password !== null && LastWorld !== null) {
-        createBrowserWindowAuto("https://de.forgeofempires.com/");
+    if (null === UserIDs.UID && UserName !== undefined && Password !== undefined && LastWorld !== undefined) {
+        createBrowserWindowAuto("https://" + WorldServer + ".forgeofempires.com/");
     } else {
         Gwin.webContents.send('requestUsername', "Please enter your Username: ");
         ipcMain.once('getUsername', (event, data) => {
@@ -187,7 +208,7 @@ function clickDO() {
                 ipcMain.once('getPassword', (event, data) => {
                     if ("" !== data) {
                         Password = data;
-                        createBrowserWindow("https://de.forgeofempires.com/");
+                        createBrowserWindow("https://" + WorldServer + ".forgeofempires.com/");
                     }
                 });
             }
@@ -242,10 +263,12 @@ async function DoLogout() {
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
+    WorldServer = null;
     storage.remove("UserName");
     storage.remove("Password");
     storage.remove("LastWorld");
     storage.remove("PlayableWorld");
+    storage.remove("WorldServer");
     //await session.defaultSession.clearStorageData();
     BuildMenu(true, false, false, true, true, isDev);
     FoBCore.pWL(Gwin, app);
@@ -331,7 +354,7 @@ FoBProductionBot.emitter.on("UpdateMenu", data => {
     PrepareInfoMenu();
 });
 
-function GetData(clear = true, callback = null) {
+function GetData(clear = true, callback = null, dorefresh = true) {
     processer.clearLists();
     FoBWorldParser.GetWorlds(() => Worlds = FoBWorldParser.Worlds);
     builder.GetFriends()
@@ -374,7 +397,13 @@ function GetData(clear = true, callback = null) {
                                                     }
                                                     if (clear) Gwin.webContents.send('clear', "");
                                                     Gwin.webContents.send('toggleOverlay', [false, ""]);
-                                                    PrepareInfoMenu();
+                                                    if (dorefresh)
+                                                        PrepareInfoMenu();
+                                                    if (!BotStarted) {
+                                                        BotStarted = true;
+                                                        PrepareInfoMenu();
+                                                    }
+                                                    if (!BotsRunning.ProductionBot && BotStarted) BotStarted = false;
                                                     if (callback !== null) {
                                                         callback();
                                                     }
@@ -433,7 +462,7 @@ function PrepareInfoMenu() {
     var dList = dProdList.concat(dGoodProdList);
 
     tableOverview = tableOverview
-        .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID] : UserIDs.WID)
+        .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID].name : UserIDs.WID)
         .replace('###RunningTime###', ``)
         .replace("###PlayerName###", `${UserData.UserName}`)
         .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
@@ -495,7 +524,7 @@ function PrepareInfoMenu() {
         local = local
             .replace("###PlayerName###", sPlayer.name)
             .replace("###PlayerID###", sPlayer.player_id);
-        if (visitableTavern.find((v, i, a) => { i.key === sPlayer.player_id }))
+        if (visitableTavern.find((v, i, a) => { v.key === sPlayer.player_id }))
             local = local.replace("###SitAtTavern###", `<button class="SitAtTavern" style="border: none; outline: none; font-size: 13px; padding: 5px 16px;">Sit at Tavern</button>`);
         else
             local = local.replace("###SitAtTavern###", `CAN NOT SIT DOWN`);
@@ -512,10 +541,10 @@ function PrepareInfoMenu() {
     else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", "Start");
     else if (BotsRunning.ProductionBot == -1) tableBots = tableBots.replace("###ProdBotColor###", "#0000ff".replace("###ProdBotButtonName###", "Nothing"));
 
-    tableBots = tableBots.replace("###SQBotState###", BotsRunning.SQBot === true ? "running" : (BotsRunning.SQBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.SQBot === true) tableBots = tableBots.replace("###SQBotColor###", "#00ff00").replace("###SQBotButtonName###", "Stop");
-    else if (BotsRunning.SQBot === false) tableBots = tableBots.replace("###SQBotColor###", "#ff0000").replace("###SQBotButtonName###", "Start");
-    else if (BotsRunning.SQBot == -1) tableBots = tableBots.replace("###SQBotColor###", "#0000ff").replace("###SQBotButtonName###", "Nothing");
+    tableBots = tableBots.replace("###RQBotState###", BotsRunning.RQBot === true ? "running" : (BotsRunning.RQBot === false ? "stopped" : "not implemented"))
+    if (BotsRunning.RQBot === true) tableBots = tableBots.replace("###RQBotColor###", "#00ff00").replace("###RQBotButtonName###", "Stop");
+    else if (BotsRunning.RQBot === false) tableBots = tableBots.replace("###RQBotColor###", "#ff0000").replace("###RQBotButtonName###", "Start");
+    else if (BotsRunning.RQBot == -1) tableBots = tableBots.replace("###RQBotColor###", "#0000ff").replace("###RQBotButtonName###", "Nothing");
 
     tableBots = tableBots.replace("###TavernBotState###", BotsRunning.TavernBot === true ? "running" : (BotsRunning.TavernBot === false ? "stopped" : "not implemented"))
     if (BotsRunning.TavernBot === true) tableBots = tableBots.replace("###TavernBotColor###", "#00ff00").replace("###TavernBotButtonName###", "Stop");
@@ -543,15 +572,45 @@ function PrepareInfoMenu() {
             var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
             if (start.isAfter(end) || start.isSame(end)) {
-                clearInterval(ProductionTimerID[key].timout);
+                ProductionTimerID[key]._timer.stop();
                 ProductionTimerID[key] = undefined;
+                Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
+                if (BotsRunning.ProductionBot) {
+                    var ppid = setInterval(() => {
+                        FoBProductionBot.CollectManuel(Gwin, () => {
+                            var ppid2 = setInterval(() => {
+                                FoBProductionBot.StartManuel(Gwin);
+                                clearInterval(ppid2);
+                            }, 500);
+                        });
+                        clearInterval(ppid);
+                    }, 500);
+                }
             }
             else {
                 if (ProductionTimerID[key] === undefined) {
                     var prodTimer = new TimerClass(999 - parseInt(key), () => {
+                        if (ProductionTimerID[key] == undefined) return false;
                         var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
                         var start = moment.unix(Math.round(new Date().getTime() / 1000));
                         var dur = moment.duration(end.diff(start));
+                        if (start.isAfter(end) || start.isSame(end)) {
+                            ProductionTimerID[key]._timer.stop();
+                            ProductionTimerID[key] = undefined;
+                            Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
+                            if (BotsRunning.ProductionBot) {
+                                var pid = setInterval(() => {
+                                    FoBProductionBot.CollectManuel(Gwin, () => {
+                                        var pid2 = setInterval(() => {
+                                            FoBProductionBot.StartManuel(Gwin);
+                                            clearInterval(pid2);
+                                        }, 500);
+                                    });
+                                    clearInterval(pid);
+                                }, 500);
+                            }
+                            return false;
+                        }
                         timeString = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
                         try {
                             Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, timeString]);
@@ -568,11 +627,30 @@ function PrepareInfoMenu() {
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             }
         }
-        else if (prod["state"]["__class__"] === "IdleState") s = "idle"
+        else if (prod["state"]["__class__"] === "IdleState") {
+            s = "idle"
+            if (BotsRunning.ProductionBot) {
+                var sid = setInterval(() => {
+                    FoBProductionBot.StartManuel(Gwin);
+                    clearInterval(sid);
+                }, 500);
+            }
+        }
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
             s = "finished";
             production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
             prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+            if (BotsRunning.ProductionBot) {
+                var fid = setInterval(() => {
+                    FoBProductionBot.CollectManuel(Gwin, () => {
+                        var fid2 = setInterval(() => {
+                            FoBProductionBot.StartManuel(Gwin);
+                            clearInterval(fid2);
+                        }, 500);
+                    });
+                    clearInterval(fid);
+                }, 500);
+            }
         };
         localContent = localContent
             .replace("###BuildName###", count + "x " + prod["name"])
@@ -636,6 +714,8 @@ function PrepareInfoMenu() {
             Gwin.webContents.insertCSS(CSSdata);
         Gwin.webContents.send('information', windowContent);
         Gwin.webContents.executeJavaScript("loadEventHandler();");
+    }).catch(r =>{
+        //console.log(r);
     });
     //FoBCore.printInfo(Gwin, windowContent);
 }
@@ -654,18 +734,19 @@ function createBrowserWindow(url) {
         storage.set("Password", Password);
         let name = encodeURIComponent(UserName);
         let pass = encodeURIComponent(Password);
-        content = content.replace("###XSRF-TOKEN###", UserIDs.XSRF).replace("###USERNAME###", name).replace("###PASSWORD###", pass);
+        content = content.replace(/###XSRF-TOKEN###/g, UserIDs.XSRF).replace(/###USERNAME###/g, name).replace(/###PASSWORD###/g, pass).replace(/###WorldServer###/g, WorldServer);
         win.webContents.executeJavaScript(`${content}`);
     });
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
         let filePath = path.join(asarPath, 'js', 'preloadLoginWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
+        content = content.replace(/###WorldServer###/g, WorldServer);
         win.webContents.executeJavaScript(`${content}`, true).then((result) => {
             let parsed = JSON.parse(result);
             data = parsed["player_worlds"];
             let worlds = parsed["worlds"];
-            FoBWorldParser.FillWorldList(worlds,false,data);
+            FoBWorldParser.FillWorldList(worlds, false, data);
             if (undefined !== FoBWorldParser.Worlds) {
                 Gwin.webContents.send('print', "Choose from one of yours Worlds: ");
                 var possWorlds = "";
@@ -675,7 +756,8 @@ function createBrowserWindow(url) {
                         possWorlds += `${FoBWorldParser.PlayerWorlds[key].name}:${key},`
                     }
                 }
-                possWorlds.slice(0, -1).split(',').forEach((v)=>{
+                PlayableWorld = {};
+                possWorlds.slice(0, -1).split(',').forEach((v) => {
                     let o = v.split(":");
                     PlayableWorld[o[1]] = o[0];
                 });
@@ -687,7 +769,7 @@ function createBrowserWindow(url) {
                         Gwin.webContents.send('clear', "");
                         let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
                         var content = fs.readFileSync(filePath, 'utf8');
-                        content = content.replace("###WORLD_ID###", data);
+                        content = content.replace(/###WORLD_ID###/g, data).replace(/###WorldServer###/g, WorldServer)
                         win.webContents.executeJavaScript(`${content}`);
                     }
                 });
@@ -741,7 +823,7 @@ function createBrowserWindowAuto(url) {
         var content = fs.readFileSync(filePath, 'utf8');
         let name = encodeURIComponent(UserName);
         let pass = encodeURIComponent(Password);
-        content = content.replace("###XSRF-TOKEN###", UserIDs.XSRF).replace("###USERNAME###", name).replace("###PASSWORD###", pass);
+        content = content.replace(/###XSRF-TOKEN###/g, UserIDs.XSRF).replace(/###USERNAME###/g, name).replace(/###PASSWORD###/g, pass).replace(/###WorldServer###/g, WorldServer);
         win.webContents.executeJavaScript(`${content}`);
     });
     win.webContents.on("did-navigate-in-page", (e, url) => {
@@ -749,7 +831,7 @@ function createBrowserWindowAuto(url) {
         Gwin.webContents.send('clear', "");
         let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
-        content = content.replace("###WORLD_ID###", LastWorld);
+        content = content.replace(/###WORLD_ID###/g, LastWorld).replace(/###WorldServer###/g, WorldServer)
         win.webContents.executeJavaScript(`${content}`);
     });
     Lwin = win;
@@ -783,9 +865,9 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
             if (PlayableWorld.hasOwnProperty(worldid)) {
                 const element = PlayableWorld[worldid];
                 if (worldid === UserIDs.WID)
-                    worlds.push({ label: (Worlds[world] !== undefined ? Worlds[world] : world) + " (Current)", id: world, click: () => { return; } });
+                    worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid) + " (Current)", id: worldid, click: () => { return; } });
                 else
-                    worlds.push({ label: (Worlds[world] !== undefined ? Worlds[world] : world), id: world, click: () => { SwitchWorld(worldid); } });
+                    worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid), id: worldid, click: () => { SwitchWorld(worldid); } });
             }
         }
         if (processer.ProductionDict.length > 0) {
@@ -995,9 +1077,18 @@ function clearStorage() {
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
-    storage.clear(() => {
-        Gwin.webContents.send('print', "Userdata was cleared!");
+    storage.remove("UserName", () => {
+        storage.remove("Password", () => {
+            storage.remove("LastWorld", () => {
+                storage.remove("PlayableWorld", () => {
+                    Gwin.webContents.send('print', "Userdata was cleared!");
+                });
+            });
+        });
     });
+
+
+
 }
 function SessionExpired() {
     FoBProductionBot.StopProductionBot();
@@ -1033,6 +1124,10 @@ function SetupIpcMain() {
     ipcMain.on("setActiveTab", (e, data) => {
         SelectedTab = data;
     });
+    ipcMain.on("DoProdBot", (e, d) => {
+        BotsRunning.ProductionBot = d;
+        GetData(false)
+    })
 }
 
 exports.BotsRunning = BotsRunning;
@@ -1042,3 +1137,4 @@ exports.HideBigRoad = HideBigRoad;
 exports.CurrentProduction = CurrentProduction;
 exports.SessionExpired = SessionExpired;
 exports.CurrentGoodProduction = CurrentGoodProduction;
+exports.eApp = eApp;

@@ -1,4 +1,4 @@
-fetch("https://de0.forgeofempires.com/start/index?action=fetch_worlds_for_login_page", {
+fetch("https://###WorldServer###0.forgeofempires.com/start/index?action=fetch_worlds_for_login_page", {
     "credentials": "include",
     "headers": {
         "accept": "text/plain, */*; q=0.01",
@@ -10,7 +10,7 @@ fetch("https://de0.forgeofempires.com/start/index?action=fetch_worlds_for_login_
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest"
     },
-    "referrer": "https://de0.forgeofempires.com/page/",
+    "referrer": "https://###WorldServer###0.forgeofempires.com/page/",
     "referrerPolicy": "no-referrer-when-downgrade",
     "body": "json=null",
     "method": "POST",

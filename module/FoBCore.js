@@ -65,7 +65,7 @@ async function delay(ms) {
     new Promise(res => setTimeout(res, ms));
 }
 
-function printWelcomeMessage(Gwin, app) {
+function printWelcomeMessage(Gwin, app, printLogin = true) {
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "######### WELCOME TO FoB v" + app.getVersion() + " #########");
@@ -73,7 +73,8 @@ function printWelcomeMessage(Gwin, app) {
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', " ");
     Gwin.webContents.send('print', " ");
-    Gwin.webContents.send('print', "You can now login over the Menu or by the 'Login' command");
+    if(printLogin)
+        Gwin.webContents.send('print', "You can now login over the Menu or by the 'Login' command");
     Gwin.webContents.send('print', " ");
 }
 
@@ -291,4 +292,32 @@ function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
     }
 
     return Goods;
+}
+
+exports.Servers = Servers = {
+    "en": "en.forgeofempires.com",
+    "de": "de.forgeofempires.com",
+    "beta": "beta.forgeofempires.com",
+    "us": "us.forgeofempires.com",
+    "fr": "fr.forgeofempires.com",
+    "nl": "nl.forgeofempires.com",
+    "pl": "pl.forgeofempires.com",
+    "gr": "gr.forgeofempires.com",
+    "it": "it.forgeofempires.com",
+    "es": "es.forgeofempires.com",
+    "pt": "pt.forgeofempires.com",
+    "ru": "ru.forgeofempires.com",
+    "ro": "ro.forgeofempires.com",
+    "br": "br.forgeofempires.com",
+    "cz": "cz.forgeofempires.com",
+    "hu": "hu.forgeofempires.com",
+    "se": "se.forgeofempires.com",
+    "sk": "sk.forgeofempires.com",
+    "tr": "tr.forgeofempires.com",
+    "dk": "dk.forgeofempires.com",
+    "no": "no.forgeofempires.com",
+    "th": "th.forgeofempires.com",
+    "ar": "ar.forgeofempires.com",
+    "mx": "mx.forgeofempires.com",
+    "fi": "fi.forgeofempires.com"
 }

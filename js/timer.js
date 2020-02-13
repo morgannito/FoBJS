@@ -44,10 +44,13 @@ class Timer {
         this._timeout = setTimeout(function () { elm.execute(elm); }, this.iv);
     };
     execute = function (e) {
-        if (!e._running)
+        if (!e._running){
             return false;
-        e.cb();
-        e.start();
+        }
+        else{
+            e.cb();
+            e.start();
+        }
     };
     stop = function () {
         this._running = false;

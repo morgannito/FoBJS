@@ -13,7 +13,10 @@
     <div id="information" class="console">
         ###Display###
     </div>
-    <div id="loadingOverlay" style="display: none;" class="loading style-2"><div class="loading-wheel"></div><div id="loadingText" class="loading-text"></div></div>
+    <div id="loadingOverlay" style="display: none;" class="loading style-2">
+        <div class="loading-wheel"></div>
+        <div id="loadingText" class="loading-text"></div>
+    </div>
 </body>
 
 <script>
@@ -43,31 +46,14 @@
     function loadEventHandler() {
         document.querySelectorAll('.rFFL').forEach(item => {
             item.style.cursor = "pointer";
-            item.addEventListener('click', event => {
-                toggleOverlay([true,"Removing Friend..."]);
-                ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
-            })
+            item.addEventListener('click', rFFL)
         });
-        document.querySelector('.CollectTavern').addEventListener('click', event => {
-            toggleOverlay([true,"Collect Tavern..."]);
-            ipcRenderer.send('collectTavern', "");
-        });
-        document.querySelector('.StartProduction').addEventListener('click', event => {
-            toggleOverlay([true,"Start Production..."]);
-            ipcRenderer.send('startProduction', "");
-        });
-        document.querySelector('.CollectProduction').addEventListener('click', event => {
-            toggleOverlay([true,"Collect Production..."]);
-            ipcRenderer.send('collectProduction', "");
-        });
-        document.querySelector('.CancelProduction').addEventListener('click', event => {
-            toggleOverlay([true,"Cancel Production..."]);
-            ipcRenderer.send('cancelProduction', "");
-        });
-        document.querySelector('.CollectIncidents').addEventListener('click', event => {
-            toggleOverlay([true,"Collect Incidents..."]);
-            ipcRenderer.send('collectIncidents', "");
-        });
+        document.querySelector('.CollectTavern').addEventListener('click', CollectTavern);
+        document.querySelector('.StartProduction').addEventListener('click', StartProduction);
+        document.querySelector('.CollectProduction').addEventListener('click', CollectProduction);
+        document.querySelector('.CancelProduction').addEventListener('click', CancelProduction);
+        document.querySelector('.CollectIncidents').addEventListener('click', CollectIncidents);
+        document.querySelector("#tableBot-ProdBotButtonName").addEventListener("click", toggleProdBot);
         document.querySelector('.CollectTavern').style.cursor = "pointer";
         document.querySelector('.StartProduction').style.cursor = "pointer";
         document.querySelector('.CollectProduction').style.cursor = "pointer";
@@ -98,18 +84,53 @@
         toggleOverlay(data);
     });
 
-    function toggleOverlay(data){
+    function toggleOverlay(data) {
         if (data[0] == false) {
             document.getElementById("loadingOverlay").style.display = "none";
-        }else{
+        } else {
             document.getElementById("loadingOverlay").style.display = "block";
             document.getElementById("loadingText").innerText = data[1];
         }
     }
 
+    function toggleProdBot() {
+        if (document.querySelector("#tableBot-ProdBotButtonName").dataset.running === "false") {
+            ipcRenderer.send('DoProdBot', true);
+            document.querySelector("#tableBot-ProdBotButtonName").dataset.running = "true";
+        }
+        else {
+            ipcRenderer.send('DoProdBot', false);
+            document.querySelector("#tableBot-ProdBotButtonName").dataset.running = "false";
+        }
+    }
+    function CollectIncidents() {
+        toggleOverlay([true, "Collect Incidents..."]);
+        ipcRenderer.send('collectIncidents', "");
+    }
+    function CancelProduction() {
+        toggleOverlay([true, "Cancel Production..."]);
+        ipcRenderer.send('cancelProduction', "");
+    }
+    function CollectProduction() {
+        toggleOverlay([true, "Collect Production..."]);
+        ipcRenderer.send('collectProduction', "");
+    }
+    function StartProduction() {
+        toggleOverlay([true, "Start Production..."]);
+        ipcRenderer.send('startProduction', "");
+    }
+    function CollectTavern() {
+        toggleOverlay([true, "Collect Tavern..."]);
+        ipcRenderer.send('collectTavern', "");
+    }
+    function rFFL() {
+        toggleOverlay([true, "Removing Friend..."]);
+        ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
+    }
+
     ipcRenderer.send('windowLoaded', "");
     ipcRenderer.on('toggleTab', (e, data) => {
-        setTimeout(()=>{
+        setTimeout(() => {
             openTab(data);
         }, 1000);
     });

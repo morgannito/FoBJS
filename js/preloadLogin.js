@@ -1,4 +1,4 @@
-fetch("https://de.forgeofempires.com/glps/login_check", {
+fetch("https://###WorldServer###.forgeofempires.com/glps/login_check", {
     "credentials": "include",
     "headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0",
@@ -10,12 +10,12 @@ fetch("https://de.forgeofempires.com/glps/login_check", {
         "Pragma": "no-cache",
         "Cache-Control": "no-cache"
     },
-    "referrer": "https://de.forgeofempires.com/",
+    "referrer": "https://###WorldServer###.forgeofempires.com/",
     "body": "login%5Buserid%5D=###USERNAME###&login%5Bpassword%5D=###PASSWORD###&login%5Bremember_me%5D=false",
     "method": "POST",
     "mode": "cors"
 }).catch((e) => {
     console.log(e);
 }).then((x) => {
-    window.location = "https://de0.forgeofempires.com/page";
+    window.location = "https://###WorldServer###0.forgeofempires.com/page";
 });

@@ -32,8 +32,8 @@
       ProdDict = d.ProdDict;
       ResDict = d.ResDict
       GoodProdDict = d.GoodProdDict;
-      if (!d.isAuto)
-        DoWorker(false);
+      if (d.x >= 1)
+        DoWorker();
     });
 
     ipcRenderer.on('stop', () => {
@@ -44,17 +44,15 @@
 
     function startWorker() {
       if (IntervallID === null) {
-
         IntervallID = setInterval(() => {
           DoWorker();
-        }, (1000 * 62 * 5));
-
+        }, (1000 * 61 * 5));
         DoWorker();
       }
     }
 
-    function DoWorker(isAuto = true) {
-      ipcRenderer.send('DoWork', { ProdDict, ResDict, GoodProdDict, isAuto });
+    function DoWorker() {
+      ipcRenderer.send('DoWork', { ProdDict, ResDict, GoodProdDict });
     }
 
   </script>
