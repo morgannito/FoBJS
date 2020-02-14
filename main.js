@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const prompt = require('electron-prompt');
 const moment = require('moment');
+const i18n = require("roddeh-i18n");
 const storage = require('electron-json-storage');
+const PossibleLanguage = require('./js/Languages').PossibleLanguages;
 const proxy = require("./module/FoBProxy");
 const builder = require("./module/FoBuilder");
 const processer = require("./module/FoBProccess");
@@ -33,11 +35,18 @@ storage.getAll((err, data) => {
         LastWorld = data["LastWorld"];
         PlayableWorld = data["PlayableWorld"];
         WorldServer = data["WorldServer"];
-
+        Lng = data["Language"];
+        if (Lng !== null && Lng !== undefined && typeof Lng === "string")
+            moment.locale(Lng);
+        else{
+            moment.locale("de");
+            Lng = "de";
+            storage.set("Language","de")
+        }
+        ChangeLanguage(Lng);
     }
 });
 
-moment.locale("en");
 moment.relativeTimeThreshold("ss", 10);
 moment.relativeTimeThreshold("s", 11);
 moment.relativeTimeThreshold("m", 59);
@@ -51,11 +60,14 @@ const eState = { Producing: 1, Idle: 2, Finished: 3 };
 
 /** @type {BrowserWindow} */
 var Gwin = null;
+/** @type {Menu} */
 var menu = null;
+/** @type {String} */
 var VS = null;
+/** @type {String} */
 var VMM = null;
 /** @type {Array} */
-var Lwin = UserName = Password = LastWorld = WorldServer = null, PlayableWorld = {};
+var Lwin = UserName = Password = LastWorld = WorldServer = Lng = null, PlayableWorld = {};
 /** @type {Array} */
 var UserIDs = {
     XSRF: null,
@@ -68,6 +80,7 @@ var UserIDs = {
 }
 /** @type {Array} */
 var UserData = {};
+/** @type {Boolean} */
 var stop = true;
 /** @type {Array} */
 var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMemberDict = ClanMemberMoppelDict = [];
@@ -1013,6 +1026,21 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
         })
     }
     worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click: () => { clearStorage() } });
+    worldItem.push({ label: "Clear Everything", id: "ClearEverything", click: () => { clearStorage(true) } });
+
+    var lng = [];
+    for (const code in PossibleLanguage) {
+        if (PossibleLanguage.hasOwnProperty(code)) {
+            const name = PossibleLanguage[code];
+            lng.push({
+                label: name,
+                id: "ChangeLanguageTo" + code,
+                click: () => ChangeLanguage(code)
+            });
+        }
+    }
+    worldItem.push({ label: "Change Language", id: "Change Language", submenu: lng });
+
     mitem = new MenuItem({
         label: "Settings",
         id: "settings",
@@ -1053,7 +1081,7 @@ function setTavernBotIntervall() {
         throw err;
     })
 }
-function clearStorage() {
+function clearStorage(force = false) {
     UserIDs = {
         XSRF: null,
         CSRF: null,
@@ -1065,15 +1093,19 @@ function clearStorage() {
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
-    storage.remove("UserName", () => {
-        storage.remove("Password", () => {
-            storage.remove("LastWorld", () => {
-                storage.remove("PlayableWorld", () => {
-                    Gwin.webContents.send('print', "Userdata was cleared!");
+    if (force) storage.clear(() => {
+        DoLogout();
+    });
+    else
+        storage.remove("UserName", () => {
+            storage.remove("Password", () => {
+                storage.remove("LastWorld", () => {
+                    storage.remove("PlayableWorld", () => {
+                        Gwin.webContents.send('print', "Userdata was cleared!");
+                    });
                 });
             });
         });
-    });
 
 
 
@@ -1118,7 +1150,34 @@ function SetupIpcMain() {
         GetData();
     })
 }
-
+async function ChangeLanguage(sL) {
+    try {
+        let languages = [];
+        if (sL.toLowerCase() !== 'de') {
+            languages.push('de');
+            if (sL.toLowerCase() !== 'en') {
+                languages.push('en');
+            }
+        }
+        languages.push(sL.toLowerCase());
+        const languageDatas = await Promise.all(
+            languages
+                .map(lang => {
+                    if(fs.existsSync(path.join(asarPath, 'js', 'i18n', lang + '.json'))){
+                        return fs.readFileSync(path.join(asarPath, 'js', 'i18n', lang + '.json'),"utf-8");
+                    }else{
+                        return {};
+                    }
+                })
+        );
+        for (let languageData of languageDatas) {
+            languageData = languageData.replace(/\/\/Todo: Translate/g, '');
+            i18n.translator.add(JSON.parse(languageData));
+        }
+    } catch (err) {
+        console.error('i18n translation loading error:', err);
+    }
+}
 exports.BotsRunning = BotsRunning;
 exports.GetData = GetData;
 exports.eState = eState;
