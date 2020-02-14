@@ -101,6 +101,8 @@ var timeString = null;
 /** @type {Array} */
 var Worlds = {};
 
+var BlockFinish = BlockProduction = false;
+
 if (fs.existsSync(path.join(app.getPath("userData"), "worlds.json"))) {
     var worlds = fs.readFileSync(path.join(app.getPath("userData"), "worlds.json"), "utf-8");
     Worlds = JSON.parse(worlds);
@@ -116,7 +118,7 @@ function createWindow() {
             webSecurity: false,
             allowRunningInsecureContent: true
         },
-        icon: path.join(asarPath, "icons","png", "favicon.png")
+        icon: path.join(asarPath, "icons", "png", "favicon.png")
     });
     Gwin = win;
 
@@ -576,15 +578,10 @@ function PrepareInfoMenu() {
                 ProductionTimerID[key] = undefined;
                 Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
                 if (BotsRunning.ProductionBot) {
-                    var ppid = setInterval(() => {
-                        FoBProductionBot.CollectManuel(Gwin, () => {
-                            var ppid2 = setInterval(() => {
-                                FoBProductionBot.StartManuel(Gwin);
-                                clearInterval(ppid2);
-                            }, 500);
-                        });
-                        clearInterval(ppid);
-                    }, 500);
+                    if (!BlockFinish) {
+                        BlockFinish = true;
+                        FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
+                    }
                 }
             }
             else {
@@ -599,19 +596,15 @@ function PrepareInfoMenu() {
                             ProductionTimerID[key] = undefined;
                             Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
                             if (BotsRunning.ProductionBot) {
-                                var pid = setInterval(() => {
-                                    FoBProductionBot.CollectManuel(Gwin, () => {
-                                        var pid2 = setInterval(() => {
-                                            FoBProductionBot.StartManuel(Gwin);
-                                            clearInterval(pid2);
-                                        }, 500);
-                                    });
-                                    clearInterval(pid);
-                                }, 500);
+                                if (!BlockFinish) {
+                                    BlockFinish = true;
+                                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
+                                }
                             }
                             return false;
                         }
                         timeString = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
+                        BlockFinish = BlockProduction = false;
                         try {
                             Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, timeString]);
                         } catch (error) {
@@ -630,10 +623,10 @@ function PrepareInfoMenu() {
         else if (prod["state"]["__class__"] === "IdleState") {
             s = "idle"
             if (BotsRunning.ProductionBot) {
-                var sid = setInterval(() => {
+                if (!BlockProduction) {
+                    BlockProduction = true;
                     FoBProductionBot.StartManuel(Gwin);
-                    clearInterval(sid);
-                }, 500);
+                }
             }
         }
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
@@ -641,15 +634,10 @@ function PrepareInfoMenu() {
             production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
             prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             if (BotsRunning.ProductionBot) {
-                var fid = setInterval(() => {
-                    FoBProductionBot.CollectManuel(Gwin, () => {
-                        var fid2 = setInterval(() => {
-                            FoBProductionBot.StartManuel(Gwin);
-                            clearInterval(fid2);
-                        }, 500);
-                    });
-                    clearInterval(fid);
-                }, 500);
+                if (!BlockFinish) {
+                    BlockFinish = true;
+                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
+                }
             }
         };
         localContent = localContent
@@ -714,7 +702,7 @@ function PrepareInfoMenu() {
             Gwin.webContents.insertCSS(CSSdata);
         Gwin.webContents.send('information', windowContent);
         Gwin.webContents.executeJavaScript("loadEventHandler();");
-    }).catch(r =>{
+    }).catch(r => {
         //console.log(r);
     });
     //FoBCore.printInfo(Gwin, windowContent);
@@ -1126,7 +1114,8 @@ function SetupIpcMain() {
     });
     ipcMain.on("DoProdBot", (e, d) => {
         BotsRunning.ProductionBot = d;
-        GetData(false)
+        BlockFinish = BlockProduction = false;
+        GetData();
     })
 }
 
