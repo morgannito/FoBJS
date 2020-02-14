@@ -573,7 +573,7 @@ function PrepareInfoMenu() {
         if (prod["state"]["__class__"] === "ProducingState") {
             var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
-            if (start.isAfter(end) || start.isSame(end)) {
+            if ((start.isAfter(end) || start.isSame(end)) && ProductionTimerID[key] !== undefined) {
                 ProductionTimerID[key]._timer.stop();
                 ProductionTimerID[key] = undefined;
                 Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
