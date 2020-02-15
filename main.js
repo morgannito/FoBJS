@@ -347,7 +347,7 @@ proxy.emitter.on("UID_Loaded", data => {
                         }
                     });
                     if (RefreshInfoID === null) {
-                        var refreshTimer = new TimerClass(999, () => {
+                        /*var refreshTimer = new TimerClass(999, () => {
                             var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
                             var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
                             try {
@@ -359,7 +359,7 @@ proxy.emitter.on("UID_Loaded", data => {
                             DurString = "";
                         });
                         refreshTimer.start();
-                        RefreshInfoID = refreshTimer.timeout;
+                        RefreshInfoID = refreshTimer.timeout;*/
                     }
                 }
             });
@@ -608,7 +608,7 @@ function PrepareInfoMenu() {
                 }
             }
             else {
-                //*if (ProductionTimerID[key] === undefined) {
+                /*if (ProductionTimerID[key] === undefined) {
                     var prodTimer = new TimerClass(999 - parseInt(key), () => {
                         if (ProductionTimerID[key] == undefined) return false;
                         var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
@@ -638,7 +638,7 @@ function PrepareInfoMenu() {
                     });
                     prodTimer.start();
                     ProductionTimerID[key] = { timout: prodTimer.timeout, item: dList[key], _timer: prodTimer };
-                }*//
+                }*/
                 s = "producing"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
