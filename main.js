@@ -234,7 +234,7 @@ async function downloadForgeHX() {
     let filePath = path.join(app.getPath("cache"),UserIDs.ForgeHX);
     if (!fs.existsSync(filePath)) {
         Gwin.webContents.send('info', "Searching cached " + UserIDs.ForgeHX);
-        await electronDl.download(Gwin, "https://foede.innogamescdn.com//cache/" + UserIDs.ForgeHX, { directory: app.getPath("cache") });
+        await electronDl.download(Gwin, "https://foe"+WorldServer+".innogamescdn.com//cache/" + UserIDs.ForgeHX, { directory: app.getPath("cache") });
         Gwin.webContents.send('info', UserIDs.ForgeHX + "cached");
     }
 
@@ -249,7 +249,7 @@ async function downloadForgeHX() {
     let VERSION = content.matchAll(rex).next().value;
     if (null !== result) {
         if (result.length === 2) {
-            //Gwin.webContents.send('print', "VERSION_SECRET found (" + result[1] + ")");
+            console.log("VersionSecret found: "+result[1]);
             VS = result[1];
         }
         else
@@ -257,11 +257,11 @@ async function downloadForgeHX() {
     }
     if (null !== VERSION) {
         if (VERSION.length === 2) {
-            //Gwin.webContents.send('print', "VERSION_SECRET found (" + result[1] + ")");
+            console.log("Version found: "+result[1]);
             VMM = VERSION[1];
         }
         else
-            Gwin.webContents.send('print', "ERROR GETTING VERSION_SECRET");
+            Gwin.webContents.send('print', "ERROR GETTING VERSION");
     }
 }
 async function DoLogout() {
