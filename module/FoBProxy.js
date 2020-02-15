@@ -43,7 +43,7 @@ const init = () => {
                 .then(res => res.text())
                 .then(body => {
                     let re = /https:\/\/\w{1,2}\d{1,2}\.forgeofempires\.com\/game\/json\?h=(.+)',/ig;
-                    let rex = /https:\/\/foe\w{1,2}\d{1,2}\.innogamescdn\.com\/\/cache\/ForgeHX(.+.js)'/ig;
+                    let rex = /https:\/\/foe\w{1,4}\.innogamescdn\.com\/\/cache\/ForgeHX(.+.js)'/ig;
                     re = new RegExp(re);
                     rex = new RegExp(rex);
                     let result = body.matchAll(re).next().value;
