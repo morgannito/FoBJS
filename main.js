@@ -533,7 +533,9 @@ function PrepareInfoMenu() {
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
         .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
     var visitableTavern = processer.GetVisitableTavern(FriendsDict);
-    var SittingPlayers = processer.OwnTavernData["view"]["visitors"];
+    var SittingPlayers = [];
+    if(processer.OwnTavernData !== undefined)
+	    SittingPlayers = processer.OwnTavernData["view"]["visitors"];
     for (let i = 0; i < SittingPlayers.length; i++) {
         const sPlayer = SittingPlayers[i];
         let local = sittingPlayersContent;
