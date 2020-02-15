@@ -439,7 +439,10 @@ function PrepareInfoMenu() {
     }
     var tavernState = "";
     if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
-        tavernState = "full";
+	    if(processer.OwnTavernInfo[1] !== undefined && processer.OwnTavernInfo[2] !== undefined)
+	        tavernState = "full";
+	    else
+	      tavernState = "";
     else tavernState = "sitting"
 
     let filePath = path.join(asarPath, 'html', 'window.html');
@@ -531,7 +534,11 @@ function PrepareInfoMenu() {
         .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "tavern_silver") }).name}`)
         .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
-        .replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
+        
+    if(tavernState !== "")
+        tableTavern = tableTavern.replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
+    else
+	    tableTavern = tableTavern.replace("###State###","NO TAVERN");
     var visitableTavern = processer.GetVisitableTavern(FriendsDict);
     var SittingPlayers = [];
     if(processer.OwnTavernData["view"] !== undefined)
@@ -589,9 +596,9 @@ function PrepareInfoMenu() {
         if (prod["state"]["__class__"] === "ProducingState") {
             var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
-            if ((start.isAfter(end) || start.isSame(end)) && ProductionTimerID[key] !== undefined) {
-                ProductionTimerID[key]._timer.stop();
-                ProductionTimerID[key] = undefined;
+            if ((start.isAfter(end) || start.isSame(end)) /*&& ProductionTimerID[key] !== undefined*/) {
+                //ProductionTimerID[key]._timer.stop();
+                //ProductionTimerID[key] = undefined;
                 Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
                 if (BotsRunning.ProductionBot) {
                     if (!BlockFinish) {
@@ -601,7 +608,7 @@ function PrepareInfoMenu() {
                 }
             }
             else {
-                if (ProductionTimerID[key] === undefined) {
+                //*if (ProductionTimerID[key] === undefined) {
                     var prodTimer = new TimerClass(999 - parseInt(key), () => {
                         if (ProductionTimerID[key] == undefined) return false;
                         var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
@@ -631,7 +638,8 @@ function PrepareInfoMenu() {
                     });
                     prodTimer.start();
                     ProductionTimerID[key] = { timout: prodTimer.timeout, item: dList[key], _timer: prodTimer };
-                }
+                }*//
+                s = "producing"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             }
