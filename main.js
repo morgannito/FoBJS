@@ -231,7 +231,7 @@ function clickDO() {
     }
 }
 async function downloadForgeHX() {
-    let filePath = path.join(app.getPath("cache"), '.', UserIDs.ForgeHX);
+    let filePath = path.join(app.getPath("cache"),UserIDs.ForgeHX);
     if (!fs.existsSync(filePath)) {
         Gwin.webContents.send('info', "Searching cached " + UserIDs.ForgeHX);
         await electronDl.download(Gwin, "https://foede.innogamescdn.com//cache/" + UserIDs.ForgeHX, { directory: app.getPath("cache") });
@@ -291,41 +291,42 @@ async function DoLogout() {
 }
 proxy.emitter.on("SID_Loaded", data => {
     if (UserIDs.SID === null || UserIDs.SID !== data) {
-        //Gwin.webContents.send('print', "SID_Loaded: " + data);
+		console.log(`SID (${data}) loaded`);
         if (null !== data)
             UserIDs.SID = data;
     }
 });
 proxy.emitter.on("XSRF_Loaded", (data) => {
     if (UserIDs.XSRF === null || UserIDs.XSRF !== data) {
-        //Gwin.webContents.send('print', "XSRF_Loaded: " + data);
+		console.log(`XSRF (${data}) loaded`);
         if (null !== data)
             UserIDs.XSRF = data;
     }
 });
 proxy.emitter.on("CSRF_Loaded", data => {
     if (UserIDs.CSRF === null || UserIDs.CSRF !== data) {
-        //Gwin.webContents.send('print', "CSRF_Loaded: " + data);
+		console.log(`CSRF (${data}) loaded`);
         if (null !== data)
             UserIDs.CSRF = data;
     }
 });
 proxy.emitter.on("CID_Loaded", data => {
     if (UserIDs.CID === null || UserIDs.CID !== data) {
-        //Gwin.webContents.send('print', "CID_Loaded: " + data);
+		console.log(`CID (${data}) loaded`);
         if (null !== data)
             UserIDs.CID = data;
     }
 });
 proxy.emitter.on("ForgeHX_Loaded", data => {
     if (UserIDs.ForgeHX === null || UserIDs.ForgeHX !== data) {
+    		console.log(`ForgeHX (${data}) loaded`);
         if (null !== data)
             UserIDs.ForgeHX = data;
     }
 });
 proxy.emitter.on("WID_Loaded", data => {
     if (UserIDs.WID === null || UserIDs.WID !== data) {
-        //Gwin.webContents.send('print', "WID_Loaded: " + data);
+		console.log(`WID (${data}) loaded`);
         if (null !== data)
             UserIDs.WID = data;
     }
