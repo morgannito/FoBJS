@@ -1,4 +1,10 @@
+
+const { app, dialog} = require("electron");
+const FoBMain = require("../main");
+
+exports.debug = debug;
 exports.pWL = printWelcomeMessage;
+exports.promptUpdate = promptUpdate;
 exports.getRandomInt = getRandomInt;
 exports.getRandomIntervall = getRandomIntervall;
 exports.getNextRequestID = getNextRequestID;
@@ -11,6 +17,7 @@ exports.GetDistinctCount = GetDistinctCount;
 exports.getGoodsProductionOptions = getGoodsProductionOptions;
 exports.getProductionOptions = getProductionOptions;
 exports.GetGoodsEraSorted = GetGoodsEraSorted;
+
 var reqID = 2;
 
 function getRandomInt(max, min = null) {
@@ -19,17 +26,14 @@ function getRandomInt(max, min = null) {
     else
         return Math.floor(Math.random() * (max - min) + min);
 }
-
 function getNextRequestID() {
     let AddID = Math.floor(Math.random() * (10 - 1) + 1);
     reqID += AddID
     return reqID;
 }
-
 function getRandomIntervall() {
     return Math.floor(Math.random() * (2000 - 800) + 800);
 }
-
 function getProductionOptions() {
     return {
         5: { text: "5min", id: 1 },
@@ -48,7 +52,6 @@ function getGoodsProductionOptions() {
         2880: { text: "2d", id: 4 }
     }
 }
-
 function hasOnlySupplyProduction(availableProducts) {
     var checkBool = [false, false, false, false, false, false];
     for (let x = 0; x < availableProducts.length; x++) {
@@ -60,12 +63,10 @@ function hasOnlySupplyProduction(availableProducts) {
     }
     return checkBool.every((v) => v === true);
 }
-
 async function delay(ms) {
     new Promise(res => setTimeout(res, ms));
 }
-
-function printWelcomeMessage(Gwin, app, printLogin = true) {
+function printWelcomeMessage(Gwin, xapp, printLogin = true) {
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', "######### WELCOME TO FoB v" + app.getVersion() + " #########");
@@ -73,15 +74,13 @@ function printWelcomeMessage(Gwin, app, printLogin = true) {
     Gwin.webContents.send('print', "#########################################");
     Gwin.webContents.send('print', " ");
     Gwin.webContents.send('print', " ");
-    if(printLogin)
+    if (printLogin)
         Gwin.webContents.send('print', "You can now login over the Menu or by the 'Login' command");
     Gwin.webContents.send('print', " ");
 }
-
 function printInfo(Gwin, htmltext) {
     Gwin.webContents.send('information', htmltext);
 }
-
 function GetP1(AgeString, Level) {
     let BronzeAge = [5, 10, 10, 15, 25, 30, 35, 40, 45, 55, 60, 65, 75, 80, 85, 95, 100, 110, 115, 125, 130, 140, 145, 155, 160, 170, 180, 185, 195, 200, 210, 220, 225, 235, 245, 250, 260, 270, 275, 285, 295, 300, 310, 320, 330, 340, 345, 355, 365, 375, 380, 390, 400, 410, 420, 430, 440, 445, 455, 465, 475, 485, 495, 505, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 905, 915, 925, 935, 945, 955, 965, 975, 985, 995, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1085, 1095, 1105, 1115, 1125, 1135, 1150, 1160, 1170, 1180, 1190, 1200, 1215, 1225, 1235, 1245, 1255, 1270, 1280, 1290, 1300, 1310, 1325, 1335, 1345, 1355, 1370, 1380, 1390, 1400, 1415, 1425, 1435, 1445, 1460, 1470, 1480];
 
@@ -177,7 +176,6 @@ function GetP1(AgeString, Level) {
         return 0;
     }
 }
-
 function GetDistinctCount(arr) {
     var counter = [];
     var increment = false;
@@ -208,7 +206,6 @@ function GetDistinctCount(arr) {
     }
     return counter;
 }
-
 function TableFromArrayObject(data) {
     var html = '<table>';
     html += '<tr>';
@@ -226,7 +223,6 @@ function TableFromArrayObject(data) {
     html += '</table>';
     return html;
 }
-
 function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
     var Goods = {};
     var isEraGood = toAdd = true;
@@ -293,7 +289,31 @@ function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
 
     return Goods;
 }
-
+async function promptUpdate(newVersion) {
+    return dialog.showMessageBox(null, {
+        type: 'warning',
+        buttons: [FoBMain.i18n("Update.ButtonOk"), FoBMain.i18n("Update.ButtonQuit")],
+        defaultId: 0,
+        title: FoBMain.i18n("Update.Title"),
+        message: FoBMain.i18n("Update.Message"),
+        detail: FoBMain.i18n("Update.DetailMessage").replace("###curVer###", app.getVersion()).replace("###newVer###", newVersion)
+    });
+    /* dialog.showMessageBoxSync(null, {
+        type: 'warning',
+        buttons: [FoBMain.i18n("Update.ButtonOk"), FoBMain.i18n("Update.ButtonQuit")],
+        defaultId: 0,
+        title: FoBMain.i18n("Update.Title"),
+        message: FoBMain.i18n("Update.Message"),
+        detail: FoBMain.i18n("Update.DetailMessage").replace("###curVer###", app.getVersion()).replace("###newVer###", newVersion)
+    }, (response) => {
+        debug(response);
+        if (response == 0)
+            shell.openExternal("https://github.com/Th3C0D3R/FoBJS_Release/releases");
+    }) */
+}
+function debug(msg) {
+    console.log(`[DEBUG] ${msg}`);
+}
 exports.Servers = Servers = {
     "en": "en.forgeofempires.com",
     "de": "de.forgeofempires.com",

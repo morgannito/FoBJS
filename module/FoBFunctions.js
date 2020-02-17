@@ -444,6 +444,23 @@ function GetPLGINeighbor(callback) {
         }, FoBCore.getRandomIntervall());
     }
 }
+
+async function CheckUpdate(curVer){
+    var newVer = await FoBuilder.fetchUpdate();
+    newVer = newVer.replace(/\n/g,"");
+    let newVerArr = newVer.split(".");
+    let curVerArr = curVer.split(".");
+    if (parseInt(curVerArr[0]) < parseInt(newVerArr[0]))
+        return { hasUpdate: true, newVersion: newVer };
+    else if (parseInt(curVerArr[1]) < parseInt(newVerArr[1]))
+        return { hasUpdate: true, newVersion: newVer };
+    else if (parseInt(curVerArr[2]) < parseInt(newVerArr[2]))
+        return { hasUpdate: true, newVersion: newVer };
+    else
+        return { hasUpdate: false, newVersion: curVer };
+}
+
+
 function Test() {
     FoBuilder.DoQueryProduction(35, 1)
         .then(data => {
@@ -468,5 +485,7 @@ exports.ExecuteCollectRewards = ExecuteCollectRewards;
 exports.ExecuteSnipLGs = ExecuteSnipLGs;
 exports.CollectTavern = CollectTavern;
 exports.ExecuteVisitTavern = ExecuteVisitTavern;
+
+exports.CheckUpdate = CheckUpdate;
 
 exports.Test = Test;

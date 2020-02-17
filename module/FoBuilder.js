@@ -356,6 +356,16 @@ async function fetchMetaData(url) {
         return JSON.parse("[]");
 }
 
+async function fetchUpdate(){
+    let res = await fetch("https://raw.githubusercontent.com/Th3C0D3R/FoBJS_Release/master/version.txt");
+    if (res.status === 200) {
+        let body = await res.text();
+        return body;
+    }
+    else
+        return JSON.parse("[]");
+}
+
 const calcSig = (x) => {
     let encoded = JSON.stringify(x).replace(' ', '')
     data = User_Key + Secret + encoded
@@ -378,6 +388,8 @@ exports.DoCancelProduction = DoCancelProduction;
 exports.DoGetOwnTavern = DoGetOwnTavern;
 exports.VisitTavern = VisitTavern;
 exports.RemoveFriend = RemoveFriend;
+
+exports.fetchUpdate = fetchUpdate;
 
 exports.GetClanMember = GetClanMember;
 exports.GetFriends = GetFriends;

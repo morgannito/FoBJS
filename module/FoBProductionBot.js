@@ -92,7 +92,6 @@ function DoWork(doRefresh = false, cb = null) {
         throw reason;
     });
 }
-
 function HasProdFinished() {
     var ProdFinished = [];
     for (var i = 0; i < ProdDict.length; i++) {
@@ -109,7 +108,6 @@ function HasProdFinished() {
     }
     return ProdFinished.length;
 }
-
 function CollectManuel(ConsoleWin, cb = null) {
     var promArr = [];
     ConsoleWin.webContents.send('print', `Do: Self-Collect productions`);

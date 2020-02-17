@@ -1,6 +1,11 @@
 {
 	"values": {
         "_Language": "Deutsch",
+        "Update.Title": "Update verfügbar!",
+        "Update.Message":"Ein neues Update ist verfügbar:\n\r",
+        "Update.DetailMessage":"Deine Version: ###curVer###\n\rNeue Version: ###newVer###",
+        "Update.ButtonOk":"Github-Release öffnen",
+        "Update.ButtonQuit":"Beenden",
         "Menu.Login": "Login",
         "Menu.Logout": "Logout",
         "Menu.Functions": "Funktionen",
@@ -14,7 +19,7 @@
         "Menu.Functions.AidMembers": "Clan helfen",
         "Menu.Functions.AidNeighbor": "Allen helfen",
         "Menu.Functions.TavernVisit": "Alle Tavernen besuchen",
-        "Menu.Functions.SnipableLB": "suche snipbare LGs",
+        "Menu.Functions.SnipableLB": "Suche snipbare LGs",
         "Menu.Settings.SwitchProduction": "Produktionszyklus ändern",
         "Menu.Settings.SwitchGoodsProduction": "Güterproduktionszyklus ändern",
         "Menu.Settings.SetTavernBotInterval": "Tavernenbot-Intervall setzen",
