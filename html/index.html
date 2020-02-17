@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/index.css">
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
     <script src="../js/console.js"></script>
+    <script src="../js/moment.js"></script>
 </head>
 
 <body>
@@ -22,9 +23,15 @@
 <script>
     var info = document.querySelector('div#information');
     var { ipcRenderer } = require('electron');
+    var moment = require('moment');
+
+    var BotID = null;
+    var RunningSinceID = null;
+    var RunningTime = Math.round(new Date().getTime() / 1000);
+    var ProdStateID = {};
+    var ProdState = {};
 
     function openTab(xtab) {
-
         //debugger;
         if (document.getElementById(xtab) === undefined) return;
         var i = 0, tabcontent, tablinks;
@@ -42,7 +49,6 @@
         document.getElementById("btn" + xtab).className += " active";
         ipcRenderer.send('setActiveTab', xtab);
     }
-
     function loadEventHandler() {
         document.querySelectorAll('.rFFL').forEach(item => {
             item.style.cursor = "pointer";
@@ -60,7 +66,6 @@
         document.querySelector('.CancelProduction').style.cursor = "pointer";
         document.querySelector('.CollectIncidents').style.cursor = "pointer";
     }
-
     function init(tabName) {
         if (tabName != null && typeof (tabName) !== "object") {
             openTab(tabName);
@@ -68,7 +73,6 @@
             document.getElementById("btnOverview").click();
         }
     }
-
     ipcRenderer.on('information', (e, data) => {
         info.innerHTML = data;
     });
@@ -92,7 +96,6 @@
             document.getElementById("loadingText").innerText = data[1];
         }
     }
-
     function toggleProdBot() {
         if (document.querySelector("#tableBot-ProdBotButtonName").dataset.running === "false") {
             ipcRenderer.send('DoProdBot', true);
@@ -127,12 +130,81 @@
         toggleOverlay([true, "Removing Friend..."]);
         ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
     }
+    function updateElement(element, data) {
+        if (document.getElementById(element) !== null) {
+            document.getElementById(element).innerHTML = data;
+        }
+    }
+
+    function startBot() {
+        if (BotID === null) {
+            BotID = setInterval(() => {
+                var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
+                var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
+
+            }, 999)
+        }
+    }
 
     ipcRenderer.send('windowLoaded', "");
+
     ipcRenderer.on('toggleTab', (e, data) => {
         setTimeout(() => {
             openTab(data);
         }, 1000);
+    });
+
+    ipcRenderer.on("sendRunningTime", (e, data) => {
+        RunningTime = data;
+        if (RunningSinceID === null) {
+            RunningSinceID = setInterval(() => {
+                var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
+                var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
+                updateElement("RunningSince", DurString);
+            }, 999)
+        }
+    });
+
+    ipcRenderer.on("sendProductionState", (e, data) => {
+        ProdState = data;
+        for (const key in ProdState) {
+            if (ProdState.hasOwnProperty(key)) {
+                const Production = ProdState[key];
+                ProdState[key]["TimerID"] = null;
+                if (ProdState[key]["TimerID"] === null && !Production["finished"] && Production["nextStateAt"] > 0) {
+                    ProdState[key]["TimerID"] = setInterval(() => {
+                        var end = moment.unix(ProdState[key]["nextStateAt"]);
+                        var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                        var durRunning = moment.duration(end.diff(start));
+                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                            clearInterval(ProdState[key]["TimerID"]);
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
+                            ipcRenderer.send('CollectAndStart', false);
+                        } else if(!ProdState[key]["ProdBotRunning"] && !start.isAfter(end) && !start.isSame(end)) {
+                            var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], DurString);
+                        }else{
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
+                        }
+                    }, 999);
+                } else if (Production["finished"] && ProdState[key]["TimerID"] === null) {
+                    if (ProdState[key]["ProdBotRunning"]) {
+                        ipcRenderer.send('CollectAndStart', false);
+                    }
+                    updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
+                } else if (ProdState[key]["TimerID"] !== null & Production["finished"]) {
+                    if (ProdState[key]["ProdBotRunning"]) {
+                        clearInterval(ProdState[key]["TimerID"]);
+                        ipcRenderer.send('CollectAndStart', false);
+                    }
+                    updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
+                } else if (Production["nextStateAt"] == 0 && !Production["finished"]) {
+                    if (ProdState[key]["ProdBotRunning"])
+                        ipcRenderer.send('CollectAndStart', true);
+                    updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
+                }
+            }
+        }
     });
 </script>
 

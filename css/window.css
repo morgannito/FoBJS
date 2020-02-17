@@ -65,7 +65,7 @@ div.loading-wheel {
   
   border-width: 30px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 3s linear infinite;
 }
 .style-2 .loading-wheel {
   border-style: double;

@@ -18,7 +18,6 @@ const FoBFunctions = require("./module/FoBFunctions");
 const FoBCommands = require("./module/FoBCommands");
 const FoBProductionBot = require("./module/FoBProductionBot");
 const FoBWorldParser = require("./module/FoBWorldParser");
-const TimerClass = require("./js/timer").Timer;
 FoBCore.debug(`Module loaded`);
 const asarPath = path.join(app.getAppPath());
 FoBCore.debug(`asar-Path loaded`);
@@ -79,8 +78,10 @@ var VS = null;
 var VMM = null;
 /** @type {Array} */
 var Lwin = UserName = Password = LastWorld = WorldServer = Lng = null, PlayableWorld = {};
-/** @type {number} */
-var LastETA = null;
+/** @type {Array} */
+var ProductionTimer = {};
+/** @type {Number} */
+var RunningSince = null;
 /** @type {Array} */
 var UserIDs = {
     XSRF: null,
@@ -97,7 +98,6 @@ var UserData = {};
 var stop = true;
 /** @type {Array} */
 var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMemberDict = ClanMemberMoppelDict = [];
-var RefreshInfoID = null;
 /** @type {Boolean} */
 var HideBigRoad = true, BotStarted = false;
 /** @type {Array} */
@@ -118,6 +118,7 @@ var BotsIntervall = {
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
 /** @type {Array} */
 var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
+/** @type {String} */
 var SelectedTab = "Overview";
 var CSSdata = null;
 /** @type {Array} */
@@ -153,6 +154,7 @@ function createWindow() {
                 webPreferences: {
                     nodeIntegration: true,
                     webSecurity: false,
+                    enableRemoteModule: true,
                     allowRunningInsecureContent: true
                 },
                 icon: path.join(asarPath, "icons", "png", "favicon.png")
@@ -391,21 +393,7 @@ proxy.emitter.on("UID_Loaded", data => {
                             FoBProductionBot.StartProductionBot();
                         }
                     });
-                    if (RefreshInfoID === null) {
-                        /*var refreshTimer = new TimerClass(999, () => {
-                            var durRunning = moment.duration(moment.unix(Math.round(new Date().getTime() / 1000)).diff(RunningTime));
-                            var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
-                            try {
-                                Gwin.webContents.send('updateElement', ["RunningSince", DurString]);
-                            } catch (error) {
-                                app.exit();
-                            }
-                            durRunning = "";
-                            DurString = "";
-                        });
-                        refreshTimer.start();
-                        RefreshInfoID = refreshTimer.timeout;*/
-                    }
+
                 }
             });
         }
@@ -572,9 +560,6 @@ function PrepareInfoMenu() {
     }
     tableOtherPlayers = tableOtherPlayers
         .replace("###inactiveFriends###", "");
-
-
-
     tableTavern = tableTavern
         .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "tavern_silver") }).name}`)
         .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
@@ -605,7 +590,6 @@ function PrepareInfoMenu() {
     tableTavern = tableTavern
         .replace("###SittingPlayers###", "");
 
-
     tableBots = tableBots.replace("###ProdBotState###", BotsRunning.ProductionBot === true ? "running" : (BotsRunning.ProductionBot === false ? "stopped" : "not implemented"))
     if (BotsRunning.ProductionBot === true) tableBots = tableBots.replace("###ProdBotColor###", "#00ff00").replace("###ProdBotButtonName###", "Stop");
     else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", "Start");
@@ -632,19 +616,22 @@ function PrepareInfoMenu() {
     else if (BotsRunning.IncidentBot == -1) tableBots = tableBots.replace("###IncidentBotColor###", "#0000ff").replace("###IncidentBotButtonName###", "Nothing");
 
 
-    for (let key in dList) {
-        if (!dList.hasOwnProperty(key)) return;
+    for (let _key in dList) {
+        if (!dList.hasOwnProperty(_key)) return;
         var localContent = buildingContent;
-        var prod = dList[key].prod;
-        var count = dList[key].count;
+        var prod = dList[_key].prod;
+        var count = dList[_key].count;
         var prodName = s = production = "idle";
+        var key = prod["id"];
         if (prod["state"]["__class__"] === "ProducingState") {
             var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
-            if ((start.isAfter(end) || start.isSame(end)) /*&& ProductionTimerID[key] !== undefined*/) {
-                //ProductionTimerID[key]._timer.stop();
-                //ProductionTimerID[key] = undefined;
-                Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
+            if ((start.isAfter(end) || start.isSame(end)) && ProductionTimer[key] !== undefined) {
+                ProductionTimer[key]["finished"] = true;
+                ProductionTimer[key]["string_state"] = "finished";
+                ProductionTimer[key]["nextStateAt"] = 0;
+                ProductionTimer[key]["key"] = key;
+                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
                 if (BotsRunning.ProductionBot) {
                     if (!BlockFinish) {
                         BlockFinish = true;
@@ -653,8 +640,15 @@ function PrepareInfoMenu() {
                 }
             }
             else {
-                /*if (ProductionTimerID[key] === undefined) {
-                    var prodTimer = new TimerClass(999 - parseInt(key), () => {
+                if (ProductionTimer[key] === undefined) {
+                    ProductionTimer[key] = {};
+                }
+                ProductionTimer[key]["string_state"] = "producing";
+                ProductionTimer[key]["finished"] = false;
+                ProductionTimer[key]["nextStateAt"] = prod["state"]["next_state_transition_at"];
+                ProductionTimer[key]["key"] = key;
+                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+                /*if (ProductionTimer[key] === undefined) {
                         if (ProductionTimerID[key] == undefined) return false;
                         var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
                         var start = moment.unix(Math.round(new Date().getTime() / 1000));
@@ -680,17 +674,24 @@ function PrepareInfoMenu() {
                         }
                         durRunning = "";
                         DurString = "";
-                    });
                     prodTimer.start();
                     ProductionTimerID[key] = { timout: prodTimer.timeout, item: dList[key], _timer: prodTimer };
                 }*/
-                s = "producing"
+                s = "producing (default)"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
             }
         }
         else if (prod["state"]["__class__"] === "IdleState") {
-            s = "idle"
+            if (ProductionTimer[key] === undefined) {
+                ProductionTimer[key] = {};
+            }
+            ProductionTimer[key]["string_state"] = "idle";
+            ProductionTimer[key]["finished"] = false;
+            ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["key"] = key;
+            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+            s = "idle (default)"
             if (BotsRunning.ProductionBot) {
                 if (!BlockProduction) {
                     BlockProduction = true;
@@ -699,15 +700,17 @@ function PrepareInfoMenu() {
             }
         }
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
-            s = "finished";
+            s = "finished (default)";
             production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
             prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-            if (BotsRunning.ProductionBot) {
-                if (!BlockFinish) {
-                    BlockFinish = true;
-                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
-                }
+            if (ProductionTimer[key] === undefined) {
+                ProductionTimer[key] = {};
             }
+            ProductionTimer[key]["string_state"] = "finished";
+            ProductionTimer[key]["finished"] = true;
+            ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["key"] = key;
+            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
         };
         localContent = localContent
             .replace("###BuildName###", count + "x " + prod["name"])
@@ -769,12 +772,15 @@ function PrepareInfoMenu() {
     Gwin.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(index)).then(() => {
         if (CSSdata !== null)
             Gwin.webContents.insertCSS(CSSdata);
-        Gwin.webContents.send('information', windowContent);
         Gwin.webContents.executeJavaScript("loadEventHandler();");
+        if (RunningSince === undefined || RunningSince === null) {
+            RunningSince = moment.unix(Math.round(new Date().getTime() / 1000));
+        }
+        Gwin.webContents.send('sendProductionState', ProductionTimer);
+        Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
-        //console.log(r);
+        console.log(r);
     });
-    //FoBCore.printInfo(Gwin, windowContent);
 }
 function createBrowserWindow(url) {
     FoBCore.debug(`Creating Browserwindow`);
@@ -1188,7 +1194,7 @@ function SessionExpired() {
     UserIDs.UID = null;
     FoBCore.debug(`Trying to Login again in 10 minutes`);
     setTimeout(() => {
-        RunningTime = moment.now();
+        //RunningTime = moment.now();
         FoBCore.debug(`Trying to Login again`);
         clickDO();
     }, 1000 * 60 * 10);
@@ -1225,11 +1231,17 @@ function SetupIpcMain() {
         SelectedTab = data;
     });
     ipcMain.on("DoProdBot", (e, d) => {
-        FoBCore.debug(`Start Production Bot`);
+        FoBCore.debug(`Start/Stop Production Bot`);
         BotsRunning.ProductionBot = d;
-        BlockFinish = BlockProduction = false;
+        Gwin.webContents.send('ChangeProdBotState', d);
         GetData();
-    })
+    });
+    ipcMain.on("CollectAndStart", (e, onlyStart) => {
+        FoBCore.debug(`Collecting and Starting Production`);
+        if (!onlyStart)
+            FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
+        else FoBProductionBot.StartManuel(Gwin)
+    });
 }
 async function ChangeLanguage(sL) {
     FoBCore.debug(`Change Language to ${sL}`);
