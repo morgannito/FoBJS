@@ -131,7 +131,7 @@ function CollectManuel(ConsoleWin, cb = null) {
     }
     Promise.all(promArr).then(values => {
         Main.GetData(true, () => {
-            ConsoleWin.webContents.send('print', `Done all`);
+            FoBCore.debug(`Done all`);
             if (cb) cb();
         }, true);
     }, reason => {
@@ -140,7 +140,7 @@ function CollectManuel(ConsoleWin, cb = null) {
 }
 function StartManuel(ConsoleWin, cb = null) {
     var promArr = [];
-    ConsoleWin.webContents.send('print', `Do: Self-Start productions`);
+    FoBCore.debug(`Do: Self-Start productions`);
     for (let i = 0; i < processer.ProductionDict.length; i++) {
         const prodUnit = processer.ProductionDict[i];
         if (prodUnit["state"]["__class__"] === "IdleState") {
@@ -155,7 +155,7 @@ function StartManuel(ConsoleWin, cb = null) {
     }
     Promise.all(promArr).then(values => {
         Main.GetData(true, () => {
-            ConsoleWin.webContents.send('print', `Done all`);
+            FoBCore.debug(`Done all`);
             if (cb) cb();
         }, true);
     }, reason => {

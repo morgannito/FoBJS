@@ -20,113 +20,106 @@ function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
     Failed, Skipped = [];
     RewardMoney = 0;
     MotivateNeighbors(() => {
-        ConsoleWin.webContents.send('print', `Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
+        FoBCore.debug(`Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
         oldRewardMoney = RewardMoney;
         MotivateMember(() => {
-            ConsoleWin.webContents.send('print', `ClanMember Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${ClanMemberList.length})`);
+            FoBCore.debug(`ClanMember Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${ClanMemberList.length})`);
             oldRewardMoney = RewardMoney;
             MotivateFriends(() => {
-                ConsoleWin.webContents.send('print', `Friends Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${FriendsList.length})`);
+                FoBCore.debug(`Friends Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${FriendsList.length})`);
                 oldRewardMoney = 0;
                 if (Failed.length > 0)
-                    ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+                    FoBCore.debug(`Failed to motivate ${Failed.length} players`);
                 if (Skipped.length > 0)
-                    ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
-                ConsoleWin.webContents.send('print', "All Player motivated! Total Reward: " + RewardMoney);
+                    FoBCore.debug(`Skipped ${Skipped.length} players`);
+                FoBCore.debug("All Player motivated! Total Reward: " + RewardMoney);
                 Main.GetData(true);
             })
         })
     })
 }
-
 function ExecuteMotivateMember(Gwin, List) {
     ClanMemberList = List;
     ConsoleWin = Gwin;
     Failed, Skipped = [];
     RewardMoney = 0;
     MotivateMember(() => {
-        ConsoleWin.webContents.send('print', `ClanMember Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${ClanMemberList.length})`);
+        FoBCore.debug(`ClanMember Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${ClanMemberList.length})`);
         if (Failed.length > 0)
-            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+            FoBCore.debug(`Failed to motivate ${Failed.length} players`);
         if (Skipped.length > 0)
-            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+            FoBCore.debug(`Skipped ${Skipped.length} players`);
         Main.GetData(true);
     });
 }
-
 function ExecuteMotivateFriends(Gwin, List) {
     FriendsList = List;
     ConsoleWin = Gwin;
     Failed, Skipped = [];
     RewardMoney = 0;
     MotivateFriends(() => {
-        ConsoleWin.webContents.send('print', `Friends Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${FriendsList.length})`);
+        FoBCore.debug(`Friends Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${FriendsList.length})`);
         if (Failed.length > 0)
-            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+            FoBCore.debug(`Failed to motivate ${Failed.length} players`);
         if (Skipped.length > 0)
-            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+            FoBCore.debug(`Skipped ${Skipped.length} players`);
         Main.GetData(true);
     });
 }
-
 function ExecuteMotivateNeighbors(Gwin, List) {
     NeighborList = List;
     ConsoleWin = Gwin;
     Failed, Skipped = [];
     RewardMoney = 0;
     MotivateNeighbors(() => {
-        ConsoleWin.webContents.send('print', `Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
+        FoBCore.debug(`Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
         if (Failed.length > 0)
-            ConsoleWin.webContents.send('print', `Failed to motivate ${Failed.length} players`);
+            FoBCore.debug(`Failed to motivate ${Failed.length} players`);
         if (Skipped.length > 0)
-            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} players`);
+            FoBCore.debug(`Skipped ${Skipped.length} players`);
         Main.GetData(true);
     });
 }
-
 function ExecuteVisitTavern(Gwin, fList) {
     FriendsList = fList;
     ConsoleWin = Gwin;
     Failed, Skipped = [];
     VisitTavern(() => {
         if (Failed.length > 0)
-            ConsoleWin.webContents.send('print', `Failed to visit ${Failed.length} Taverns`);
+            FoBCore.debug(`Failed to visit ${Failed.length} Taverns`);
         if (Skipped.length > 0)
-            ConsoleWin.webContents.send('print', `Skipped ${Skipped.length} Taverns`);
-        ConsoleWin.webContents.send('print', "All Taverns visited!");
+            FoBCore.debug(`Skipped ${Skipped.length} Taverns`);
+        FoBCore.debug("All Taverns visited!");
         Main.GetData(false);
     });
 }
-
 function ExecuteSnipLGs(Gwin, fList, nList) {
     FriendsList = fList;
     NeighborList = nList;
     ConsoleWin = Gwin;
     PossibleLGs = [];
-    ConsoleWin.webContents.send('print', `Do: Get possible Snip LGs`);
+    FoBCore.debug(`Do: Get possible Snip LGs`);
     GetPLGIFriends(() => {
         GetPLGINeighbor(() => {
             for (let i = 0; i < PossibleLGs.length; i++) {
                 const LG = PossibleLGs[i];
-                ConsoleWin.webContents.send('print', `${LG.Name} (${LG.PlayerName}): ${LG.string}`);
+                FoBCore.debug(`${LG.Name} (${LG.PlayerName}): ${LG.string}`);
             }
             Main.GetData(false);
         })
     })
 }
-
 function CollectTavern(Gwin) {
     if (processer.OwnTavernInfo[2] == 0) return;
     ConsoleWin = Gwin;
-    ConsoleWin.webContents.send('print', `Do: Collect Tavern`);
+    FoBCore.debug(`Do: Collect Tavern`);
     FoBuilder.DoCollectTavern()
         .then((data) => {
             let diff = processer.GetTavernCollectResult(data);
-            ConsoleWin.webContents.send('print', `Collected ${diff} Taver Silver`);
+            FoBCore.debug(`Collected ${diff} Taver Silver`);
             Main.GetData(false);
         });
 }
-
 function ExecuteCollectRewards(Gwin) {
     ConsoleWin = Gwin;
 
@@ -158,19 +151,19 @@ function CollectRewards(callback) {
                 if (i < HiddenRewards.length) {
                     var Incident = HiddenRewards[i];
                     doneReward.push(i);
-                    ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i+1}/${HiddenRewards.length}`]);
+                    ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i + 1}/${HiddenRewards.length}`]);
                     FoBuilder.DoCollectReward(Incident.id)
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetRewardResult(body);
-                                if(result !== undefined){
-                                    ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i+1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
-                                    ConsoleWin.webContents.send('info', `Incident collected, Reward: ${result[0].name}`);
+                                if (result !== undefined) {
+                                    ConsoleWin.webContents.send('toggleOverlay', [true, `Collect Incidents... ${i + 1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
+                                    FoBCore.debug(`Incident collected, Reward: ${result[0].name}`);
                                 }
                                 i++;
                                 if (i >= HiddenRewards.length) {
                                     clearInterval(interval);
-                                    ConsoleWin.webContents.send('print', `Incidents done (Count: ${HiddenRewards.length})`);
+                                    FoBCore.debug(`Incidents done (Count: ${HiddenRewards.length})`);
                                     return callback();
                                 }
                             } else {
@@ -178,7 +171,7 @@ function CollectRewards(callback) {
                                 i++;
                                 if (i >= HiddenRewards.length) {
                                     clearInterval(interval);
-                                    ConsoleWin.webContents.send('print', `Incidents done (Count: ${HiddenRewards.length})`);
+                                    FoBCore.debug(`Incidents done (Count: ${HiddenRewards.length})`);
                                     return callback();
                                 }
                             }
@@ -187,14 +180,14 @@ function CollectRewards(callback) {
             }
         }, FoBCore.getRandomIntervall());
     } else {
-        ConsoleWin.webContents.send('print', `Incidents 2 done (Count: ${HiddenRewards.length})`);
+        FoBCore.debug(`Incidents done (Count: ${HiddenRewards.length})`);
         return callback();
     }
 }
 function VisitTavern(callback) {
     TavernList = processer.GetVisitableTavern(FriendsList);
     ConsoleWin.webContents.send('toggleOverlay', [true, `Visiting Friendstavern...`]);
-    ConsoleWin.webContents.send('print', `Do: Visit Friends Tavern (Count: ${TavernList.length})`);
+    FoBCore.debug(`Do: Visit Friends Tavern (Count: ${TavernList.length})`);
     var i = 0;
     var doneTavern = [];
     var RewardTavern = { Silver: 0, FP: 0 };
@@ -210,11 +203,11 @@ function VisitTavern(callback) {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetTavernResult(body);
                                 ConsoleWin.webContents.send('progress', `${Friend.item["name"]}: ${result["state"]} (${i + 1}/${TavernList.length})`);
-                                RewardTavern = processer.GetTavernReward(result,RewardTavern);
+                                RewardTavern = processer.GetTavernReward(result, RewardTavern);
                                 i++;
                                 if (i >= TavernList.length) {
                                     clearInterval(interval);
-                                    ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length}) Reward: ${RewardTavern.Silver} Silver & ${RewardTavern.FP} FPs`);
+                                    FoBCore.debug(`Tavernvisits done (Count: ${TavernList.length}) Reward: ${RewardTavern.Silver} Silver & ${RewardTavern.FP} FPs`);
                                     callback();
                                 }
                             } else {
@@ -222,7 +215,7 @@ function VisitTavern(callback) {
                                 i++;
                                 if (i >= TavernList.length) {
                                     clearInterval(interval);
-                                    ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
+                                    FoBCore.debug(`Tavernvisits done (Count: ${TavernList.length})`);
                                     callback();
                                 }
                             }
@@ -231,13 +224,13 @@ function VisitTavern(callback) {
             }
         }, FoBCore.getRandomIntervall());
     } else {
-        ConsoleWin.webContents.send('print', `Tavernvisits done (Count: ${TavernList.length})`);
+        FoBCore.debug(`Tavernvisits done (Count: ${TavernList.length})`);
         callback();
     }
 }
 function MotivateMember(callback) {
     ConsoleWin.webContents.send('toggleOverlay', [true, "Motivating Clanmembers..."]);
-    ConsoleWin.webContents.send('print', "Do: Motivate all Clanmember (Count: " + ClanMemberList.length + ")");
+    FoBCore.debug("Do: Motivate all Clanmember (Count: " + ClanMemberList.length + ")");
     var i = 0;
     var rewardMoney = 0;
     var doneMotivate = [];
@@ -248,7 +241,7 @@ function MotivateMember(callback) {
                     doneMotivate.push(i);
                     var Member = ClanMemberList[i];
                     if (Member.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Clanmembers... ${i+1}/${ClanMemberList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Clanmembers... ${i + 1}/${ClanMemberList.length}`]);
                         FoBuilder.DoMotivate(Member.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {
@@ -286,7 +279,7 @@ function MotivateMember(callback) {
 }
 function MotivateFriends(callback) {
     ConsoleWin.webContents.send('toggleOverlay', [true, "Motivating Friends..."]);
-    ConsoleWin.webContents.send('print', "Do: Motivate all Friends (Count: " + FriendsList.length + ")");
+    FoBCore.debug("Do: Motivate all Friends (Count: " + FriendsList.length + ")");
     var i = 0;
     var rewardMoney = 0;
     var doneMotivate = [];
@@ -297,7 +290,7 @@ function MotivateFriends(callback) {
                     var Player = FriendsList[i];
                     doneMotivate.push(i);
                     if (Player.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Friends... ${i+1}/${FriendsList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Friends... ${i + 1}/${FriendsList.length}`]);
                         FoBuilder.DoMotivate(Player.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {
@@ -335,7 +328,7 @@ function MotivateFriends(callback) {
 }
 function MotivateNeighbors(callback) {
     ConsoleWin.webContents.send('toggleOverlay', [true, "Motivating Neighbors..."]);
-    ConsoleWin.webContents.send('print', "Do: Motivate all Neighbors (Count: " + NeighborList.length + ")");
+    FoBCore.debug("Do: Motivate all Neighbors (Count: " + NeighborList.length + ")");
     var i = 0;
     var rewardMoney = 0;
     var doneMotivate = [];
@@ -346,7 +339,7 @@ function MotivateNeighbors(callback) {
                     var Player = NeighborList[i];
                     doneMotivate.push(i);
                     if (Player.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Neighbors... ${i+1}/${NeighborList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `Motivating Neighbors... ${i + 1}/${NeighborList.length}`]);
                         FoBuilder.DoMotivate(Player.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {
@@ -407,7 +400,7 @@ function GetPLGIFriends(callback) {
             i++;
             if (i >= FriendsList.length) {
                 clearInterval(interval);
-                ConsoleWin.webContents.send('print', `Found ${LGDict.length} LGs`);
+                FoBCore.debug(`Found ${LGDict.length} LGs`);
                 callback();
             }
         }, FoBCore.getRandomIntervall());
@@ -438,16 +431,15 @@ function GetPLGINeighbor(callback) {
             i++;
             if (i >= NeighborList.length) {
                 clearInterval(interval);
-                ConsoleWin.webContents.send('print', `Found ${LGDict.length} LGs`);
+                FoBCore.debug(`Found ${LGDict.length} LGs`);
                 callback();
             }
         }, FoBCore.getRandomIntervall());
     }
 }
-
-async function CheckUpdate(curVer){
+async function CheckUpdate(curVer) {
     var newVer = await FoBuilder.fetchUpdate();
-    newVer = newVer.replace(/\n/g,"");
+    newVer = newVer.replace(/\n/g, "");
     let newVerArr = newVer.split(".");
     let curVerArr = curVer.split(".");
     if (parseInt(curVerArr[0]) < parseInt(newVerArr[0]))
@@ -459,8 +451,6 @@ async function CheckUpdate(curVer){
     else
         return { hasUpdate: false, newVersion: curVer };
 }
-
-
 function Test() {
     FoBuilder.DoQueryProduction(35, 1)
         .then(data => {

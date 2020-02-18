@@ -6,7 +6,6 @@
     <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
     <link rel="stylesheet" href="../css/index.css">
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-    <script src="../js/console.js"></script>
     <script src="../js/moment.js"></script>
 </head>
 
@@ -30,6 +29,8 @@
     var RunningTime = Math.round(new Date().getTime() / 1000);
     var ProdStateID = {};
     var ProdState = {};
+    var BlockFinish = false;
+    var BlockProduction = false;
 
     function openTab(xtab) {
         //debugger;
@@ -107,27 +108,27 @@
         }
     }
     function CollectIncidents() {
-        toggleOverlay([true, "Collect Incidents..."]);
+        toggleOverlay([true, "###CollectIncidents###"]);
         ipcRenderer.send('collectIncidents', "");
     }
     function CancelProduction() {
-        toggleOverlay([true, "Cancel Production..."]);
+        toggleOverlay([true, "###CancelProduction###"]);
         ipcRenderer.send('cancelProduction', "");
     }
     function CollectProduction() {
-        toggleOverlay([true, "Collect Production..."]);
+        toggleOverlay([true, "###CollectProduction###"]);
         ipcRenderer.send('collectProduction', "");
     }
     function StartProduction() {
-        toggleOverlay([true, "Start Production..."]);
+        toggleOverlay([true, "###StartProduction###"]);
         ipcRenderer.send('startProduction', "");
     }
     function CollectTavern() {
-        toggleOverlay([true, "Collect Tavern..."]);
+        toggleOverlay([true, "###CollectTavern###"]);
         ipcRenderer.send('collectTavern', "");
     }
     function rFFL() {
-        toggleOverlay([true, "Removing Friend..."]);
+        toggleOverlay([true, "###RemoveFriend###"]);
         ipcRenderer.send('removeFriend', event.target.dataset["playerid"]);
     }
     function updateElement(element, data) {
@@ -165,8 +166,14 @@
         }
     });
 
+    ipcRenderer.on('loadEventHandler', (e, data) => {
+        loadEventHandler();
+    });
+
     ipcRenderer.on("sendProductionState", (e, data) => {
-        ProdState = data;
+        ProdState = data[0];
+        BlockFinish = data[1];
+        BlockProduction = data[2];
         for (const key in ProdState) {
             if (ProdState.hasOwnProperty(key)) {
                 const Production = ProdState[key];
@@ -176,31 +183,41 @@
                         var end = moment.unix(ProdState[key]["nextStateAt"]);
                         var start = moment.unix(Math.round(new Date().getTime() / 1000));
                         var durRunning = moment.duration(end.diff(start));
-                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end)) && !BlockFinish) {
+                            BlockFinish = true;
                             clearInterval(ProdState[key]["TimerID"]);
-                            updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
-                            ipcRenderer.send('CollectAndStart', false);
-                        } else if(!ProdState[key]["ProdBotRunning"] && !start.isAfter(end) && !start.isSame(end)) {
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], "###Finished###");
+                            console.log(`[DEBUG] [1] WOULD COLLECT`);
+                            //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
+                        } else /*if (!ProdState[key]["ProdBotRunning"] && !start.isAfter(end) && !start.isSame(end))*/ {
                             var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
                             updateElement("BuidlingStatus" + ProdState[key]["key"], DurString);
-                        }else{
+                        } /*else {
                             updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
-                        }
+                        }*/
                     }, 999);
                 } else if (Production["finished"] && ProdState[key]["TimerID"] === null) {
-                    if (ProdState[key]["ProdBotRunning"]) {
-                        ipcRenderer.send('CollectAndStart', false);
+                    if (ProdState[key]["ProdBotRunning"] && !BlockFinish) {
+                        BlockFinish = true;
+                        console.log(`[DEBUG] [2] WOULD COLLECT`);
+                        //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
                     }
                     updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
                 } else if (ProdState[key]["TimerID"] !== null & Production["finished"]) {
-                    if (ProdState[key]["ProdBotRunning"]) {
+                    if (ProdState[key]["ProdBotRunning"] && !BlockFinish) {
+                        BlockFinish = true
                         clearInterval(ProdState[key]["TimerID"]);
-                        ipcRenderer.send('CollectAndStart', false);
+                        console.log(`[DEBUG] [3] WOULD COLLECT`);
+                        //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
                     }
                     updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
                 } else if (Production["nextStateAt"] == 0 && !Production["finished"]) {
-                    if (ProdState[key]["ProdBotRunning"])
-                        ipcRenderer.send('CollectAndStart', true);
+
+                    if (ProdState[key]["ProdBotRunning"] && !BlockProduction) {
+                        BlockProduction = true;
+                        console.log(`[DEBUG] [4] WOULD COLLECT`);
+                        //ipcRenderer.send('CollectAndStart', [true,BlockFinish,BlockProduction]);
+                    }
                     updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
                 }
             }

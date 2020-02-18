@@ -40,7 +40,6 @@ storage.getAll((err, data) => {
         PlayableWorld = data["PlayableWorld"];
         WorldServer = data["WorldServer"];
         Lng = data["Language"];
-        LastETA = data["LastETA"];
         if (Lng !== null && Lng !== undefined && typeof Lng === "string")
             moment.locale(Lng);
         else {
@@ -70,6 +69,8 @@ let isDev = true;
 const eState = { Producing: 1, Idle: 2, Finished: 3 };
 /** @type {BrowserWindow} */
 var Gwin = null;
+/** @type {BrowserWindow} */
+var Lwin = null;
 /** @type {Menu} */
 var menu = null;
 /** @type {String} */
@@ -102,7 +103,7 @@ var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMe
 var HideBigRoad = true, BotStarted = false;
 /** @type {Array} */
 var BotsRunning = {
-    ProductionBot: false,
+    ProductionBot: true,
     RQBot: -1,
     TavernBot: -1,
     MoppelBot: -1,
@@ -120,11 +121,12 @@ var CurrentProduction = { time: 5, id: 1, text: "5min" };
 var CurrentGoodProduction = { time: 240, id: 1, text: "4h" };
 /** @type {String} */
 var SelectedTab = "Overview";
-var CSSdata = null;
+var windowCSS = null;
 /** @type {Array} */
 var Worlds = {};
 
-var BlockFinish = BlockProduction = false;
+var BlockFinish = false;
+var BlockProduction = false;
 
 FoBCore.debug(`Vars loaded`);
 
@@ -171,19 +173,9 @@ function createWindow() {
             FoBCore.debug(`Menu built`);
 
             ipcMain.on('loaded', () => {
+                FoBCore.debug(`BrowserWindow loaded`);
                 if (typeof WorldServer !== "string") {
-                    FoBCore.pWL(Gwin, app, false);
-                    Gwin.webContents.send('chooseServer', FoBCore.Servers);
-                    ipcMain.once("loadServer", (e, data) => {
-                        if (undefined !== FoBCore.Servers[data]) {
-                            FoBCore.debug(`Server ${data} selected`);
-                            storage.set("WorldServer", data);
-                            WorldServer = data;
-                            Gwin.webContents.send('clear', "");
-                            FoBCore.pWL(Gwin, app);
-                            Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
-                        }
-                    });
+                    PrintServerSelection();
                 } else {
                     FoBCore.pWL(Gwin, app);
                     Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
@@ -227,7 +219,7 @@ function createWindow() {
             fs.readFile(path.join(asarPath, 'css', 'window.css'), "utf-8", function (error, data) {
                 if (!error) {
                     var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
-                    CSSdata = formatedData;
+                    windowCSS = formatedData;
                 }
             });
         }
@@ -245,24 +237,28 @@ app.on('activate', () => {
     }
 })
 function clickDO() {
-    if (null === UserIDs.UID && UserName !== undefined && Password !== undefined && LastWorld !== undefined) {
+    if (null === UserIDs.UID && ((UserName !== null && Password !== null && LastWorld !== null) && (UserName !== undefined && Password !== undefined && LastWorld !== undefined))) {
         FoBCore.debug(`Username, Password and LastWorld found`);
         createBrowserWindowAuto("https://" + WorldServer + ".forgeofempires.com/");
     } else {
-        FoBCore.debug(`Username, Password and LastWorld found`);
-        Gwin.webContents.send('requestUsername', "Please enter your Username: ");
-        ipcMain.once('getUsername', (event, data) => {
-            if ("" !== data) {
-                UserName = data;
-                Gwin.webContents.send('requestPassword', "Please enter your Password: ");
-                ipcMain.once('getPassword', (event, data) => {
-                    if ("" !== data) {
-                        Password = data;
-                        createBrowserWindow("https://" + WorldServer + ".forgeofempires.com/");
-                    }
-                });
-            }
-        });
+        FoBCore.debug(`No saved Data found`);
+        FoBCore.debug(`request Username`);
+        Gwin.webContents.send('requestUsername', i18n("Login.EnterUsername"));
+        ipcMain.once('getUsername', GotUsername);
+    }
+}
+function GotUsername(e, data) {
+    if ("" !== data) {
+        UserName = data;
+        FoBCore.debug(`request Password`);
+        Gwin.webContents.send('requestPassword', i18n("Login.EnterPassword"));
+        ipcMain.once('getPassword', GotPassword);
+    }
+}
+function GotPassword(e, data) {
+    if ("" !== data) {
+        Password = data;
+        createBrowserWindow("https://" + WorldServer + ".forgeofempires.com/");
     }
 }
 async function downloadForgeHX() {
@@ -299,7 +295,7 @@ async function downloadForgeHX() {
     }
     if (null !== VERSION) {
         if (VERSION.length === 2) {
-            FoBCore.debug(`VersionSecret found: ${VERSION[1]}`);
+            FoBCore.debug(`Version found: ${VERSION[1]}`);
             VMM = VERSION[1];
         }
         else {
@@ -309,6 +305,7 @@ async function downloadForgeHX() {
     }
 }
 async function DoLogout() {
+    Gwin.webContents.send('clear', "");
     FoBCore.debug(`Doing Logout`);
     UserIDs = {
         XSRF: null,
@@ -473,10 +470,10 @@ function PrepareInfoMenu() {
     var tavernState = "";
     if (processer.OwnTavernInfo[1] === processer.OwnTavernInfo[2])
         if (processer.OwnTavernInfo[1] !== undefined && processer.OwnTavernInfo[2] !== undefined)
-            tavernState = "full";
+            tavernState = i18n("Tavern.State.Full");
         else
             tavernState = "";
-    else tavernState = "sitting"
+    else tavernState = i18n("Tavern.State.Sitting");
 
     let filePath = path.join(asarPath, 'html', 'window.html');
     var windowContent = fs.readFileSync(filePath, 'utf8');
@@ -568,7 +565,7 @@ function PrepareInfoMenu() {
     if (tavernState !== "")
         tableTavern = tableTavern.replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
     else
-        tableTavern = tableTavern.replace("###State###", "NO TAVERN");
+        tableTavern = tableTavern.replace("###State###", i18n("Tavern.State.NoTavern"));
     var visitableTavern = processer.GetVisitableTavern(FriendsDict);
     var SittingPlayers = [];
     if (processer.OwnTavernData["view"] !== undefined)
@@ -580,9 +577,9 @@ function PrepareInfoMenu() {
             .replace("###PlayerName###", sPlayer.name)
             .replace("###PlayerID###", sPlayer.player_id);
         if (visitableTavern.find((v, i, a) => { v.key === sPlayer.player_id }))
-            local = local.replace("###SitAtTavern###", `<button class="SitAtTavern" style="border: none; outline: none; font-size: 13px; padding: 5px 16px;">Sit at Tavern</button>`);
+            local = local.replace("###SitAtTavern###", `<button class="SitAtTavern" style="border: none; outline: none; font-size: 13px; padding: 5px 16px;">${i18n("Tavern.Visitable")}</button>`);
         else
-            local = local.replace("###SitAtTavern###", `CAN NOT SIT DOWN`);
+            local = local.replace("###SitAtTavern###", `${i18n("Tavern.CannotSitDown")}`);
 
         tableTavern = tableTavern
             .replace("###SittingPlayers###", local);
@@ -590,30 +587,31 @@ function PrepareInfoMenu() {
     tableTavern = tableTavern
         .replace("###SittingPlayers###", "");
 
-    tableBots = tableBots.replace("###ProdBotState###", BotsRunning.ProductionBot === true ? "running" : (BotsRunning.ProductionBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.ProductionBot === true) tableBots = tableBots.replace("###ProdBotColor###", "#00ff00").replace("###ProdBotButtonName###", "Stop");
-    else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", "Start");
-    else if (BotsRunning.ProductionBot == -1) tableBots = tableBots.replace("###ProdBotColor###", "#0000ff".replace("###ProdBotButtonName###", "Nothing"));
+    tableBots = tableBots.replace("###ProdBotState###", BotsRunning.ProductionBot === true ? i18n("Bots.Running") : (BotsRunning.ProductionBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
+    tableBots = tableBots.replace("###ProdBotBoolState###", BotsRunning.ProductionBot);
+    if (BotsRunning.ProductionBot === true) tableBots = tableBots.replace("###ProdBotColor###", "#00ff00").replace("###ProdBotButtonName###", i18n("Bots.Stop"));
+    else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", i18n("Bots.Start"));
+    else if (BotsRunning.ProductionBot == -1) tableBots = tableBots.replace("###ProdBotColor###", "#0000ff").replace("###ProdBotButtonName###", i18n("Bots.Nothing"));
 
-    tableBots = tableBots.replace("###RQBotState###", BotsRunning.RQBot === true ? "running" : (BotsRunning.RQBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.RQBot === true) tableBots = tableBots.replace("###RQBotColor###", "#00ff00").replace("###RQBotButtonName###", "Stop");
-    else if (BotsRunning.RQBot === false) tableBots = tableBots.replace("###RQBotColor###", "#ff0000").replace("###RQBotButtonName###", "Start");
-    else if (BotsRunning.RQBot == -1) tableBots = tableBots.replace("###RQBotColor###", "#0000ff").replace("###RQBotButtonName###", "Nothing");
+    tableBots = tableBots.replace("###RQBotState###", BotsRunning.RQBot === true ? i18n("Bots.Running") : (BotsRunning.RQBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
+    if (BotsRunning.RQBot === true) tableBots = tableBots.replace("###RQBotColor###", "#00ff00").replace("###RQBotButtonName###", i18n("Bots.Stop"));
+    else if (BotsRunning.RQBot === false) tableBots = tableBots.replace("###RQBotColor###", "#ff0000").replace("###RQBotButtonName###", i18n("Bots.Start"));
+    else if (BotsRunning.RQBot == -1) tableBots = tableBots.replace("###RQBotColor###", "#0000ff").replace("###RQBotButtonName###", i18n("Bots.Nothing"));
 
-    tableBots = tableBots.replace("###TavernBotState###", BotsRunning.TavernBot === true ? "running" : (BotsRunning.TavernBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.TavernBot === true) tableBots = tableBots.replace("###TavernBotColor###", "#00ff00").replace("###TavernBotButtonName###", "Stop");
-    else if (BotsRunning.TavernBot === false) tableBots = tableBots.replace("###TavernBotColor###", "#ff0000").replace("###TavernBotButtonName###", "Start");
-    else if (BotsRunning.TavernBot == -1) tableBots = tableBots.replace("###TavernBotColor###", "#0000ff").replace("###TavernBotButtonName###", "Nothing");
+    tableBots = tableBots.replace("###TavernBotState###", BotsRunning.TavernBot === true ? i18n("Bots.Running") : (BotsRunning.TavernBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
+    if (BotsRunning.TavernBot === true) tableBots = tableBots.replace("###TavernBotColor###", "#00ff00").replace("###TavernBotButtonName###", i18n("Bots.Stop"));
+    else if (BotsRunning.TavernBot === false) tableBots = tableBots.replace("###TavernBotColor###", "#ff0000").replace("###TavernBotButtonName###", i18n("Bots.Start"));
+    else if (BotsRunning.TavernBot == -1) tableBots = tableBots.replace("###TavernBotColor###", "#0000ff").replace("###TavernBotButtonName###", i18n("Bots.Nothing"));
 
-    tableBots = tableBots.replace("###MoppelBotState###", BotsRunning.MoppelBot === true ? "running" : (BotsRunning.MoppelBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.MoppelBot === true) tableBots = tableBots.replace("###MoppelBotColor###", "#00ff00").replace("###MoppelBotButtonName###", "Stop");
-    else if (BotsRunning.MoppelBot === false) tableBots = tableBots.replace("###MoppelBotColor###", "#ff0000").replace("###MoppelBotButtonName###", "Start");
-    else if (BotsRunning.MoppelBot == -1) tableBots = tableBots.replace("###MoppelBotColor###", "#0000ff").replace("###MoppelBotButtonName###", "Nothing");
+    tableBots = tableBots.replace("###MoppelBotState###", BotsRunning.MoppelBot === true ? i18n("Bots.Running") : (BotsRunning.MoppelBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
+    if (BotsRunning.MoppelBot === true) tableBots = tableBots.replace("###MoppelBotColor###", "#00ff00").replace("###MoppelBotButtonName###", i18n("Bots.Stop"));
+    else if (BotsRunning.MoppelBot === false) tableBots = tableBots.replace("###MoppelBotColor###", "#ff0000").replace("###MoppelBotButtonName###", i18n("Bots.Start"));
+    else if (BotsRunning.MoppelBot == -1) tableBots = tableBots.replace("###MoppelBotColor###", "#0000ff").replace("###MoppelBotButtonName###", i18n("Bots.Nothing"));
 
-    tableBots = tableBots.replace("###IncidentBotState###", BotsRunning.IncidentBot === true ? "running" : (BotsRunning.IncidentBot === false ? "stopped" : "not implemented"))
-    if (BotsRunning.IncidentBot === true) tableBots = tableBots.replace("###IncidentBotColor###", "#00ff00").replace("###IncidentBotButtonName###", "Stop");
-    else if (BotsRunning.IncidentBot === false) tableBots = tableBots.replace("###IncidentBotColor###", "#ff0000").replace("###IncidentBotButtonName###", "Start");
-    else if (BotsRunning.IncidentBot == -1) tableBots = tableBots.replace("###IncidentBotColor###", "#0000ff").replace("###IncidentBotButtonName###", "Nothing");
+    tableBots = tableBots.replace("###IncidentBotState###", BotsRunning.IncidentBot === true ? i18n("Bots.Running") : (BotsRunning.IncidentBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
+    if (BotsRunning.IncidentBot === true) tableBots = tableBots.replace("###IncidentBotColor###", "#00ff00").replace("###IncidentBotButtonName###", i18n("Bots.Stop"));
+    else if (BotsRunning.IncidentBot === false) tableBots = tableBots.replace("###IncidentBotColor###", "#ff0000").replace("###IncidentBotButtonName###", i18n("Bots.Start"));
+    else if (BotsRunning.IncidentBot == -1) tableBots = tableBots.replace("###IncidentBotColor###", "#0000ff").replace("###IncidentBotButtonName###", i18n("Bots.Nothing"));
 
 
     for (let _key in dList) {
@@ -621,21 +619,21 @@ function PrepareInfoMenu() {
         var localContent = buildingContent;
         var prod = dList[_key].prod;
         var count = dList[_key].count;
-        var prodName = s = production = "idle";
+        var prodName = s = production = i18n("Production.Idle");
         var key = prod["id"];
         if (prod["state"]["__class__"] === "ProducingState") {
             var end = moment.unix(prod["state"]["next_state_transition_at"]);
             var start = moment.unix(Math.round(new Date().getTime() / 1000));
             if ((start.isAfter(end) || start.isSame(end)) && ProductionTimer[key] !== undefined) {
                 ProductionTimer[key]["finished"] = true;
-                ProductionTimer[key]["string_state"] = "finished";
+                ProductionTimer[key]["string_state"] = i18n("Production.Finished");
                 ProductionTimer[key]["nextStateAt"] = 0;
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
                 if (BotsRunning.ProductionBot) {
                     if (!BlockFinish) {
                         BlockFinish = true;
-                        FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
+                        FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; }));
                     }
                 }
             }
@@ -643,40 +641,11 @@ function PrepareInfoMenu() {
                 if (ProductionTimer[key] === undefined) {
                     ProductionTimer[key] = {};
                 }
-                ProductionTimer[key]["string_state"] = "producing";
+                ProductionTimer[key]["string_state"] = i18n("Production.Producing");
                 ProductionTimer[key]["finished"] = false;
                 ProductionTimer[key]["nextStateAt"] = prod["state"]["next_state_transition_at"];
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-                /*if (ProductionTimer[key] === undefined) {
-                        if (ProductionTimerID[key] == undefined) return false;
-                        var end = moment.unix(ProductionTimerID[key].item.prod["state"]["next_state_transition_at"]);
-                        var start = moment.unix(Math.round(new Date().getTime() / 1000));
-                        var dur = moment.duration(end.diff(start));
-                        if (start.isAfter(end) || start.isSame(end)) {
-                            ProductionTimerID[key]._timer.stop();
-                            ProductionTimerID[key] = undefined;
-                            Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, "finished"]);
-                            if (BotsRunning.ProductionBot) {
-                                if (!BlockFinish) {
-                                    BlockFinish = true;
-                                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
-                                }
-                            }
-                            return false;
-                        }
-                        timeString = `in ${(!dur.hours() ? (!dur.minutes() ? dur.seconds() + "sec" : dur.minutes() + "min " + dur.seconds() + "sec") : dur.hours() + "h " + dur.minutes() + "min " + dur.seconds() + "sec")}`;
-                        BlockFinish = BlockProduction = false;
-                        try {
-                            Gwin.webContents.send('updateElement', ["BuidlingStatus" + key, timeString]);
-                        } catch (error) {
-                            app.exit();
-                        }
-                        durRunning = "";
-                        DurString = "";
-                    prodTimer.start();
-                    ProductionTimerID[key] = { timout: prodTimer.timeout, item: dList[key], _timer: prodTimer };
-                }*/
                 s = "producing (default)"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
@@ -686,7 +655,7 @@ function PrepareInfoMenu() {
             if (ProductionTimer[key] === undefined) {
                 ProductionTimer[key] = {};
             }
-            ProductionTimer[key]["string_state"] = "idle";
+            ProductionTimer[key]["string_state"] = i18n("Production.Idle");
             ProductionTimer[key]["finished"] = false;
             ProductionTimer[key]["nextStateAt"] = 0;
             ProductionTimer[key]["key"] = key;
@@ -695,7 +664,7 @@ function PrepareInfoMenu() {
             if (BotsRunning.ProductionBot) {
                 if (!BlockProduction) {
                     BlockProduction = true;
-                    FoBProductionBot.StartManuel(Gwin);
+                    FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; });
                 }
             }
         }
@@ -706,7 +675,7 @@ function PrepareInfoMenu() {
             if (ProductionTimer[key] === undefined) {
                 ProductionTimer[key] = {};
             }
-            ProductionTimer[key]["string_state"] = "finished";
+            ProductionTimer[key]["string_state"] = i18n("Production.Finished");
             ProductionTimer[key]["finished"] = true;
             ProductionTimer[key]["nextStateAt"] = 0;
             ProductionTimer[key]["key"] = key;
@@ -751,7 +720,7 @@ function PrepareInfoMenu() {
         localContent = localContent
             .replace("###IncidentLocation###", "")
             .replace("###IncidentRarity###", "")
-            .replace("###NoIncidentText###", "NO INCIDENTS")
+            .replace("###NoIncidentText###", i18n("Manually.NoIncidents"))
         tableManually = tableManually.replace("###Incidents###", localContent)
     }
 
@@ -763,24 +732,49 @@ function PrepareInfoMenu() {
         .replace("###Tavern###", tableTavern)
         .replace("###Bots###", tableBots)
         .replace("###ProductionList###", tableProductionList)
-        .replace("###Manually###", tableManually);
+        .replace("###Manually###", tableManually)
+        .replace("###Window.Tab.Overview###", i18n("Window.Tab.Overview"))
+        .replace("###Window.Tab.OtherPlayers###", i18n("Window.Tab.OtherPlayers"))
+        .replace("###Window.Tab.Tavern###", i18n("Window.Tab.Tavern"))
+        .replace("###Window.Tab.Bots###", i18n("Window.Tab.Bots"))
+        .replace("###Window.Tab.Production###", i18n("Window.Tab.Production"))
+        .replace("###Window.Tab.Manually###", i18n("Window.Tab.Manually"));
 
     filePath = path.join(asarPath, 'html', 'index.html');
     var index = fs.readFileSync(filePath, 'utf8');
-    index = index.replace("###Display###", windowContent);
+    index = index
+        .replace("###Display###", windowContent)
+        .replace("###CollectIncidents###", i18n("Overlay.CollectIncidents"))
+        .replace("###CancelProduction###", i18n("Overlay.CancelProdcution"))
+        .replace("###CollectProduction###", i18n("Overlay.CollectProdcution"))
+        .replace("###StartProduction###", i18n("Overlay.StartProdcution"))
+        .replace("###CollectTavern###", i18n("Overlay.CollectTavern"))
+        .replace("###RemoveFriend###", i18n("Overlay.RemoveFriend"))
+        .replace("###Finished###", i18n("Production.Finished"));
 
     Gwin.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(index)).then(() => {
-        if (CSSdata !== null)
-            Gwin.webContents.insertCSS(CSSdata);
-        Gwin.webContents.executeJavaScript("loadEventHandler();");
+        if (windowCSS !== null)
+            Gwin.webContents.insertCSS(windowCSS);
+        Gwin.webContents.send('loadEventHandler', "");
         if (RunningSince === undefined || RunningSince === null) {
             RunningSince = moment.unix(Math.round(new Date().getTime() / 1000));
         }
-        Gwin.webContents.send('sendProductionState', ProductionTimer);
+        Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction]);
         Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
         console.log(r);
     });
+}
+function cbwDomReady() {
+    let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
+    var content = fs.readFileSync(filePath, 'utf8');
+    storage.set("UserName", UserName);
+    storage.set("Password", Password);
+    let name = encodeURIComponent(UserName);
+    let pass = encodeURIComponent(Password);
+    FoBCore.debug(`setting Username, Password, WorldServer (${WorldServer}) & XSRF-Token`);
+    content = content.replace(/###XSRF-TOKEN###/g, UserIDs.XSRF).replace(/###USERNAME###/g, name).replace(/###PASSWORD###/g, pass).replace(/###WorldServer###/g, WorldServer);
+    Lwin.webContents.executeJavaScript(`${content}`);
 }
 function createBrowserWindow(url) {
     FoBCore.debug(`Creating Browserwindow`);
@@ -792,18 +786,9 @@ function createBrowserWindow(url) {
     win.hide();
     FoBCore.debug(`loading ${url}`);
     win.loadURL(url);
+    Lwin = win;
     //win.webContents.openDevTools();
-    win.webContents.once('dom-ready', () => {
-        let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
-        var content = fs.readFileSync(filePath, 'utf8');
-        storage.set("UserName", UserName);
-        storage.set("Password", Password);
-        FoBCore.debug(`setting Username, Password, WorldServer & XSRF-Token`);
-        let name = encodeURIComponent(UserName);
-        let pass = encodeURIComponent(Password);
-        content = content.replace(/###XSRF-TOKEN###/g, UserIDs.XSRF).replace(/###USERNAME###/g, name).replace(/###PASSWORD###/g, pass).replace(/###WorldServer###/g, WorldServer);
-        win.webContents.executeJavaScript(`${content}`);
-    });
+    win.webContents.once('dom-ready', cbwDomReady);
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
         let filePath = path.join(asarPath, 'js', 'preloadLoginWorld.js');
@@ -817,7 +802,7 @@ function createBrowserWindow(url) {
             let worlds = parsed["worlds"];
             FoBWorldParser.FillWorldList(worlds, false, data);
             if (undefined !== FoBWorldParser.Worlds) {
-                Gwin.webContents.send('print', "Choose from one of yours Worlds: ");
+                Gwin.webContents.send('print', i18n("Login.ChooseWorld"));
                 var possWorlds = "";
                 for (const key in FoBWorldParser.PlayerWorlds) {
                     if (data.hasOwnProperty(key)) {
@@ -832,23 +817,23 @@ function createBrowserWindow(url) {
                 });
                 FoBCore.debug(`Let User choose World`);
                 Gwin.webContents.send('chooseWorld', PlayableWorld);
-                ipcMain.once('loadWorld', (event, data) => {
-                    if (undefined !== PlayableWorld[data]) {
-                        FoBCore.debug(`World choosen: ${data} (${PlayableWorld[data]})`);
-                        storage.set("LastWorld", data);
-                        storage.set("PlayableWorld", PlayableWorld);
-                        Gwin.webContents.send('clear', "");
-                        let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
-                        var content = fs.readFileSync(filePath, 'utf8');
-                        FoBCore.debug(`login into world`);
-                        content = content.replace(/###WORLD_ID###/g, data).replace(/###WorldServer###/g, WorldServer)
-                        win.webContents.executeJavaScript(`${content}`);
-                    }
-                });
+                ipcMain.once('loadWorld', LoadWorld);
             }
         });
     });
-    Lwin = win;
+}
+function LoadWorld(e, data) {
+    if (undefined !== PlayableWorld[data]) {
+        FoBCore.debug(`World choosen: ${data} (${PlayableWorld[data]})`);
+        storage.set("LastWorld", data);
+        storage.set("PlayableWorld", PlayableWorld);
+        Gwin.webContents.send('clear', "");
+        let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
+        var content = fs.readFileSync(filePath, 'utf8');
+        FoBCore.debug(`login into world`);
+        content = content.replace(/###WORLD_ID###/g, data).replace(/###WorldServer###/g, WorldServer)
+        Lwin.webContents.executeJavaScript(`${content}`);
+    }
 }
 function SwitchWorld(world) {
     FoBCore.debug(`switching to world ${world}`);
@@ -874,13 +859,13 @@ function assocFunction(command, args = null) {
         'Login': async () => { return clickDO(); }
     }
     try {
-        Gwin.webContents.send('print', "Executing " + command);
+        Gwin.webContents.send('print', i18n("MainWindow.Executing") + command);
         Gwin.webContents.send('block', true);
         Gwin.webContents.send('clear', "");
         x[command]()
             .then(() => Gwin.webContents.send('block', false))
     } catch (e) {
-        Gwin.webContents.send('print', "Command not available");
+        Gwin.webContents.send('print', i18n("MainWindow.CommandNotAvailable"));
         Gwin.webContents.send('block', false);
     }
 }
@@ -892,15 +877,7 @@ function createBrowserWindowAuto(url) {
     });
     win.hide();
     win.loadURL(url);
-    win.webContents.once('dom-ready', () => {
-        let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
-        var content = fs.readFileSync(filePath, 'utf8');
-        let name = encodeURIComponent(UserName);
-        let pass = encodeURIComponent(Password);
-        FoBCore.debug(`setting Username, Password, WorldServer (${WorldServer}) & XSRF-Token`);
-        content = content.replace(/###XSRF-TOKEN###/g, UserIDs.XSRF).replace(/###USERNAME###/g, name).replace(/###PASSWORD###/g, pass).replace(/###WorldServer###/g, WorldServer);
-        win.webContents.executeJavaScript(`${content}`);
-    });
+    win.webContents.once('dom-ready', cbwDomReady);
     win.webContents.on("did-navigate-in-page", (e, url) => {
         if (stop) { stop = false; return; }
         Gwin.webContents.send('clear', "");
@@ -944,7 +921,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
             if (PlayableWorld.hasOwnProperty(worldid)) {
                 const element = PlayableWorld[worldid];
                 if (worldid === UserIDs.WID)
-                    worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid) + " (Current)", id: worldid, click: () => { return; } });
+                    worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid) + ` (${i18n("Menu.Settings.Current")})`, id: worldid, click: () => { return; } });
                 else
                     worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid), id: worldid, click: () => { SwitchWorld(worldid); } });
             }
@@ -955,7 +932,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
                 if (Options.hasOwnProperty(key)) {
                     const element = Options[key];
                     if (parseInt(key) === CurrentProduction.time)
-                        productionOptions.push({ label: element.text + " (Current)", id: element.id, click: () => { return; } });
+                        productionOptions.push({ label: element.text + ` (${i18n("Menu.Settings.Current")})`, id: element.id, click: () => { return; } });
                     else
                         productionOptions.push({ label: element.text, id: element.id, click: () => { SwitchProduction(element, parseInt(key)); } });
                 }
@@ -967,7 +944,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
                 if (Options.hasOwnProperty(key)) {
                     const element = Options[key];
                     if (parseInt(key) === CurrentGoodProduction.time)
-                        goodproductionOptions.push({ label: element.text + " (Current)", id: element.id, click: () => { return; } });
+                        goodproductionOptions.push({ label: element.text + ` (${i18n("Menu.Settings.Current")})`, id: element.id, click: () => { return; } });
                     else
                         goodproductionOptions.push({ label: element.text, id: element.id, click: () => { SwitchGoodProduction(element, parseInt(key)); } });
                 }
@@ -984,7 +961,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
 }
 function addLogin(menu) {
     mitem = new MenuItem({
-        label: "Login",
+        label: `${i18n("Menu.Login")}`,
         id: "login",
         click: () => clickDO()
     })
@@ -992,7 +969,7 @@ function addLogin(menu) {
 }
 function addLogout(menu) {
     mitem = new MenuItem({
-        label: "Logout",
+        label: `${i18n("Menu.Logout")}`,
         id: "logout",
         click: () => DoLogout()
     })
@@ -1002,26 +979,26 @@ function addFunctions(menu) {
     var botItems = [];
     //Aid
     botItems.push({
-        label: "Aid",
+        label: `${i18n("Menu.Functions.Aid")}`,
         id: "aid",
         submenu: [
             {
-                label: `Aid Friends${FriendsDict.length > 0 ? "" : " (No Friends xD)"}`,
+                label: `${i18n("Menu.Functions.AidFriends")}${FriendsDict.length > 0 ? "" : i18n("Menu.Functions.NoFriends")}`,
                 id: "aidFriends",
                 click: () => FriendsMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateFriends(Gwin, FriendsMoppelDict) : {}
             },
             {
-                label: `Aid Neighbors${NeighborDict.length > 0 ? "" : " (No Neighbors)"}`,
+                label: `${i18n("Menu.Functions.AidNeighbor")}${NeighborDict.length > 0 ? "" : i18n("Menu.Functions.NoNeighbors")}`,
                 id: "aidNeighbors",
                 click: () => NeighborMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateNeighbors(Gwin, NeighborMoppelDict) : {}
             },
             {
-                label: `Aid Members${ClanMemberDict.length > 0 ? "" : " (No Members)"}`,
+                label: `${i18n("Menu.Functions.AidMembers")}${ClanMemberDict.length > 0 ? "" : i18n("Menu.Functions.NoClan")}`,
                 id: "aidMembers",
                 click: () => ClanMemberMoppelDict.length > 0 ? FoBFunctions.ExecuteMotivateMember(Gwin, ClanMemberMoppelDict) : {}
             },
             {
-                label: `Aid All`,
+                label: `${i18n("Menu.Functions.AidAll")}`,
                 id: "aidAll",
                 click: () => FoBFunctions.ExecuteMoppelAll(Gwin, FriendsMoppelDict, NeighborMoppelDict, ClanMemberMoppelDict)
             },
@@ -1029,11 +1006,11 @@ function addFunctions(menu) {
     });
     //Tavern
     botItems.push({
-        label: "Tavern",
+        label: i18n("Menu.Functions.Tavern"),
         id: "tavern",
         submenu: [
             {
-                label: "Visit all Tavern ",
+                label: i18n("Menu.Functions.TavernVisit"),
                 id: "prodBot",
                 click: () => FoBFunctions.ExecuteVisitTavern(Gwin, FriendsDict)
             }
@@ -1041,11 +1018,11 @@ function addFunctions(menu) {
     });
     //Bots
     botItems.push({
-        label: "Bots",
+        label: i18n("Menu.Functions.Bots"),
         id: "bots",
         submenu: [
             {
-                label: "Suche snippbare LGs",
+                label: i18n("Menu.Functions.SnipableLB"),
                 id: "SearchSnipLG",
                 click: () => FoBFunctions.ExecuteSnipLGs(Gwin, FriendsDict, NeighborDict)
             }
@@ -1053,13 +1030,13 @@ function addFunctions(menu) {
     });
     //Others
     botItems.push({
-        label: "Update Lists",
+        label: i18n("Menu.Functions.UpdateList"),
         id: "UpdateList",
         click: () => GetData()
     });
 
     mitem = new MenuItem({
-        label: "Functions",
+        label: i18n("Menu.Functions"),
         id: "functions",
         submenu: botItems
     });
@@ -1069,26 +1046,26 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
     var worldItem = [];
     if (null !== prodOptions) {
         worldItem.push({
-            label: "Switch Production",
+            label: i18n("Menu.Settings.SwitchProduction"),
             id: "SwitchProduction",
             submenu: prodOptions
         })
     }
     if (null !== goodProdOptions) {
         worldItem.push({
-            label: "Switch Goods Production",
+            label: i18n("Menu.Settings.SwitchGoodsProduction"),
             id: "SwitchGoodsProduction",
             submenu: goodProdOptions
         })
     }
     worldItem.push({
-        label: "Set Tavern-Bot Checkintervall",
+        label: i18n("Menu.Settings.SetTavernBotInterval"),
         id: "TavernbotIntervall",
         click: () => setTavernBotIntervall()
     });
     if (UserIDs.UID !== null) {
         worldItem.push({
-            label: "Hide BigRoad: " + HideBigRoad, id: "hide_bigroad", click: () => {
+            label: i18n("Menu.Settings.HideBigRoad").replace("__bool__", HideBigRoad), id: "hide_bigroad", click: () => {
                 HideBigRoad = !HideBigRoad;
                 BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
                 PrepareInfoMenu();
@@ -1098,13 +1075,12 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
     }
     if (null !== worlds) {
         worldItem.push({
-            label: "Switch Worlds",
+            label: i18n("Menu.Settings.SwitchWorlds"),
             id: "SwitchWorlds",
             submenu: worlds
         })
     }
-    worldItem.push({ label: "Clear Userdata", id: "ClearUserdata", click: () => { clearStorage() } });
-    worldItem.push({ label: "Clear Everything", id: "ClearEverything", click: () => { clearStorage(true) } });
+    worldItem.push({ label: i18n("Menu.Settings.ClearAllData"), id: "ClearData", click: () => { clearStorage(true) } });
 
     var lng = [];
     for (const code in PossibleLanguage) {
@@ -1117,10 +1093,10 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
             });
         }
     }
-    worldItem.push({ label: "Change Language", id: "Change Language", submenu: lng });
+    worldItem.push({ label: i18n("Menu.Settings.SwitchLanguage"), id: "ChangeLanguage", submenu: lng });
 
     mitem = new MenuItem({
-        label: "Settings",
+        label: i18n("Menu.Settings"),
         id: "settings",
         submenu: worldItem
     });
@@ -1128,7 +1104,7 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
 }
 function addQuit(menu) {
     mitem = new MenuItem({
-        label: "Quit",
+        label: i18n("Menu.Quit"),
         id: "quit",
         click: () => app.quit()
     })
@@ -1136,7 +1112,7 @@ function addQuit(menu) {
 }
 function addDevTools(menu) {
     mitem = new MenuItem({
-        label: "DevTools",
+        label: i18n("Menu.DevTools"),
         id: "devtools",
         click: () => Gwin.webContents.openDevTools()
     })
@@ -1144,8 +1120,8 @@ function addDevTools(menu) {
 }
 function setTavernBotIntervall() {
     prompt({
-        title: 'Set Tavern-Bot Intervall',
-        label: 'Intervall in minutes: ',
+        title: i18n("Menu.TavernBotInterval"),
+        label: i18n("Menu.TavernBotIntervalValue"),
         value: '60',
         inputAttrs: {
             type: 'number'
@@ -1160,32 +1136,26 @@ function setTavernBotIntervall() {
     })
 }
 function clearStorage(force = false) {
-    FoBCore.debug(`Clear Storage wiht force = ${force}`);
+    FoBCore.debug(`Clear Storage with force = ${force}`);
     UserIDs = {
         XSRF: null,
         CSRF: null,
         CID: null,
         WID: null,
         ForgeHX: null,
+        UID: null,
     }
     UserName = null;
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
-    if (force) storage.clear(() => {
-        FoBCore.debug(`Doing Logout`);
-        DoLogout();
+    storage.clear(() => {
+        Gwin.webContents.send('clear', "");
+        Gwin.webContents.send('storageCleared', true);
+        FoBCore.debug(`Storage cleared`);
+        BuildMenu(true, false, false, true, true, isDev);
+        PrintServerSelection();
     });
-    else
-        storage.remove("UserName", () => {
-            storage.remove("Password", () => {
-                storage.remove("LastWorld", () => {
-                    storage.remove("PlayableWorld", () => {
-                        Gwin.webContents.send('print', "Userdata was cleared!");
-                    });
-                });
-            });
-        });
 }
 function SessionExpired() {
     FoBCore.debug(`Session Expired`);
@@ -1233,14 +1203,16 @@ function SetupIpcMain() {
     ipcMain.on("DoProdBot", (e, d) => {
         FoBCore.debug(`Start/Stop Production Bot`);
         BotsRunning.ProductionBot = d;
-        Gwin.webContents.send('ChangeProdBotState', d);
         GetData();
     });
-    ipcMain.on("CollectAndStart", (e, onlyStart) => {
+    ipcMain.on("CollectAndStart", (e, data) => {
+        var onlyStart = data[0];
+        BlockFinish = data[1];
+        BlockProduction = data[2];
         FoBCore.debug(`Collecting and Starting Production`);
         if (!onlyStart)
-            FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin));
-        else FoBProductionBot.StartManuel(Gwin)
+            FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; }));
+        else FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; })
     });
 }
 async function ChangeLanguage(sL) {
@@ -1272,6 +1244,21 @@ async function ChangeLanguage(sL) {
         FoBCore.debug(`Successfull changed Language to ${sL}`);
     } catch (err) {
         FoBCore.debug(`i18n translation loading error ${err}`);
+    }
+}
+function PrintServerSelection() {
+    FoBCore.pWL(Gwin, app, false);
+    Gwin.webContents.send('chooseServer', [i18n("Login.ChooseServer"), FoBCore.Servers]);
+    ipcMain.once("loadServer", loadServer);
+}
+function loadServer(e, data) {
+    if (undefined !== FoBCore.Servers[data]) {
+        FoBCore.debug(`Server ${data} selected`);
+        storage.set("WorldServer", data);
+        WorldServer = data;
+        Gwin.webContents.send('clear', "");
+        FoBCore.pWL(Gwin, app);
+        Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
     }
 }
 exports.BotsRunning = BotsRunning;

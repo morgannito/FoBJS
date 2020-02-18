@@ -139,8 +139,10 @@
         datalist.innerHTML = options;
     });
     ipcRenderer.on('chooseServer', (e, data) => {
+        var string = data[0];
+        data = data[1]
         input[0].focus();
-        consoleEx.log(`Please choose the server you are playing on: `);
+        consoleEx.log(string);
         var counter = 1;
         for (const key in data) {
             if (data.hasOwnProperty(key)) {
@@ -166,6 +168,7 @@
     });
     ipcRenderer.on('clear', (e, data) => {
         consoleEx.clear();
+        div.children[0].children[0].innerHTML = "";
     });
     ipcRenderer.on('clearInfoMenu', (e, data) => {
         info.innerHTML = "";
@@ -180,6 +183,9 @@
         preText = data;
         consoleEx.inline(data);
     });
+    ipcRenderer.on('storageCleared',(e,data)=>{
+        requestUsername = requestPassword = false;
+    })
     ipcRenderer.on('chooseWorld', (e, data) => {
         input[0].focus();
         chooseWorld = true;

@@ -9,10 +9,7 @@ exports.getRandomInt = getRandomInt;
 exports.getRandomIntervall = getRandomIntervall;
 exports.getNextRequestID = getNextRequestID;
 exports.hasOnlySupplyProduction = hasOnlySupplyProduction;
-exports.delay = delay;
-exports.printInfo = printInfo;
 exports.GetP1 = GetP1;
-exports.TableFromArrayObject = TableFromArrayObject;
 exports.GetDistinctCount = GetDistinctCount;
 exports.getGoodsProductionOptions = getGoodsProductionOptions;
 exports.getProductionOptions = getProductionOptions;
@@ -63,23 +60,19 @@ function hasOnlySupplyProduction(availableProducts) {
     }
     return checkBool.every((v) => v === true);
 }
-async function delay(ms) {
-    new Promise(res => setTimeout(res, ms));
-}
 function printWelcomeMessage(Gwin, xapp, printLogin = true) {
-    Gwin.webContents.send('print', "#########################################");
-    Gwin.webContents.send('print', "#########################################");
-    Gwin.webContents.send('print', "######### WELCOME TO FoB v" + app.getVersion() + " #########");
-    Gwin.webContents.send('print', "#########################################");
-    Gwin.webContents.send('print', "#########################################");
+    Gwin.webContents.send('print', "#########################################################################");
+    Gwin.webContents.send('print', "#########################################################################");
+    Gwin.webContents.send('print', "#########################################################################");
+    Gwin.webContents.send('print', `${' '.repeat(73-(FoBMain.i18n("Login.WelcomeMessage").replace("__Version__",app.getVersion()).length))}${FoBMain.i18n("Login.WelcomeMessage").replace("__Version__",app.getVersion())}`);
+    Gwin.webContents.send('print', "#########################################################################");
+    Gwin.webContents.send('print', "#########################################################################");
+    Gwin.webContents.send('print', "#########################################################################");
     Gwin.webContents.send('print', " ");
     Gwin.webContents.send('print', " ");
     if (printLogin)
-        Gwin.webContents.send('print', "You can now login over the Menu or by the 'Login' command");
+        Gwin.webContents.send('print', FoBMain.i18n("Login.CanLoginNow"));
     Gwin.webContents.send('print', " ");
-}
-function printInfo(Gwin, htmltext) {
-    Gwin.webContents.send('information', htmltext);
 }
 function GetP1(AgeString, Level) {
     let BronzeAge = [5, 10, 10, 15, 25, 30, 35, 40, 45, 55, 60, 65, 75, 80, 85, 95, 100, 110, 115, 125, 130, 140, 145, 155, 160, 170, 180, 185, 195, 200, 210, 220, 225, 235, 245, 250, 260, 270, 275, 285, 295, 300, 310, 320, 330, 340, 345, 355, 365, 375, 380, 390, 400, 410, 420, 430, 440, 445, 455, 465, 475, 485, 495, 505, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 905, 915, 925, 935, 945, 955, 965, 975, 985, 995, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1085, 1095, 1105, 1115, 1125, 1135, 1150, 1160, 1170, 1180, 1190, 1200, 1215, 1225, 1235, 1245, 1255, 1270, 1280, 1290, 1300, 1310, 1325, 1335, 1345, 1355, 1370, 1380, 1390, 1400, 1415, 1425, 1435, 1445, 1460, 1470, 1480];
@@ -205,23 +198,6 @@ function GetDistinctCount(arr) {
         }
     }
     return counter;
-}
-function TableFromArrayObject(data) {
-    var html = '<table>';
-    html += '<tr>';
-    for (var j in data[0]) {
-        html += '<th>' + j + '</th>';
-    }
-    html += '</tr>';
-    for (var i = 0; i < data.length; i++) {
-        html += '<tr>';
-        for (var j in data[i]) {
-            html += '<td>' + data[i][j] + '</td>';
-        }
-        html += '</tr>';
-    }
-    html += '</table>';
-    return html;
 }
 function GetGoodsEraSorted(eraDict, Resources, ResourceDefinition) {
     var Goods = {};

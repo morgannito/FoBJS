@@ -400,20 +400,15 @@ function GetHappinesBoost() {
 
     for (let i in d) {
         if (d.hasOwnProperty(i) && d[i]['id'] < 2000000000) {
-            // jede einzelne Produktart holen
             let building = readType(d[i]);
-
-            // das Gebäude produziert etwas?
             if (building !== false) {
                 BuildingsAll.push(building);
-
                 if (building['products']['population'] !== undefined) {
                     PopulationSum += building['products']['population'];
                 }
                 if (building['products']['happiness'] !== undefined) {
                     HappinessSum += building['products']['happiness'];
                 }
-
             }
         }
     }

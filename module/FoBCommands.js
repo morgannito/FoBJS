@@ -1,12 +1,14 @@
+const FoBMain = require("../main");
+
 function getAllCommands(){
     return [
-        'Login'
+        FoBMain.i18n("Menu.Login")
     ]
 }
 
 function getLoginCommands(){
     return [
-        'Login'
+        FoBMain.i18n("Menu.Login")
     ]
 }
 
