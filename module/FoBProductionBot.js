@@ -84,7 +84,6 @@ function DoWork(doRefresh = false, cb = null) {
             ResDict = processer.ResidentialDict;
             GoodProdDict = processer.GoodProdDict;
             var x = HasProdFinished();
-            console.log(x);
             PWW.webContents.send('updateProdDict', { ProdDict, ResDict, GoodProdDict, x });
             if (cb) cb();
         }, doRefresh);
@@ -108,59 +107,69 @@ function HasProdFinished() {
     }
     return ProdFinished.length;
 }
-function CollectManuel(ConsoleWin, cb = null) {
-    var promArr = [];
-    ConsoleWin.webContents.send('print', `Do: Self-Collect productions`);
-    for (let i = 0; i < processer.ProductionDict.length; i++) {
-        const prodUnit = processer.ProductionDict[i];
-        if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-            promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
+function CollectManuel(callGetData = true) {
+    var promise = new Promise((res, rej) => {
+        var promArr = [];
+        FoBCore.debug(`Do: Self-Collect productions`);
+        for (let i = 0; i < processer.ProductionDict.length; i++) {
+            const prodUnit = processer.ProductionDict[i];
+            if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+                promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
+            }
         }
-    }
-    for (let i = 0; i < processer.ResidentialDict.length; i++) {
-        const resUnit = processer.ResidentialDict[i];
-        if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
-            promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
+        for (let i = 0; i < processer.ResidentialDict.length; i++) {
+            const resUnit = processer.ResidentialDict[i];
+            if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
+                promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
+            }
         }
-    }
-    for (let i = 0; i < processer.GoodProdDict.length; i++) {
-        const goodUnit = processer.GoodProdDict[i];
-        if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
-            promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
+        for (let i = 0; i < processer.GoodProdDict.length; i++) {
+            const goodUnit = processer.GoodProdDict[i];
+            if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
+                promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
+            }
         }
-    }
-    Promise.all(promArr).then(values => {
-        Main.GetData(true, () => {
-            FoBCore.debug(`Done all`);
-            if (cb) cb();
-        }, true);
-    }, reason => {
-        throw reason;
+        Promise.all(promArr).then(values => {
+            if (callGetData) {
+                Main.GetData(true, () => {
+                    res(true);
+                }, true);
+            } else
+                res(true);
+        }, reason => {
+            rej(reason);
+        });
     });
+    return promise;
 }
-function StartManuel(ConsoleWin, cb = null) {
-    var promArr = [];
-    FoBCore.debug(`Do: Self-Start productions`);
-    for (let i = 0; i < processer.ProductionDict.length; i++) {
-        const prodUnit = processer.ProductionDict[i];
-        if (prodUnit["state"]["__class__"] === "IdleState") {
-            promArr.push(FoBuilder.DoQueryProduction(prodUnit["id"], Main.CurrentProduction.id));
+function StartManuel(callGetData = true) {
+    var promise = new Promise((res, rej) => {
+        var promArr = [];
+        FoBCore.debug(`Do: Self-Start productions`);
+        for (let i = 0; i < processer.ProductionDict.length; i++) {
+            const prodUnit = processer.ProductionDict[i];
+            if (prodUnit["state"]["__class__"] === "IdleState") {
+                promArr.push(FoBuilder.DoQueryProduction(prodUnit["id"], Main.CurrentProduction.id));
+            }
         }
-    }
-    for (let i = 0; i < processer.GoodProdDict.length; i++) {
-        const goodUnit = processer.GoodProdDict[i];
-        if (goodUnit["state"]["__class__"] === "IdleState") {
-            promArr.push(FoBuilder.DoQueryProduction(goodUnit["id"], Main.CurrentGoodProduction.id));
+        for (let i = 0; i < processer.GoodProdDict.length; i++) {
+            const goodUnit = processer.GoodProdDict[i];
+            if (goodUnit["state"]["__class__"] === "IdleState") {
+                promArr.push(FoBuilder.DoQueryProduction(goodUnit["id"], Main.CurrentGoodProduction.id));
+            }
         }
-    }
-    Promise.all(promArr).then(values => {
-        Main.GetData(true, () => {
-            FoBCore.debug(`Done all`);
-            if (cb) cb();
-        }, true);
-    }, reason => {
-        throw reason;
+        Promise.all(promArr).then(values => {
+            if (callGetData) {
+                Main.GetData(true, () => {
+                    res(true);
+                }, true);
+            } else
+                res(true);
+        }, reason => {
+            rej(reason);
+        });
     });
+    return promise;
 }
 function StopProductionBot() {
     if (null !== PWW) {

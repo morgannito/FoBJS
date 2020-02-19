@@ -171,9 +171,11 @@
     });
 
     ipcRenderer.on("sendProductionState", (e, data) => {
+        var finishedText = "###Finished###";
         ProdState = data[0];
         BlockFinish = data[1];
         BlockProduction = data[2];
+        var Block = data[3];
         for (const key in ProdState) {
             if (ProdState.hasOwnProperty(key)) {
                 const Production = ProdState[key];
@@ -183,40 +185,36 @@
                         var end = moment.unix(ProdState[key]["nextStateAt"]);
                         var start = moment.unix(Math.round(new Date().getTime() / 1000));
                         var durRunning = moment.duration(end.diff(start));
-                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end)) && !BlockFinish) {
-                            BlockFinish = true;
+                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
                             clearInterval(ProdState[key]["TimerID"]);
-                            updateElement("BuidlingStatus" + ProdState[key]["key"], "###Finished###");
-                            console.log(`[DEBUG] [1] WOULD COLLECT`);
-                            //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
-                        } else /*if (!ProdState[key]["ProdBotRunning"] && !start.isAfter(end) && !start.isSame(end))*/ {
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
+                            if (!Block)
+                                ipcRenderer.send('CollectAndStart', [false, BlockFinish, BlockProduction, Block]);
+                            Block = true;
+                            return;
+                        } else if (!ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                            updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
+                            clearInterval(ProdState[key]["TimerID"]);
+                        }
+                        else {
                             var DurString = (!durRunning.days() ? (!durRunning.hours() ? (!durRunning.minutes() ? durRunning.seconds() + "sec" : durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec") : durRunning.days() + "d " + durRunning.hours() + "h " + durRunning.minutes() + "min " + durRunning.seconds() + "sec");
                             updateElement("BuidlingStatus" + ProdState[key]["key"], DurString);
-                        } /*else {
-                            updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
-                        }*/
+                        }
+
                     }, 999);
-                } else if (Production["finished"] && ProdState[key]["TimerID"] === null) {
-                    if (ProdState[key]["ProdBotRunning"] && !BlockFinish) {
-                        BlockFinish = true;
-                        console.log(`[DEBUG] [2] WOULD COLLECT`);
-                        //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
+                } else if (Production["finished"]) {
+                    if (ProdState[key]["ProdBotRunning"]) {
+                        if (!Block)
+                            ipcRenderer.send('CollectAndStart', [false, BlockFinish, BlockProduction, Block]);
+                        Block = true;
                     }
-                    updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
-                } else if (ProdState[key]["TimerID"] !== null & Production["finished"]) {
-                    if (ProdState[key]["ProdBotRunning"] && !BlockFinish) {
-                        BlockFinish = true
-                        clearInterval(ProdState[key]["TimerID"]);
-                        console.log(`[DEBUG] [3] WOULD COLLECT`);
-                        //ipcRenderer.send('CollectAndStart', [false,BlockFinish,BlockProduction]);
-                    }
+                    if (ProdState[key]["TimerID"] !== null) clearInterval(ProdState[key]["TimerID"]);
                     updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
                 } else if (Production["nextStateAt"] == 0 && !Production["finished"]) {
-
-                    if (ProdState[key]["ProdBotRunning"] && !BlockProduction) {
-                        BlockProduction = true;
-                        console.log(`[DEBUG] [4] WOULD COLLECT`);
-                        //ipcRenderer.send('CollectAndStart', [true,BlockFinish,BlockProduction]);
+                    if (ProdState[key]["ProdBotRunning"] && (!BlockProduction || !Block)) {
+                        if (!Block)
+                            ipcRenderer.send('CollectAndStart', [true, BlockFinish, BlockProduction, Block]);
+                        Block = true;
                     }
                     updateElement("BuidlingStatus" + ProdState[key]["key"], ProdState[key]["string_state"]);
                 }

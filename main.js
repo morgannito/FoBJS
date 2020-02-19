@@ -103,7 +103,7 @@ var NeighborDict = NeighborMoppelDict = FriendsDict = FriendsMoppelDict = ClanMe
 var HideBigRoad = true, BotStarted = false;
 /** @type {Array} */
 var BotsRunning = {
-    ProductionBot: true,
+    ProductionBot: false,
     RQBot: -1,
     TavernBot: -1,
     MoppelBot: -1,
@@ -127,6 +127,7 @@ var Worlds = {};
 
 var BlockFinish = false;
 var BlockProduction = false;
+var Block = false;
 
 FoBCore.debug(`Vars loaded`);
 
@@ -521,7 +522,10 @@ function PrepareInfoMenu() {
         .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
         .replace("###Dias###", `${Math.floor(processer.ResourceDict.premium).toLocaleString()}`)
         .replace("###MedsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "medals") }).name}`)
-        .replace("###Meds###", `${Math.floor(processer.ResourceDict.medals).toLocaleString()}`);
+        .replace("###Meds###", `${Math.floor(processer.ResourceDict.medals).toLocaleString()}`)
+        .replace("###Overview.CurrentWorld###", i18n("Overview.CurrentWorld"))
+        .replace("###Overview.Player###", i18n("Overview.Player"))
+        .replace("###Overview.RunningSince###", i18n("Overview.RunningSince"));
 
     for (const era in processer.GoodsDict) {
         if (processer.GoodsDict.hasOwnProperty(era)) {
@@ -544,6 +548,10 @@ function PrepareInfoMenu() {
         .replace("###Friends###", `${FriendsMoppelDict.length}/${FriendsDict.length}`)
         .replace("###Clan###", `${ClanMemberMoppelDict.length}/${ClanMemberDict.length}`)
         .replace("###Neighbor###", `${NeighborMoppelDict.length}/${NeighborDict.length}`)
+        .replace("###OtherPlayers.Friends###", i18n("OtherPlayers.Friends"))
+        .replace("###OtherPlayers.Clanmember###", i18n("OtherPlayers.Clanmember"))
+        .replace("###OtherPlayers.Neighbor###", i18n("OtherPlayers.Neighbor"))
+        .replace("###OtherPlayers.InactiveFriends###", i18n("OtherPlayers.InactiveFriends"))
     for (let i = 0; i < FriendInactive.length; i++) {
         const iFriend = FriendInactive[i];
         let local = inactiveFriendsContent;
@@ -551,6 +559,7 @@ function PrepareInfoMenu() {
             .replace("###Name###", iFriend.item.name)
             .replace("###Score###", iFriend.item.score)
             .replace("###playerid###", iFriend.item.player_id)
+            .replace("###RemoveFriend###", i18n("OtherPlayers.Button.Remove"))
 
         tableOtherPlayers = tableOtherPlayers
             .replace("###inactiveFriends###", local);
@@ -561,6 +570,12 @@ function PrepareInfoMenu() {
         .replace("###TavernSilverName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "tavern_silver") }).name}`)
         .replace("###TavernSilverAmount###", `${processer.ResourceDict.tavern_silver}`)
         .replace("###Visitable###", processer.GetVisitableTavern(FriendsDict).length)
+        .replace("###Tavern.State###", i18n("Tavern.State"))
+        .replace("###Tavern.Visitable###", i18n("Tavern.Visitable"))
+        .replace("###Tavern.Button.Collect###", i18n("Tavern.Button.Collect"))
+        .replace("###Tavern.CurrentSittingPlayer###", i18n("Tavern.CurrentSittingPlayer"))
+        .replace("###Tavern.Playername###", i18n("Tavern.Playername"))
+        .replace("###Tavern.Playerid###", i18n("Tavern.Playerid"))
 
     if (tavernState !== "")
         tableTavern = tableTavern.replace("###State###", `${processer.OwnTavernInfo[2]}/${processer.OwnTavernInfo[1]} ${tavernState}`)
@@ -588,7 +603,14 @@ function PrepareInfoMenu() {
         .replace("###SittingPlayers###", "");
 
     tableBots = tableBots.replace("###ProdBotState###", BotsRunning.ProductionBot === true ? i18n("Bots.Running") : (BotsRunning.ProductionBot === false ? i18n("Bots.Stopped") : i18n("Bots.NotImplemented")))
-    tableBots = tableBots.replace("###ProdBotBoolState###", BotsRunning.ProductionBot);
+    tableBots = tableBots
+        .replace("###ProdBotBoolState###", BotsRunning.ProductionBot)
+        .replace("###Bots.Heading###", i18n("Bots.Heading"))
+        .replace("###Bots.ProductionBotName###", i18n("Bots.ProductionBotName"))
+        .replace("###Bots.RecurringQuestBotName###", i18n("Bots.RecurringQuestBotName"))
+        .replace("###Bots.TavernenBotName###", i18n("Bots.TavernenBotName"))
+        .replace("###Bots.MotivateBotName###", i18n("Bots.MotivateBotName"))
+        .replace("###Bots.IncidentBotName###", i18n("Bots.IncidentBotName"));
     if (BotsRunning.ProductionBot === true) tableBots = tableBots.replace("###ProdBotColor###", "#00ff00").replace("###ProdBotButtonName###", i18n("Bots.Stop"));
     else if (BotsRunning.ProductionBot === false) tableBots = tableBots.replace("###ProdBotColor###", "#ff0000").replace("###ProdBotButtonName###", i18n("Bots.Start"));
     else if (BotsRunning.ProductionBot == -1) tableBots = tableBots.replace("###ProdBotColor###", "#0000ff").replace("###ProdBotButtonName###", i18n("Bots.Nothing"));
@@ -630,12 +652,12 @@ function PrepareInfoMenu() {
                 ProductionTimer[key]["nextStateAt"] = 0;
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-                if (BotsRunning.ProductionBot) {
+                /* if (BotsRunning.ProductionBot) {
                     if (!BlockFinish) {
                         BlockFinish = true;
                         FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; }));
                     }
-                }
+                } */
             }
             else {
                 if (ProductionTimer[key] === undefined) {
@@ -649,6 +671,18 @@ function PrepareInfoMenu() {
                 s = "producing (default)"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+                /* if (BotsRunning.ProductionBot) {
+                    if (TimerObjects !== undefined || TimerObjects !== null) {
+                        var sec = prod["state"]["next_state_transition_in"]*1000;
+                        TimerObjects[key] = setTimeout(() => {
+                            if (!ProductionTimer[key]["BlockFinish"]) {
+                                ProductionTimer[key]["BlockFinish"] = true;
+                                ProductionTimer[key]["BlockProduction"] = true;
+                                FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; }));
+                            }
+                        }, sec);
+                    }
+                } */
             }
         }
         else if (prod["state"]["__class__"] === "IdleState") {
@@ -661,12 +695,12 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
             s = "idle (default)"
-            if (BotsRunning.ProductionBot) {
-                if (!BlockProduction) {
-                    BlockProduction = true;
-                    FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; });
-                }
-            }
+            /*  if (BotsRunning.ProductionBot) {
+                 if (!ProductionTimer[key]["BlockProduction"]) {
+                     ProductionTimer[key]["BlockProduction"] = true;
+                     FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; });
+                 }
+             } */
         }
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
             s = "finished (default)";
@@ -680,6 +714,12 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["nextStateAt"] = 0;
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+            /* if (BotsRunning.ProductionBot) {
+                if (!ProductionTimer[key]["BlockFinish"]) {
+                    ProductionTimer[key]["BlockFinish"] = true;
+                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; }));
+                }
+            } */
         };
         localContent = localContent
             .replace("###BuildName###", count + "x " + prod["name"])
@@ -688,7 +728,12 @@ function PrepareInfoMenu() {
             .replace("###id###", key)
         tableProductionList = tableProductionList.replace("###Building###", localContent);
     }
-    tableProductionList = tableProductionList.replace("###Building###", "");
+    tableProductionList = tableProductionList
+        .replace("###Building###", "")
+        .replace("###Production.Heading###", i18n("Production.Heading"))
+        .replace("###Production.Building###", i18n("Production.Building"))
+        .replace("###Production.Product###", i18n("Production.Product"))
+        .replace("###Production.State###", i18n("Production.State"));
 
     var visHidden = processer.HiddenRewards.filter((reward) => {
         if (reward.position === "cityRoadBig") {
@@ -724,7 +769,12 @@ function PrepareInfoMenu() {
         tableManually = tableManually.replace("###Incidents###", localContent)
     }
 
-    tableManually = tableManually.replace("###Incidents###", "")
+    tableManually = tableManually
+        .replace("###Incidents###", "")
+        .replace("###Manually.StartProd###", i18n("Manually.StartProd"))
+        .replace("###Manually.CollectProd###", i18n("Manually.CollectProd"))
+        .replace("###Manually.CancelProd###", i18n("Manually.CancelProd"))
+        .replace("###Manually.CollectIncidents###", i18n("Manually.CollectIncidents"))
 
     windowContent = windowContent
         .replace("###Overview###", tableOverview)
@@ -759,7 +809,9 @@ function PrepareInfoMenu() {
         if (RunningSince === undefined || RunningSince === null) {
             RunningSince = moment.unix(Math.round(new Date().getTime() / 1000));
         }
-        Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction]);
+        FoBCore.debug(`${Block}, ${BlockFinish}, ${BlockProduction}`);
+        Block = false;
+        Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction, Block]);
         Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
         console.log(r);
@@ -1187,7 +1239,7 @@ function SetupIpcMain() {
     });
     ipcMain.on('collectProduction', () => {
         FoBCore.debug(`Collect Production`);
-        FoBProductionBot.CollectManuel(Gwin);
+        FoBProductionBot.CollectManuel();
     });
     ipcMain.on('cancelProduction', () => {
         FoBCore.debug(`Cancel Production`);
@@ -1206,13 +1258,24 @@ function SetupIpcMain() {
         GetData();
     });
     ipcMain.on("CollectAndStart", (e, data) => {
-        var onlyStart = data[0];
+        FoBCore.debug(`${data[1]} - ${data[2]} - ${data[3]}`);
+        var start = data[0];
         BlockFinish = data[1];
         BlockProduction = data[2];
-        FoBCore.debug(`Collecting and Starting Production`);
-        if (!onlyStart)
-            FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; }));
-        else FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; })
+        Block = data[3];
+        if (!BlockFinish && !BlockProduction) {
+            if (!start) {
+                FoBProductionBot.CollectManuel().then(() => {
+                    BlockFinish = BlockProduction = Block = false;
+                });
+            } else {
+                FoBProductionBot.StartManuel().then(() => {
+                    BlockFinish = BlockProduction = Block = false;
+                });
+            }
+        } else {
+            BlockFinish = BlockProduction = Block = false;
+        }
     });
 }
 async function ChangeLanguage(sL) {
