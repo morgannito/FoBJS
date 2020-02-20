@@ -157,7 +157,7 @@ function CollectRewards(callback) {
                             if (body !== JSON.parse("[]")) {
                                 var result = processer.GetRewardResult(body);
                                 if (result !== undefined) {
-                                    ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.CollectIncidents")} ${i + 1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
+                                    ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.CollectIncidents")} ${i + 1}/${HiddenRewards.length} -> Reward: ${result[0].name}`]);
                                     FoBCore.debug(`Incident collected, Reward: ${result[0].name}`);
                                 }
                                 i++;
@@ -186,7 +186,7 @@ function CollectRewards(callback) {
 }
 function VisitTavern(callback) {
     TavernList = processer.GetVisitableTavern(FriendsList);
-    ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.VisitingTavern")}`]);
+    ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.VisitingTavern")}`]);
     FoBCore.debug(`Do: Visit Friends Tavern (Count: ${TavernList.length})`);
     var i = 0;
     var doneTavern = [];
@@ -197,7 +197,7 @@ function VisitTavern(callback) {
                 if (i < TavernList.length) {
                     var Friend = TavernList[i];
                     doneTavern.push(i);
-                    ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.VisitingTavern")} ${i + 1}/${TavernList.length}`]);
+                    ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.VisitingTavern")} ${i + 1}/${TavernList.length}`]);
                     FoBuilder.VisitTavern(Friend.key)
                         .then(body => {
                             if (body !== JSON.parse("[]")) {
@@ -229,7 +229,7 @@ function VisitTavern(callback) {
     }
 }
 function MotivateMember(callback) {
-    ConsoleWin.webContents.send('toggleOverlay', [true, i18n("Overlay.MotivatingClan")]);
+    ConsoleWin.webContents.send('toggleOverlay', [true, Main.i18n("Overlay.MotivatingClan")]);
     FoBCore.debug("Do: Motivate all Clanmember (Count: " + ClanMemberList.length + ")");
     var i = 0;
     var rewardMoney = 0;
@@ -241,7 +241,7 @@ function MotivateMember(callback) {
                     doneMotivate.push(i);
                     var Member = ClanMemberList[i];
                     if (Member.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.MotivatingClan")} ${i + 1}/${ClanMemberList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.MotivatingClan")} ${i + 1}/${ClanMemberList.length}`]);
                         FoBuilder.DoMotivate(Member.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {
@@ -278,7 +278,7 @@ function MotivateMember(callback) {
     }
 }
 function MotivateFriends(callback) {
-    ConsoleWin.webContents.send('toggleOverlay', [true, i18n("Overlay.MotivatingFriends")]);
+    ConsoleWin.webContents.send('toggleOverlay', [true, Main.i18n("Overlay.MotivatingFriends")]);
     FoBCore.debug("Do: Motivate all Friends (Count: " + FriendsList.length + ")");
     var i = 0;
     var rewardMoney = 0;
@@ -290,7 +290,7 @@ function MotivateFriends(callback) {
                     var Player = FriendsList[i];
                     doneMotivate.push(i);
                     if (Player.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.MotivatingFriends")} ${i + 1}/${FriendsList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.MotivatingFriends")} ${i + 1}/${FriendsList.length}`]);
                         FoBuilder.DoMotivate(Player.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {
@@ -327,7 +327,7 @@ function MotivateFriends(callback) {
     }
 }
 function MotivateNeighbors(callback) {
-    ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.MotivatingNeighbor")}`]);
+    ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.MotivatingNeighbor")}`]);
     FoBCore.debug("Do: Motivate all Neighbors (Count: " + NeighborList.length + ")");
     var i = 0;
     var rewardMoney = 0;
@@ -339,7 +339,7 @@ function MotivateNeighbors(callback) {
                     var Player = NeighborList[i];
                     doneMotivate.push(i);
                     if (Player.canMotivate) {
-                        ConsoleWin.webContents.send('toggleOverlay', [true, `${i18n("Overlay.MotivatingNeighbor")} ${i + 1}/${NeighborList.length}`]);
+                        ConsoleWin.webContents.send('toggleOverlay', [true, `${Main.i18n("Overlay.MotivatingNeighbor")} ${i + 1}/${NeighborList.length}`]);
                         FoBuilder.DoMotivate(Player.key)
                             .then(body => {
                                 if (body !== JSON.parse("[]")) {

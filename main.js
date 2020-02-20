@@ -45,7 +45,7 @@ var VS = null;
 /** @type {String} */
 var VMM = null;
 /** @type {Array} */
-var Lwin = UserName = Password = LastWorld = WorldServer = Lng = undefined, PlayableWorld = {};
+var Lwin = UserName = Password = LastWorld = WorldServer = Lng = undefined, PlayableWorld = Settings = {};
 /** @type {Array} */
 var ProductionTimer = {};
 /** @type {Number} */
@@ -102,18 +102,28 @@ FoBCore.debug(`Vars loaded`);
 
 
 const store = new Store();
-Username = store.get("UserName");
+UserName = store.get("UserName");
 Password = store.get("Password");
 LastWorld = store.get("LastWorld");
 PlayableWorld = store.get("PlayableWorld");
 WorldServer = store.get("WorldServer");
 Lng = store.get("Language");
+Settings = store.get("Settings");
 if (Lng === undefined) {
     Lng = "en";
     store.set('Language', Lng);
 }
 moment.locale(Lng);
 ChangeLanguage(Lng);
+if (Settings === undefined) Settings = {}
+if (Object.entries(Settings).length == 0) {
+    Settings.ProductionBot = false;
+    Settings.IncidentBot = false;
+    Settings.RQBot = false;
+    Settings.TavernBot = false;
+    Settings.MotivationBot = false;
+    store.set("Settings", Settings);
+}
 
 FoBCore.debug(`Settings Loaded`);
 
@@ -130,6 +140,10 @@ if (fs.existsSync(path.join(app.getPath("userData"), "worlds.json"))) {
 }
 FoBCore.debug(`worlds.js loaded`);
 
+if (Settings.ProductionBot) {
+    FoBCore.debug(`Productionbot running from startup`);
+    BotsRunning.ProductionBot = true;
+}
 function createWindow() {
 
     FoBFunctions.CheckUpdate(app.getVersion()).then((x = { hasUpdate, newVersion }) => {
@@ -1072,6 +1086,25 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
         id: "TavernbotIntervall",
         click: () => setTavernBotIntervall()
     });
+    var bots = [];
+    for (const bot in Settings) {
+        if (Settings.hasOwnProperty(bot)) {
+            bots.push({
+                label: i18n("Menu.Settings.ToggleBots." + bot).replace("__bool__", Settings[bot]),
+                id: "Settings_" + bot,
+                click: () => {
+                    Settings[bot] = !Settings[bot];
+                    BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+                    store.set("Settings", Settings);
+                }
+            });
+        }
+    }
+    worldItem.push({
+        label: i18n("Menu.Settings.ToggleBots"),
+        id: "TavernbotIntervall",
+        submenu: bots
+    });
     if (UserIDs.UID !== null) {
         worldItem.push({
             label: i18n("Menu.Settings.HideBigRoad").replace("__bool__", HideBigRoad), id: "hide_bigroad", click: () => {
@@ -1098,7 +1131,10 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
             lng.push({
                 label: name,
                 id: "ChangeLanguageTo" + code,
-                click: () => ChangeLanguage(code)
+                click: () => {
+                    ChangeLanguage(code);
+                    Gwin.reload();
+                }
             });
         }
     }
@@ -1261,6 +1297,10 @@ async function ChangeLanguage(sL) {
         }
         exports.i18n = i18n;
         FoBCore.debug(`Successfull changed Language to ${sL}`);
+        store.set("Language", sL);
+        Lng = sL;
+        if (UserIDs.UID !== null) GetData();
+        BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
     } catch (err) {
         FoBCore.debug(`i18n translation loading error ${err}`);
     }
