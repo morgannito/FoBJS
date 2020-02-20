@@ -12,8 +12,8 @@
     "crypto": "^1.0.1",
     "electron-dl": "^3.0.0",
     "electron-fetch": "^1.4.0",
-    "electron-json-storage": "^4.1.8",
     "electron-prompt": "^1.5.1",
+    "electron-store": "^5.1.0",
     "moment": "^2.24.0",
     "path": "^0.12.7",
     "roddeh-i18n": "^1.2.0"

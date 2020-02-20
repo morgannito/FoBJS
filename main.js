@@ -8,7 +8,7 @@ const path = require('path');
 const prompt = require('electron-prompt');
 const moment = require('moment');
 const i18n = require("roddeh-i18n");
-const storage = require('electron-json-storage');
+const Store = require('electron-store');
 const PossibleLanguage = require('./js/Languages').PossibleLanguages;
 const proxy = require("./module/FoBProxy");
 const builder = require("./module/FoBuilder");
@@ -25,48 +25,15 @@ FoBCore.debug(`asar-Path loaded`);
 electronDl();
 eApp = app;
 exports.eApp = this.eApp;
-
 if (!fs.existsSync(app.getPath("userData"))) {
     fs.mkdirSync(app.getPath("userData"));
 }
-storage.setDataPath(path.join(app.getPath("userData")));
-storage.getAll((err, data) => {
-    if (err) throw error;
-    if (!(Object.entries(data).length === 0) && data.constructor === Object) {
-        FoBCore.debug(`Userdata found`);
-        UserName = data["UserName"];
-        Password = data["Password"];
-        LastWorld = data["LastWorld"];
-        PlayableWorld = data["PlayableWorld"];
-        WorldServer = data["WorldServer"];
-        Lng = data["Language"];
-        if (Lng !== null && Lng !== undefined && typeof Lng === "string")
-            moment.locale(Lng);
-        else {
-            moment.locale("de");
-            Lng = "de";
-            storage.set("Language", "de")
-        }
-    } else {
-        moment.locale("de");
-        Lng = "de";
-        storage.set("Language", "de")
-    }
-    ChangeLanguage(Lng);
-});
-FoBCore.debug(`Settings loaded`);
-
-moment.relativeTimeThreshold("ss", 10);
-moment.relativeTimeThreshold("s", 11);
-moment.relativeTimeThreshold("m", 59);
-moment.relativeTimeThreshold("h", 59);
-moment.relativeTimeThreshold("d", 24);
-FoBCore.debug(`TimeThreshold loaded`);
 
 /** @type {Boolean} */
-let isDev = true;
+var isDev = true;
+
 /** @type {Array} */
-const eState = { Producing: 1, Idle: 2, Finished: 3 };
+var eState = { Producing: 1, Idle: 2, Finished: 3 };
 /** @type {BrowserWindow} */
 var Gwin = null;
 /** @type {BrowserWindow} */
@@ -78,7 +45,7 @@ var VS = null;
 /** @type {String} */
 var VMM = null;
 /** @type {Array} */
-var Lwin = UserName = Password = LastWorld = WorldServer = Lng = null, PlayableWorld = {};
+var Lwin = UserName = Password = LastWorld = WorldServer = Lng = undefined, PlayableWorld = {};
 /** @type {Array} */
 var ProductionTimer = {};
 /** @type {Number} */
@@ -113,7 +80,8 @@ var BotsRunning = {
 var BotsIntervall = {
     ProductionBot: null,
     TavernBot: 60,
-    MoppelBot: (60 * 24) + 5
+    MoppelBot: (60 * 24) + 5,
+    IncidentBot: 60
 };
 /** @type {Array} */
 var CurrentProduction = { time: 5, id: 1, text: "5min" };
@@ -130,6 +98,31 @@ var BlockProduction = false;
 var Block = false;
 
 FoBCore.debug(`Vars loaded`);
+
+
+
+const store = new Store();
+Username = store.get("UserName");
+Password = store.get("Password");
+LastWorld = store.get("LastWorld");
+PlayableWorld = store.get("PlayableWorld");
+WorldServer = store.get("WorldServer");
+Lng = store.get("Language");
+if (Lng === undefined) {
+    Lng = "en";
+    store.set('Language', Lng);
+}
+moment.locale(Lng);
+ChangeLanguage(Lng);
+
+FoBCore.debug(`Settings Loaded`);
+
+moment.relativeTimeThreshold("ss", 10);
+moment.relativeTimeThreshold("s", 11);
+moment.relativeTimeThreshold("m", 59);
+moment.relativeTimeThreshold("h", 59);
+moment.relativeTimeThreshold("d", 24);
+FoBCore.debug(`TimeThreshold loaded`);
 
 if (fs.existsSync(path.join(app.getPath("userData"), "worlds.json"))) {
     var worlds = fs.readFileSync(path.join(app.getPath("userData"), "worlds.json"), "utf-8");
@@ -317,17 +310,17 @@ async function DoLogout() {
         WID: null,
         ForgeHX: null,
     }
-    FoBCore.debug(`UserData cleard: (${UserIDs.XSRF},${UserIDs.CSRF},${UserIDs.CID},${UserIDs.SID},${UserIDs.UID},${UserIDs.WID},${UserIDs.ForgeHX})`);
+    FoBCore.debug(`UserData cleard`);
     UserName = null;
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
     WorldServer = null;
-    storage.remove("UserName");
-    storage.remove("Password");
-    storage.remove("LastWorld");
-    storage.remove("PlayableWorld");
-    storage.remove("WorldServer");
+    store.delete("UserName");
+    store.delete("Password");
+    store.delete("LastWorld");
+    store.delete("PlayableWorld");
+    store.delete("WorldServer");
     FoBCore.debug(`UserData completly cleared`);
     BuildMenu(true, false, false, true, true, isDev);
     FoBCore.pWL(Gwin, app);
@@ -407,15 +400,12 @@ function GetData(clear = true, callback = null, dorefresh = true) {
     builder.GetFriends()
         .then(body => {
             FriendsDict = processer.GetFriends(body);
-            //Gwin.webContents.send('print', "Friends Count: " + processer.FriendsDict.length);
             builder.GetNeighbor()
                 .then(body => {
                     NeighborDict = processer.GetNeighbor(body);
-                    //Gwin.webContents.send('print', "Neighbor Count: " + processer.NeighborDict.length);
                     builder.GetClanMember()
                         .then(body => {
                             ClanMemberDict = processer.GetClanMember(body);
-                            //Gwin.webContents.send('print', "ClanMember Count: " + processer.ClanMemberDict.length);
                             builder.GetStartup()
                                 .then(body => {
                                     UserData = processer.GetUserData(body);
@@ -438,7 +428,6 @@ function GetData(clear = true, callback = null, dorefresh = true) {
                                                 processer.GetOwnTavernData(body);
                                                 builder.GetMetaDataUrls(StartUpBody, "research_eras").then(eras => {
                                                     if (eras !== null) {
-                                                        //processer.GetErasDict(eras)
                                                         var GoodsDict = FoBCore.GetGoodsEraSorted(eras, processer.ResourceDict, processer.ResourceDefinitions);
                                                         processer.SetGoodsDict(GoodsDict);
                                                     }
@@ -457,7 +446,6 @@ function GetData(clear = true, callback = null, dorefresh = true) {
                                                 })
                                             })
                                     });
-                                    //Gwin.webContents.send('print', "Possible Tavernvisits: " + processer.GetVisitableTavern(processer.FriendsDict).length);
                                 });
                         });
                 });
@@ -652,12 +640,6 @@ function PrepareInfoMenu() {
                 ProductionTimer[key]["nextStateAt"] = 0;
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-                /* if (BotsRunning.ProductionBot) {
-                    if (!BlockFinish) {
-                        BlockFinish = true;
-                        FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { BlockFinish = BlockProduction = false; }));
-                    }
-                } */
             }
             else {
                 if (ProductionTimer[key] === undefined) {
@@ -671,18 +653,6 @@ function PrepareInfoMenu() {
                 s = "producing (default)"
                 production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
                 prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-                /* if (BotsRunning.ProductionBot) {
-                    if (TimerObjects !== undefined || TimerObjects !== null) {
-                        var sec = prod["state"]["next_state_transition_in"]*1000;
-                        TimerObjects[key] = setTimeout(() => {
-                            if (!ProductionTimer[key]["BlockFinish"]) {
-                                ProductionTimer[key]["BlockFinish"] = true;
-                                ProductionTimer[key]["BlockProduction"] = true;
-                                FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; }));
-                            }
-                        }, sec);
-                    }
-                } */
             }
         }
         else if (prod["state"]["__class__"] === "IdleState") {
@@ -695,12 +665,6 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
             s = "idle (default)"
-            /*  if (BotsRunning.ProductionBot) {
-                 if (!ProductionTimer[key]["BlockProduction"]) {
-                     ProductionTimer[key]["BlockProduction"] = true;
-                     FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; });
-                 }
-             } */
         }
         else if (prod["state"]["__class__"] === "ProductionFinishedState") {
             s = "finished (default)";
@@ -714,12 +678,6 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["nextStateAt"] = 0;
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-            /* if (BotsRunning.ProductionBot) {
-                if (!ProductionTimer[key]["BlockFinish"]) {
-                    ProductionTimer[key]["BlockFinish"] = true;
-                    FoBProductionBot.CollectManuel(Gwin, () => FoBProductionBot.StartManuel(Gwin, () => { ProductionTimer[key]["BlockFinish"] = ProductionTimer[key]["BlockProduction"] = false; }));
-                }
-            } */
         };
         localContent = localContent
             .replace("###BuildName###", count + "x " + prod["name"])
@@ -820,8 +778,8 @@ function PrepareInfoMenu() {
 function cbwDomReady() {
     let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
     var content = fs.readFileSync(filePath, 'utf8');
-    storage.set("UserName", UserName);
-    storage.set("Password", Password);
+    store.set("UserName", UserName);
+    store.set("Password", Password);
     let name = encodeURIComponent(UserName);
     let pass = encodeURIComponent(Password);
     FoBCore.debug(`setting Username, Password, WorldServer (${WorldServer}) & XSRF-Token`);
@@ -877,8 +835,8 @@ function createBrowserWindow(url) {
 function LoadWorld(e, data) {
     if (undefined !== PlayableWorld[data]) {
         FoBCore.debug(`World choosen: ${data} (${PlayableWorld[data]})`);
-        storage.set("LastWorld", data);
-        storage.set("PlayableWorld", PlayableWorld);
+        store.set("LastWorld", data);
+        store.set("PlayableWorld", PlayableWorld);
         Gwin.webContents.send('clear', "");
         let filePath = path.join(asarPath, 'js', 'preloadSelectWorld.js');
         var content = fs.readFileSync(filePath, 'utf8');
@@ -889,7 +847,7 @@ function LoadWorld(e, data) {
 }
 function SwitchWorld(world) {
     FoBCore.debug(`switching to world ${world}`);
-    storage.set("LastWorld", world);
+    store.set("LastWorld", world);
     UserIDs = {
         XSRF: null,
         CSRF: null,
@@ -971,7 +929,6 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
     if (!login && settings) {
         for (const worldid in PlayableWorld) {
             if (PlayableWorld.hasOwnProperty(worldid)) {
-                const element = PlayableWorld[worldid];
                 if (worldid === UserIDs.WID)
                     worlds.push({ label: (Worlds[worldid] !== undefined ? Worlds[worldid].name : worldid) + ` (${i18n("Menu.Settings.Current")})`, id: worldid, click: () => { return; } });
                 else
@@ -979,7 +936,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
             }
         }
         if (processer.ProductionDict.length > 0) {
-            Options = FoBCore.getProductionOptions();
+            var Options = FoBCore.getProductionOptions();
             for (const key in Options) {
                 if (Options.hasOwnProperty(key)) {
                     const element = Options[key];
@@ -991,7 +948,7 @@ function BuildMenu(login, logout, functions, settings, quit, devtools) {
             }
         }
         if (processer.GoodProdDict.length > 0) {
-            Options = FoBCore.getGoodsProductionOptions();
+            var Options = FoBCore.getGoodsProductionOptions();
             for (const key in Options) {
                 if (Options.hasOwnProperty(key)) {
                     const element = Options[key];
@@ -1187,8 +1144,7 @@ function setTavernBotIntervall() {
         throw err;
     })
 }
-function clearStorage(force = false) {
-    FoBCore.debug(`Clear Storage with force = ${force}`);
+function clearStorage() {
     UserIDs = {
         XSRF: null,
         CSRF: null,
@@ -1201,13 +1157,13 @@ function clearStorage(force = false) {
     Password = null;
     LastWorld = null;
     PlayableWorld = [];
-    storage.clear(() => {
-        Gwin.webContents.send('clear', "");
-        Gwin.webContents.send('storageCleared', true);
-        FoBCore.debug(`Storage cleared`);
-        BuildMenu(true, false, false, true, true, isDev);
-        PrintServerSelection();
-    });
+    store.clear();
+    Gwin.webContents.send('clear', "");
+    store.set("Language", "de")
+    FoBCore.debug(`Storage cleared`);
+    BuildMenu(true, false, false, true, true, isDev);
+    PrintServerSelection();
+
 }
 function SessionExpired() {
     FoBCore.debug(`Session Expired`);
@@ -1317,7 +1273,7 @@ function PrintServerSelection() {
 function loadServer(e, data) {
     if (undefined !== FoBCore.Servers[data]) {
         FoBCore.debug(`Server ${data} selected`);
-        storage.set("WorldServer", data);
+        store.set("WorldServer", data);
         WorldServer = data;
         Gwin.webContents.send('clear', "");
         FoBCore.pWL(Gwin, app);
