@@ -549,7 +549,7 @@ function GetDistinctProductList() {
             const dProd = DProductionDict[j];
             if (prod["state"]["__class__"] === "ProducingState") {
                 if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
-                    var range = { min: dProd.prod.state["next_state_transition_at"] - 10, max: dProd.prod.state["next_state_transition_at"] + 10 };
+                    var range = { min: dProd.prod.state["next_state_transition_at"] - 5, max: dProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < prod.state["next_state_transition_at"] < range.max) {
                         if (dProd.prod.state["next_state_transition_at"] < prod.state["next_state_transition_at"])
                             dProd.prod.state["next_state_transition_at"] = prod.state["next_state_transition_at"];
@@ -578,7 +578,7 @@ function GetDistinctProductList() {
             const dGoodProd = DGoodProductionDict[j];
             if (goodProd["state"]["__class__"] === "ProducingState") {
                 if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
-                    var range = { min: dGoodProd.prod.state["next_state_transition_at"] - 10, max: dGoodProd.prod.state["next_state_transition_at"] + 10 };
+                    var range = { min: dGoodProd.prod.state["next_state_transition_at"] - 5, max: dGoodProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < goodProd.state["next_state_transition_at"] < range.max) {
                         if (dGoodProd.prod.state["next_state_transition_at"] < goodProd.state["next_state_transition_at"])
                             dGoodProd.prod.state["next_state_transition_at"] = goodProd.state["next_state_transition_at"];
@@ -600,14 +600,14 @@ function GetDistinctProductList() {
         add = true;
     }
     add = true;
-    for (let i = 0; i < ResidentialDict.length; i++) {
+    /* for (let i = 0; i < ResidentialDict.length; i++) {
         const res = ResidentialDict[i];
         if (DResidentialDict.length === 0) { DResidentialDict.push({ count: 1, res: res }); continue; }
         for (let j = 0; j < DResidentialDict.length; j++) {
             const dRes = DResidentialDict[j];
             if (res["state"]["__class__"] === "ProducingState") {
                 if (res["cityentity_id"] === dRes.res["cityentity_id"]) {
-                    var range = { min: dRes.res.state["next_state_transition_at"] - 30, max: dRes.res.state["next_state_transition_at"] + 30 };
+                    var range = { min: dRes.res.state["next_state_transition_in"] - 5, max: dRes.res.state["next_state_transition_in"] + 5 };
                     if (range.min < res.state["next_state_transition_at"] < range.max) {
                         if (dRes.res.state["next_state_transition_at"] < res.state["next_state_transition_at"])
                             dRes.res.state["next_state_transition_at"] = res.state["next_state_transition_at"];
@@ -628,7 +628,7 @@ function GetDistinctProductList() {
             DResidentialDict.push({ count: 1, res: res });
         add = true;
     }
-    exports.DResidentialDict = DResidentialDict;
+    exports.DResidentialDict = DResidentialDict; */
     exports.DGoodProductionDict = DGoodProductionDict;
     exports.DProductionDict = DProductionDict;
 }

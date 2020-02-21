@@ -108,39 +108,41 @@ function HasProdFinished() {
     return ProdFinished.length;
 }
 function CollectManuel(callGetData = true) {
-    var promise = new Promise((res, rej) => {
-        var promArr = [];
-        FoBCore.debug(`Do: Self-Collect productions`);
-        for (let i = 0; i < processer.ProductionDict.length; i++) {
-            const prodUnit = processer.ProductionDict[i];
-            if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
-                promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
+    GetData(false,()=>{
+        var promise = new Promise((res, rej) => {
+            var promArr = [];
+            FoBCore.debug(`Do: Self-Collect productions`);
+            for (let i = 0; i < processer.ProductionDict.length; i++) {
+                const prodUnit = processer.ProductionDict[i];
+                if (prodUnit["state"]["__class__"] === "ProductionFinishedState") {
+                    promArr.push(FoBuilder.DoCollectProduction([prodUnit["id"]]));
+                }
             }
-        }
-        for (let i = 0; i < processer.ResidentialDict.length; i++) {
-            const resUnit = processer.ResidentialDict[i];
-            if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
-                promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
+            for (let i = 0; i < processer.ResidentialDict.length; i++) {
+                const resUnit = processer.ResidentialDict[i];
+                if (resUnit["state"]["__class__"] === "ProductionFinishedState") {
+                    promArr.push(FoBuilder.DoCollectProduction([resUnit["id"]]));
+                }
             }
-        }
-        for (let i = 0; i < processer.GoodProdDict.length; i++) {
-            const goodUnit = processer.GoodProdDict[i];
-            if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
-                promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
+            for (let i = 0; i < processer.GoodProdDict.length; i++) {
+                const goodUnit = processer.GoodProdDict[i];
+                if (goodUnit["state"]["__class__"] === "ProductionFinishedState") {
+                    promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
+                }
             }
-        }
-        Promise.all(promArr).then(values => {
-            if (callGetData) {
-                Main.GetData(true, () => {
+            Promise.all(promArr).then(values => {
+                if (callGetData) {
+                    Main.GetData(true, () => {
+                        res(true);
+                    }, true);
+                } else
                     res(true);
-                }, true);
-            } else
-                res(true);
-        }, reason => {
-            rej(reason);
+            }, reason => {
+                rej(reason);
+            });
         });
-    });
-    return promise;
+        return promise;
+    },false);
 }
 function StartManuel(callGetData = true) {
     var promise = new Promise((res, rej) => {

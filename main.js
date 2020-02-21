@@ -45,7 +45,7 @@ var VS = null;
 /** @type {String} */
 var VMM = null;
 /** @type {Array} */
-var Lwin = UserName = Password = LastWorld = WorldServer = Lng = undefined, PlayableWorld = Settings = {};
+var UserName = Password = LastWorld = WorldServer = Lng = undefined, PlayableWorld = Settings = {};
 /** @type {Array} */
 var ProductionTimer = {};
 /** @type {Number} */
@@ -449,7 +449,7 @@ function GetData(clear = true, callback = null, dorefresh = true) {
                                                     Gwin.webContents.send('toggleOverlay', [false, ""]);
                                                     if (dorefresh)
                                                         PrepareInfoMenu();
-                                                    if (!BotStarted) {
+                                                    if (!BotStarted && dorefresh) {
                                                         BotStarted = true;
                                                         PrepareInfoMenu();
                                                     }
@@ -504,14 +504,15 @@ function PrepareInfoMenu() {
     filePath = path.join(asarPath, 'html', 'insertContent', 'incidents.html');
     var incidentsContent = fs.readFileSync(filePath, 'utf8');
 
-    var dProdList = processer.DProductionDict;
-    var dGoodProdList = processer.DGoodProductionDict;
+    var dProdList = processer.DProductionDict/* processer.ProductionDict */;
+    var dGoodProdList = processer.DGoodProductionDict/* processer.GoodProdDict */;
+    //var dResidList = processer.ResidentialDict;
 
     NeighborMoppelDict = NeighborDict.filter((f) => f.canMotivate);
     FriendsMoppelDict = FriendsDict.filter((f) => f.canMotivate);
     ClanMemberMoppelDict = ClanMemberDict.filter((f) => f.canMotivate);
 
-    var dList = dProdList.concat(dGoodProdList);
+    var dList = dProdList.concat(dGoodProdList/* , dResidList */);
 
     tableOverview = tableOverview
         .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID].name : UserIDs.WID)
@@ -641,7 +642,9 @@ function PrepareInfoMenu() {
     for (let _key in dList) {
         if (!dList.hasOwnProperty(_key)) return;
         var localContent = buildingContent;
-        var prod = dList[_key].prod;
+        var prod = (dList[_key]["prod"] !== undefined) ? dList[_key].prod : ((dList[_key]["res"] !== undefined) ? dList[_key].res : null);
+        /* var prod = dList[_key]; */
+        if (prod == null) continue;
         var count = dList[_key].count;
         var prodName = s = production = i18n("Production.Idle");
         var key = prod["id"];
@@ -1250,7 +1253,6 @@ function SetupIpcMain() {
         GetData();
     });
     ipcMain.on("CollectAndStart", (e, data) => {
-        FoBCore.debug(`${data[1]} - ${data[2]} - ${data[3]}`);
         var start = data[0];
         BlockFinish = data[1];
         BlockProduction = data[2];
