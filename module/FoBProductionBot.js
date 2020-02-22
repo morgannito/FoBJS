@@ -108,7 +108,7 @@ function HasProdFinished() {
     return ProdFinished.length;
 }
 function CollectManuel(callGetData = true) {
-    GetData(false,()=>{
+    Main.GetData(false,()=>{
         var promise = new Promise((res, rej) => {
             var promArr = [];
             FoBCore.debug(`Do: Self-Collect productions`);
