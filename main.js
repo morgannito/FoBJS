@@ -284,14 +284,14 @@ async function downloadForgeHX() {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
-
+    content = content.replace("\n","").replace("\r","");
     let re = /.VERSION_SECRET="([a-zA-Z0-9_\-\+\/==]+)";/ig;
-    let rex = /.VERSION_MAJOR_MINOR="([0-9+\.0-9+\.0-9+]+)";/ig;
+    let rex = /.VERSION_MAJOR_MINOR=\n"([0-9+\.0-9+\.0-9+]+|[0-9+\.0-9+]+|[0-9+])";/ig;
     re = new RegExp(re);
     rex = new RegExp(rex);
     let result = content.matchAll(re).next().value;
     let VERSION = content.matchAll(rex).next().value;
-    if (null !== result) {
+    if (undefined !== result) {
         if (result.length === 2) {
             FoBCore.debug(`VersionSecret found: ${result[1]}`);
             VS = result[1];
@@ -301,7 +301,7 @@ async function downloadForgeHX() {
             FoBCore.debug(`FAILED GETTING VERSION_SECRET`);
         }
     }
-    if (null !== VERSION) {
+    if (undefined !== VERSION) {
         if (VERSION.length === 2) {
             FoBCore.debug(`Version found: ${VERSION[1]}`);
             VMM = VERSION[1];
