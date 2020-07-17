@@ -30,7 +30,7 @@ if (!fs.existsSync(app.getPath("userData"))) {
 }
 
 /** @type {Boolean} */
-var isDev = true;
+var isDev = false;
 
 /** @type {Array} */
 var eState = { Producing: 1, Idle: 2, Finished: 3 };
@@ -284,9 +284,12 @@ async function downloadForgeHX() {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
+    var indexStart = content.indexOf("kFa.BUILD_NUMBER=\"426e0bf0848\"");
+    var indexEnd = content.indexOf("gc.TILE_SPEC_NAME_CONTEMPORARY_BUSHES=\"contemporaryBushes\"");
+    content = content.substr(indexStart,(indexEnd-indexStart));
     content = content.replace("\n","").replace("\r","");
     let re = /.VERSION_SECRET="([a-zA-Z0-9_\-\+\/==]+)";/ig;
-    let rex = /.VERSION_MAJOR_MINOR=\n"([0-9+\.0-9+\.0-9+]+|[0-9+\.0-9+]+|[0-9+])";/ig;
+    let rex = /.VERSION_MAJOR_MINOR="([0-9+\.0-9+\.0-9+]+|[0-9+\.0-9+]+|[0-9+])";/ig;
     re = new RegExp(re);
     rex = new RegExp(rex);
     let result = content.matchAll(re).next().value;

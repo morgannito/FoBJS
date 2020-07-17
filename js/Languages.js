@@ -1,7 +1,9 @@
 let Languages = {
 	PossibleLanguages: {
 		de: 'Deutsch',
-		en: 'English'
+		en: 'English',
+		fr: 'French',
+		pl: 'Polish'
 	},
 };
 
