@@ -140,6 +140,14 @@ function CollectManuel(callGetData = true) {
             }, reason => {
                 rej(reason);
             });
+            if (promArr.length == 0) {
+                if (callGetData) {
+                    Main.GetData(true, () => {
+                        res(true);
+                    }, true);
+                } else
+                    res(true);
+            }
         });
         return promise;
     },false);

@@ -38,6 +38,41 @@ function ExecuteMoppelAll(Gwin, fList, nList, cmList) {
         })
     })
 }
+
+function ExecuteMotivateAllAndVisitTavern(Gwin, fList, nList, cmList, tList) {
+    FriendsList = tList;
+    NeighborList = nList;
+    ClanMemberList = cmList;
+    ConsoleWin = Gwin;
+    Failed, Skipped = [];
+    RewardMoney = 0;
+    VisitTavern(() => {
+        if (Failed.length > 0)
+            FoBCore.debug(`Failed to visit ${Failed.length} Taverns`);
+        if (Skipped.length > 0)
+            FoBCore.debug(`Skipped ${Skipped.length} Taverns`);
+        FoBCore.debug("All Taverns visited!");
+        FriendsList = fList;
+        MotivateNeighbors(() => {
+            FoBCore.debug(`Neighbors Motivation done! Total Reward: ${RewardMoney} Gold (Count: ${NeighborList.length})`);
+            oldRewardMoney = RewardMoney;
+            MotivateMember(() => {
+                FoBCore.debug(`ClanMember Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${ClanMemberList.length})`);
+                oldRewardMoney = RewardMoney;
+                MotivateFriends(() => {
+                    FoBCore.debug(`Friends Motivation done! Total Reward: ${RewardMoney - oldRewardMoney} Gold (Count: ${FriendsList.length})`);
+                    oldRewardMoney = 0;
+                    if (Failed.length > 0)
+                        FoBCore.debug(`Failed to motivate ${Failed.length} players`);
+                    if (Skipped.length > 0)
+                        FoBCore.debug(`Skipped ${Skipped.length} players`);
+                    FoBCore.debug("All Player motivated! Total Reward: " + RewardMoney);
+                    Main.GetData(true);
+                })
+            })
+        })
+    });
+}
 function ExecuteMotivateMember(Gwin, List) {
     ClanMemberList = List;
     ConsoleWin = Gwin;
@@ -468,6 +503,7 @@ exports.ConsoleWin = ConsoleWin;
 exports.ArcBonus = ArcBonus;
 
 exports.ExecuteMoppelAll = ExecuteMoppelAll;
+exports.ExecuteMotivateAllAndVisitTavern = ExecuteMotivateAllAndVisitTavern;
 exports.ExecuteMotivateFriends = ExecuteMotivateFriends;
 exports.ExecuteMotivateMember = ExecuteMotivateMember;
 exports.ExecuteMotivateNeighbors = ExecuteMotivateNeighbors;
