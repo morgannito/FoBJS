@@ -185,8 +185,13 @@ function createWindow() {
                 if (typeof WorldServer !== "string") {
                     PrintServerSelection();
                 } else {
-                    FoBCore.pWL(Gwin, app);
                     Gwin.webContents.send('fillCommands', FoBCommands.getLoginCommands());
+                    if (((UserName !== null && Password !== null && LastWorld !== null) && (UserName !== undefined && Password !== undefined && LastWorld !== undefined))) {
+                        FoBCore.printAutoLogInMessage(Gwin)
+                        clickDO(); 
+                    }else{
+                        FoBCore.pWL(Gwin, app);
+                    }
                 }
             });
 
@@ -786,10 +791,11 @@ function PrepareInfoMenu() {
         Gwin.webContents.send('loadEventHandler', "");
         if (RunningSince === undefined || RunningSince === null) {
             RunningSince = moment.unix(Math.round(new Date().getTime() / 1000));
+        } else {
+            FoBCore.debug(`${Block}, ${BlockFinish}, ${BlockProduction}`);
+            Block = false;
+            Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction, Block]);
         }
-        FoBCore.debug(`${Block}, ${BlockFinish}, ${BlockProduction}`);
-        Block = false;
-        Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction, Block]);
         Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
         console.log(r);
@@ -1045,6 +1051,12 @@ function addFunctions(menu) {
             }
         ]
     });
+    //Visit taverns and aid all
+    botItems.push({
+        label: i18n("Menu.Functions.TavernAndAid"),
+        id: "tavernAndAid",
+        click:  () => FoBFunctions.ExecuteMotivateAllAndVisitTavern(Gwin, FriendsMoppelDict, NeighborMoppelDict, ClanMemberMoppelDict, FriendsDict)
+    });
     //Bots
     botItems.push({
         label: i18n("Menu.Functions.Bots"),
@@ -1262,9 +1274,13 @@ function SetupIpcMain() {
         Block = data[3];
         if (!BlockFinish && !BlockProduction) {
             if (!start) {
-                FoBProductionBot.CollectManuel().then(() => {
+                if (FoBProductionBot.CollectManuel() !== undefined) {
+                    FoBProductionBot.CollectManuel().then(() => {
+                        BlockFinish = BlockProduction = Block = false;
+                    }); 
+                }else{
                     BlockFinish = BlockProduction = Block = false;
-                });
+                }
             } else {
                 FoBProductionBot.StartManuel().then(() => {
                     BlockFinish = BlockProduction = Block = false;
