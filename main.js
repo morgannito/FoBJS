@@ -289,8 +289,8 @@ async function downloadForgeHX() {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
-    var indexStart = content.indexOf("kFa.BUILD_NUMBER=\"426e0bf0848\"");
-    var indexEnd = content.indexOf("gc.TILE_SPEC_NAME_CONTEMPORARY_BUSHES=\"contemporaryBushes\"");
+    var indexStart = content.indexOf(".BUILD_NUMBER=\"");
+    var indexEnd = content.indexOf(".TILE_SPEC_NAME_CONTEMPORARY_BUSHES=\"");
     content = content.substr(indexStart,(indexEnd-indexStart));
     content = content.replace("\n","").replace("\r","");
     let re = /.VERSION_SECRET="([a-zA-Z0-9_\-\+\/==]+)";/ig;
@@ -308,6 +308,8 @@ async function downloadForgeHX() {
             Gwin.webContents.send('print', "FAILED GETTING VERSION_SECRET");
             FoBCore.debug(`FAILED GETTING VERSION_SECRET`);
         }
+    } else {
+        Gwin.webContents.send('print', "FAILED GETTING VERSION FROM FORGE.HX");
     }
     if (undefined !== VERSION) {
         if (VERSION.length === 2) {
@@ -318,6 +320,8 @@ async function downloadForgeHX() {
             Gwin.webContents.send('print', "FAILED GETTING VERSION");
             FoBCore.debug(`FAILED GETTING VERSION`);
         }
+    } else {
+        Gwin.webContents.send('print', "FAILED GETTING VERSION FROM FORGE.HX");
     }
 }
 async function DoLogout() {
