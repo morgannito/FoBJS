@@ -48,6 +48,7 @@
         "Menu.Settings.ClearUserData": "Delete UserData (!LOGOUT!)",
         "Menu.Settings.ClearAllData": "Delete every Data (!LOGOUT!)",
         "Menu.Settings.SwitchLanguage": "Change Language",
+        "Menu.Settings.DarkMode": "Dark Mode",
         "Menu.DevTools": "Debugging",
         "Menu.TavernBotInterval": "Set Tavernbot-Checkinterval",
         "Menu.TavernBotIntervalValue": "Interval value in minutes: ",

@@ -32,6 +32,8 @@
     var BlockFinish = false;
     var BlockProduction = false;
 
+    var timeDiff = undefined;
+
     function openTab(xtab) {
         //debugger;
         if (document.getElementById(xtab) === undefined) return;
@@ -182,8 +184,11 @@
                 ProdState[key]["TimerID"] = null;
                 if (ProdState[key]["TimerID"] === null && !Production["finished"] && Production["nextStateAt"] > 0) {
                     ProdState[key]["TimerID"] = setInterval(() => {
+                        if (timeDiff == undefined) {
+                            timeDiff =ProdState[key]["nextStateAt"] - ProdState[key]["nextStateIn"] - Math.round(new Date().getTime() / 1000);
+                        }
                         var end = moment.unix(ProdState[key]["nextStateAt"]);
-                        var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                        var start = moment.unix(Math.round(new Date().getTime() / 1000) + timeDiff);
                         var durRunning = moment.duration(end.diff(start));
                         if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
                             clearInterval(ProdState[key]["TimerID"]);

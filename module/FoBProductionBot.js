@@ -130,6 +130,12 @@ function CollectManuel(callGetData = true) {
                     promArr.push(FoBuilder.DoCollectProduction([goodUnit["id"]]));
                 }
             }
+            for (let i = 0; i < processer.AllOtherDict.length; i++) {
+                const otherUnit = processer.AllOtherDict[i];
+                if (otherUnit["state"]["__class__"] === "ProductionFinishedState") {
+                    promArr.push(FoBuilder.DoCollectProduction([otherUnit["id"]]));
+                }
+            }
             Promise.all(promArr).then(values => {
                 if (callGetData) {
                     Main.GetData(true, () => {

@@ -109,6 +109,7 @@ PlayableWorld = store.get("PlayableWorld");
 WorldServer = store.get("WorldServer");
 Lng = store.get("Language");
 Settings = store.get("Settings");
+DarkMode = store.get("DarkMode");
 if (Lng === undefined) {
     Lng = "en";
     store.set('Language', Lng);
@@ -229,7 +230,7 @@ function createWindow() {
                 Gwin, win = null
             });
 
-            fs.readFile(path.join(asarPath, 'css', 'window.css'), "utf-8", function (error, data) {
+            fs.readFile(path.join(asarPath, 'css', DarkMode? 'windowdark.css' : 'window.css'), "utf-8", function (error, data) {
                 if (!error) {
                     var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
                     windowCSS = formatedData;
@@ -285,7 +286,7 @@ async function downloadForgeHX() {
     }
 
     let content = fs.readFileSync(filePath, 'utf8');
-    if (content.length === 0) {
+    if (content.length === 0 || content.trim().length === 0) {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
@@ -514,13 +515,14 @@ function PrepareInfoMenu() {
 
     var dProdList = processer.DProductionDict/* processer.ProductionDict */;
     var dGoodProdList = processer.DGoodProductionDict/* processer.GoodProdDict */;
-    //var dResidList = processer.ResidentialDict;
+    var dOtherList = processer.DAllOtherDict
+    var dResidList = processer.DResidentialDict;
 
     NeighborMoppelDict = NeighborDict.filter((f) => f.canMotivate);
     FriendsMoppelDict = FriendsDict.filter((f) => f.canMotivate);
     ClanMemberMoppelDict = ClanMemberDict.filter((f) => f.canMotivate);
 
-    var dList = dProdList.concat(dGoodProdList/* , dResidList */);
+    var dList = dProdList.concat(dGoodProdList /*,dOtherList , dResidList */);
 
     tableOverview = tableOverview
         .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID].name : UserIDs.WID)
@@ -528,8 +530,10 @@ function PrepareInfoMenu() {
         .replace("###PlayerName###", `${UserData.UserName}`)
         .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
         .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "money") }).name}`)
+        .replace("###StrategyPointsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "strategy_points") }).name}`)
         .replace("###Supplies###", `${Math.floor(processer.ResourceDict.supplies).toLocaleString()}`)
         .replace("###Money###", `${Math.floor(processer.ResourceDict.money).toLocaleString()}`)
+        .replace("###StrategyPoints###", `${Math.floor(processer.ResourceDict.strategy_points).toLocaleString()}`)
         .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
         .replace("###Dias###", `${Math.floor(processer.ResourceDict.premium).toLocaleString()}`)
         .replace("###MedsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "medals") }).name}`)
@@ -673,6 +677,7 @@ function PrepareInfoMenu() {
                 ProductionTimer[key]["string_state"] = i18n("Production.Producing");
                 ProductionTimer[key]["finished"] = false;
                 ProductionTimer[key]["nextStateAt"] = prod["state"]["next_state_transition_at"];
+                ProductionTimer[key]["nextStateIn"] = prod["state"]["next_state_transition_in"];
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
                 s = "producing (default)"
@@ -1157,7 +1162,23 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
         }
     }
     worldItem.push({ label: i18n("Menu.Settings.SwitchLanguage"), id: "ChangeLanguage", submenu: lng });
-
+    worldItem.push({
+        label: `${i18n("Menu.Settings.DarkMode")} ${DarkMode ? "(ON)" : "(OFF)"}`,
+        id: "DarkMode",
+        click: () => {
+            Gwin.webContents.send('toggleOverlay', [true, "Changing Style"]);
+            store.set("DarkMode", !DarkMode);
+            DarkMode = store.get("DarkMode")
+            fs.readFile(path.join(asarPath, 'css', DarkMode? 'windowdark.css' : 'window.css'), "utf-8", function (error, data) {
+                if (!error) {
+                    var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
+                    windowCSS = formatedData;
+                }
+            });
+            BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+            GetData();
+        }
+    });
     mitem = new MenuItem({
         label: i18n("Menu.Settings"),
         id: "settings",
