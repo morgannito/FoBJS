@@ -3,6 +3,7 @@ const { app, dialog} = require("electron");
 const FoBMain = require("../main");
 
 exports.debug = debug;
+exports.error = error;
 exports.pWL = printWelcomeMessage;
 exports.printAutoLogInMessage = printAutoLogInMessage;
 exports.promptUpdate = promptUpdate;
@@ -295,6 +296,9 @@ async function promptUpdate(newVersion) {
 }
 function debug(msg) {
     console.log(`[DEBUG] ${new Date().toLocaleString()} ${msg}`);
+}
+function error(msg) {
+    console.log(`[ERROR] ${new Date().toLocaleString()} ${msg}`);
 }
 exports.Servers = Servers = {
     "en": "en.forgeofempires.com",

@@ -316,11 +316,13 @@ async function fetchData(x, sig) {
                 FoBMain.SessionExpired();
             return json;
         } catch (error) {
+            FoBCore.error(error);
             return JSON.parse("[]");
         }
-    }
-    else
+    } else {
+        FoBCore.error(res.status);
         return JSON.parse("[]");
+    }
 }
 
 async function fetchMetaData(url) {
@@ -349,11 +351,13 @@ async function fetchMetaData(url) {
                 throw "Error";
             return json;
         } catch (error) {
+            FoBCore.error(error);
             return JSON.parse("[]");
         }
-    }
-    else
+    } else {
+        FoBCore.error(res.status);
         return JSON.parse("[]");
+    }
 }
 
 async function fetchUpdate(){

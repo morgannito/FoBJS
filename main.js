@@ -159,7 +159,7 @@ function createWindow() {
         } else {
             FoBCore.debug(`Update checked - no update available`);
             let win = new BrowserWindow({
-                title: "FoB v" + app.getVersion() + " | by TH3C0D3R",
+                title: "FoB v" + app.getVersion() /*+ " | by TH3C0D3R"*/,
                 width: 910,
                 height: 947,
                 webPreferences: {
@@ -290,8 +290,8 @@ async function downloadForgeHX() {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
-    var indexStart = content.indexOf("kFa.BUILD_NUMBER=\"426e0bf0848\"");
-    var indexEnd = content.indexOf("gc.TILE_SPEC_NAME_CONTEMPORARY_BUSHES=\"contemporaryBushes\"");
+    var indexStart = content.indexOf(".BUILD_NUMBER=\"");
+    var indexEnd = content.indexOf(".TILE_SPEC_NAME_CONTEMPORARY_BUSHES=\"");
     content = content.substr(indexStart,(indexEnd-indexStart));
     content = content.replace("\n","").replace("\r","");
     let re = /.VERSION_SECRET="([a-zA-Z0-9_\-\+\/==]+)";/ig;
@@ -667,6 +667,7 @@ function PrepareInfoMenu() {
                 ProductionTimer[key]["finished"] = true;
                 ProductionTimer[key]["string_state"] = i18n("Production.Finished");
                 ProductionTimer[key]["nextStateAt"] = 0;
+                ProductionTimer[key]["nextStateIn"] = 0;
                 ProductionTimer[key]["key"] = key;
                 ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
             }
@@ -692,6 +693,7 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["string_state"] = i18n("Production.Idle");
             ProductionTimer[key]["finished"] = false;
             ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["nextStateIn"] = 0;
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
             s = "idle (default)"
@@ -706,6 +708,7 @@ function PrepareInfoMenu() {
             ProductionTimer[key]["string_state"] = i18n("Production.Finished");
             ProductionTimer[key]["finished"] = true;
             ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["nextStateIn"] = 0;
             ProductionTimer[key]["key"] = key;
             ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
         };
@@ -803,7 +806,7 @@ function PrepareInfoMenu() {
         }
         Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
-        console.log(r);
+        FoBCore.error(r.code + " - " + r.errno)
     });
 }
 function cbwDomReady() {
