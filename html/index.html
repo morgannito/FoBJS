@@ -199,14 +199,14 @@
                             return;
                         }
                         timeNow = moment.unix(Math.round(new Date().getTime() / 1000));
-                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end))) {
                             clearInterval(ProdState[key]["TimerID"]);
                             updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
                             if (!Block)
                                 ipcRenderer.send('CollectAndStart', [false, BlockFinish, BlockProduction, Block]);
                             Block = true;
                             return;
-                        } else if (!ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                        } else if (!ProdState[key]["ProdBotRunning"] && (start.isAfter(end))) {
                             updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
                             clearInterval(ProdState[key]["TimerID"]);
                         }
@@ -240,7 +240,8 @@
         if (timeDiffList.length > 0) {
             timeDiff = Math.min.apply(Math, timeDiffList);
         }
-    });
+        timeDiff =[];
+ });
 </script>
 
 </html>

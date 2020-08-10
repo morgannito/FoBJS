@@ -107,7 +107,9 @@ function HasProdFinished() {
     }
     return ProdFinished.length;
 }
-function CollectManuel(callGetData = true) {
+
+var requestAmountList =[]
+function CollectManuel(origin,callGetData = true) {
     Main.GetData(false,()=>{
         var promise = new Promise((res, rej) => {
             var promArr = [];
@@ -136,23 +138,25 @@ function CollectManuel(callGetData = true) {
                     promArr.push(FoBuilder.DoCollectProduction([otherUnit["id"]]));
                 }
             }
+            requestAmountList.push(promArr.length)
+            FoBCore.debug(`Requests to be made: ${requestAmountList}`)
             Promise.all(promArr).then(values => {
                 if (callGetData) {
                     Main.GetData(true, () => {
+                        FoBCore.debug("CollectManuel callGetData res(true)")
                         res(true);
                     }, true);
-                } else
+                } else {
+                    FoBCore.debug("CollectManuel res(true)")
                     res(true);
+                }
             }, reason => {
+                FoBCore.debug("CollectManuel rej(reason)")
                 rej(reason);
             });
             if (promArr.length == 0) {
-                if (callGetData) {
-                    Main.GetData(true, () => {
-                        res(true);
-                    }, true);
-                } else
-                    res(true);
+                FoBCore.debug("CollectManuel promArr.length == 0")
+                res(false);
             }
         });
         return promise;

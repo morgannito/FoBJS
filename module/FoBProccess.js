@@ -542,7 +542,7 @@ function GetBoosts() {
     }
     exports.AllBoosts = AllBoosts;
 }
-function GetDistinctProductList() {
+function GetDistinctProductList(Grouped) {
     DResidentialDict = [];
     DProductionDict = [];
     DGoodProductionDict = [];
@@ -554,7 +554,7 @@ function GetDistinctProductList() {
         for (let j = 0; j < DProductionDict.length; j++) {
             const dProd = DProductionDict[j];
             if (prod["state"]["__class__"] === "ProducingState") {
-                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"] && Grouped) {
                     var range = { min: dProd.prod.state["next_state_transition_at"] - 5, max: dProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < prod.state["next_state_transition_at"] < range.max) {
                         if (dProd.prod.state["next_state_transition_at"] < prod.state["next_state_transition_at"])
@@ -565,7 +565,7 @@ function GetDistinctProductList() {
                 }
                 if (add) add = true;
             } else {
-                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"] && Grouped) {
                     dProd.count += 1;
                     add = false;
                 }
@@ -576,6 +576,11 @@ function GetDistinctProductList() {
             DProductionDict.push({ count: 1, prod: prod });
         add = true;
     }
+    DProductionDict.sort(function(a, b){
+        if(a.prod["cityentity_id"] < b.prod["cityentity_id"]) { return -1; }
+        if(a.prod["cityentity_id"] > b.prod["cityentity_id"]) { return 1; }
+        return 0;
+    })
     add = true;
     for (let i = 0; i < AllOtherDict.length; i++) {
         const prod = AllOtherDict[i];
@@ -612,7 +617,7 @@ function GetDistinctProductList() {
         for (let j = 0; j < DGoodProductionDict.length; j++) {
             const dGoodProd = DGoodProductionDict[j];
             if (goodProd["state"]["__class__"] === "ProducingState") {
-                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"] && Grouped) {
                     var range = { min: dGoodProd.prod.state["next_state_transition_at"] - 5, max: dGoodProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < goodProd.state["next_state_transition_at"] < range.max) {
                         if (dGoodProd.prod.state["next_state_transition_at"] < goodProd.state["next_state_transition_at"])
@@ -623,7 +628,7 @@ function GetDistinctProductList() {
                 }
                 if (add) add = true;
             } else {
-                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]&& Grouped) {
                     dGoodProd.count += 1;
                     add = false;
                 }
@@ -634,6 +639,11 @@ function GetDistinctProductList() {
             DGoodProductionDict.push({ count: 1, prod: goodProd });
         add = true;
     }
+    DGoodProductionDict.sort(function(a, b){
+        if(a.prod["cityentity_id"] < b.prod["cityentity_id"]) { return -1; }
+        if(a.prod["cityentity_id"] > b.prod["cityentity_id"]) { return 1; }
+        return 0;
+    })
     add = true;
     for (let i = 0; i < ResidentialDict.length; i++) {
         const res = ResidentialDict[i];

@@ -294,9 +294,19 @@ async function promptUpdate(newVersion) {
             shell.openExternal("https://github.com/Th3C0D3R/FoBJS_Release/releases");
     }) */
 }
+var options = {month :'long',day : 'numeric'};
+const fs = require('fs');
+var stream = fs.createWriteStream(`DebugLog.txt`, {flags:'w'});
 function debug(msg) {
+    stream.write(`${new Date().toLocaleString()} \n ${msg} \n ${getStackTrace()}` + "\n\n");
     console.log(`[DEBUG] ${new Date().toLocaleString()} ${msg}`);
 }
+
+var getStackTrace = function() {
+    var obj = {};
+    Error.captureStackTrace(obj, getStackTrace);
+    return obj.stack;
+  };
 function error(msg) {
     console.log(`[ERROR] ${new Date().toLocaleString()} ${msg}`);
 }
