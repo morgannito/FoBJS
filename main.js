@@ -160,7 +160,7 @@ function createWindow() {
         } else {
             FoBCore.debug(`Update checked - no update available`);
             let win = new BrowserWindow({
-                title: "FoB v" + app.getVersion() /*+ " | by TH3C0D3R"*/,
+                title: "FoB v" + app.getVersion() + " | by TH3C0D3R",
                 width: 910,
                 height: 947,
                 webPreferences: {
