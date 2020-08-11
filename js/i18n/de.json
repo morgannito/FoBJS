@@ -21,6 +21,7 @@
         "Menu.Quit": "Beenden",
         "Menu.Functions.Aid": "Helfen",
         "Menu.Functions.Tavern": "Taverne",
+        "Menu.Functions.TavernAndAid": "Alle Tavernen besuchen und Allen helfen",
         "Menu.Functions.Bots": "Bots",
         "Menu.Functions.UpdateList": "Aktualisieren",
         "Menu.Functions.AidFriends": "Freunden helfen",
