@@ -17,7 +17,7 @@ Its not perfect (most likely because I suck in HTML, CSS and Javascript) but the
 
 ## How to use (precompiled)
 
-1. download the Bot
+1. download the Bot ([here](https://github.com/Th3C0D3R/FoBJS/raw/master/release-builds))
 There will be a linux (fobjs_linux.rar) and windows (fobjs_windows.rar) version
 2. extract the containing folder to a destination of your choice
 3. - On Windows: run the fobjs.exe

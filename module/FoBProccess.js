@@ -208,7 +208,7 @@ function GetResourceDefinitions(data) {
             let res = resData["responseData"];
             for (let i = 0; i < res.length; i++) {
                 const Definition = res[i];
-                if (Definition["id"] === "premium" || Definition["id"] === "money" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver" || Definition["id"] === "medals") {
+                if (Definition["id"] === "premium" || Definition["id"] === "money"|| Definition["id"] === "strategy_points" || Definition["id"] === "supplies" || Definition["id"] === "tavern_silver" || Definition["id"] === "medals") {
                     ResourceDefinitions.push(Definition)
                 }
                 else if (Definition["abilities"] !== undefined) {
@@ -487,6 +487,7 @@ function GetOwnBuildings() {
     ResidentialDict = [];
     ProductionDict = [];
     GoodProdDict = [];
+    AllOtherDict = [];
     var city = BuildingsDict;
     var meta = AllBuildings;
     for (let ci = 0; ci < city.length; ci++) {
@@ -504,6 +505,9 @@ function GetOwnBuildings() {
                         ResidentialDict.push(cb);
                     else if (cb.type === 'goods' && cb['connected'])
                         GoodProdDict.push(cb);
+                    else if (cb.type !== 'culture' && cb.type !== 'decoration' && cb.type !== 'street' && cb.type !== 'tower'&& cb.type !== 'military'&& cb['connected']) {
+                        AllOtherDict.push(cb);
+                    }
                 }
             }
         }
@@ -514,6 +518,7 @@ function GetOwnBuildings() {
     exports.GoodProdDict = GoodProdDict;
     exports.ResidentialDict = ResidentialDict;
     exports.BuildingsDict = BuildingsDict;
+    exports.AllOtherDict = AllOtherDict;
 }
 function GetBoosts() {
     var d = BuildingsDict;
@@ -537,10 +542,11 @@ function GetBoosts() {
     }
     exports.AllBoosts = AllBoosts;
 }
-function GetDistinctProductList() {
+function GetDistinctProductList(Grouped) {
     DResidentialDict = [];
     DProductionDict = [];
     DGoodProductionDict = [];
+    DAllOtherDict = [];
     var add = true;
     for (let i = 0; i < ProductionDict.length; i++) {
         const prod = ProductionDict[i];
@@ -548,7 +554,7 @@ function GetDistinctProductList() {
         for (let j = 0; j < DProductionDict.length; j++) {
             const dProd = DProductionDict[j];
             if (prod["state"]["__class__"] === "ProducingState") {
-                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"] && Grouped) {
                     var range = { min: dProd.prod.state["next_state_transition_at"] - 5, max: dProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < prod.state["next_state_transition_at"] < range.max) {
                         if (dProd.prod.state["next_state_transition_at"] < prod.state["next_state_transition_at"])
@@ -559,7 +565,7 @@ function GetDistinctProductList() {
                 }
                 if (add) add = true;
             } else {
-                if (prod["cityentity_id"] === dProd.prod["cityentity_id"]) {
+                if (prod["cityentity_id"] === dProd.prod["cityentity_id"] && Grouped) {
                     dProd.count += 1;
                     add = false;
                 }
@@ -570,6 +576,40 @@ function GetDistinctProductList() {
             DProductionDict.push({ count: 1, prod: prod });
         add = true;
     }
+    DProductionDict.sort(function(a, b){
+        if(a.prod["cityentity_id"] < b.prod["cityentity_id"]) { return -1; }
+        if(a.prod["cityentity_id"] > b.prod["cityentity_id"]) { return 1; }
+        return 0;
+    })
+    add = true;
+    for (let i = 0; i < AllOtherDict.length; i++) {
+        const prod = AllOtherDict[i];
+        if (DAllOtherDict.length === 0) { DAllOtherDict.push({ count: 1, prod: prod }); continue; }
+        for (let j = 0; j < DAllOtherDict.length; j++) {
+            const dAllOther = DAllOtherDict[j];
+            if (prod["state"]["__class__"] === "ProducingState") {
+                if (prod["cityentity_id"] === dAllOther.prod["cityentity_id"]) {
+                    var range = { min: dAllOther.prod.state["next_state_transition_at"] - 5, max: dAllOther.prod.state["next_state_transition_at"] + 5 };
+                    if (range.min < prod.state["next_state_transition_at"] < range.max) {
+                        if (dAllOther.prod.state["next_state_transition_at"] < prod.state["next_state_transition_at"])
+                            dAllOther.prod.state["next_state_transition_at"] = prod.state["next_state_transition_at"];
+                        dAllOther.count += 1;
+                        add = false;
+                    }
+                }
+                if (add) add = true;
+            } else {
+                if (prod["cityentity_id"] === dAllOther.prod["cityentity_id"]) {
+                    dAllOther.count += 1;
+                    add = false;
+                }
+                if (add) add = true;
+            }
+        }
+        if (add)
+            DAllOtherDict.push({ count: 1, prod: prod });
+        add = true;
+    }
     add = true;
     for (let i = 0; i < GoodProdDict.length; i++) {
         const goodProd = GoodProdDict[i];
@@ -577,7 +617,7 @@ function GetDistinctProductList() {
         for (let j = 0; j < DGoodProductionDict.length; j++) {
             const dGoodProd = DGoodProductionDict[j];
             if (goodProd["state"]["__class__"] === "ProducingState") {
-                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"] && Grouped) {
                     var range = { min: dGoodProd.prod.state["next_state_transition_at"] - 5, max: dGoodProd.prod.state["next_state_transition_at"] + 5 };
                     if (range.min < goodProd.state["next_state_transition_at"] < range.max) {
                         if (dGoodProd.prod.state["next_state_transition_at"] < goodProd.state["next_state_transition_at"])
@@ -588,7 +628,7 @@ function GetDistinctProductList() {
                 }
                 if (add) add = true;
             } else {
-                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]) {
+                if (goodProd["cityentity_id"] === dGoodProd.prod["cityentity_id"]&& Grouped) {
                     dGoodProd.count += 1;
                     add = false;
                 }
@@ -599,8 +639,13 @@ function GetDistinctProductList() {
             DGoodProductionDict.push({ count: 1, prod: goodProd });
         add = true;
     }
+    DGoodProductionDict.sort(function(a, b){
+        if(a.prod["cityentity_id"] < b.prod["cityentity_id"]) { return -1; }
+        if(a.prod["cityentity_id"] > b.prod["cityentity_id"]) { return 1; }
+        return 0;
+    })
     add = true;
-    /* for (let i = 0; i < ResidentialDict.length; i++) {
+    for (let i = 0; i < ResidentialDict.length; i++) {
         const res = ResidentialDict[i];
         if (DResidentialDict.length === 0) { DResidentialDict.push({ count: 1, res: res }); continue; }
         for (let j = 0; j < DResidentialDict.length; j++) {
@@ -628,9 +673,10 @@ function GetDistinctProductList() {
             DResidentialDict.push({ count: 1, res: res });
         add = true;
     }
-    exports.DResidentialDict = DResidentialDict; */
+    exports.DResidentialDict = DResidentialDict;
     exports.DGoodProductionDict = DGoodProductionDict;
     exports.DProductionDict = DProductionDict;
+    exports.DAllOtherDict = DAllOtherDict;
 }
 function SetGoodsDict(dict) {
     GoodsDict = dict;

@@ -42,6 +42,7 @@ const init = () => {
             fetch('https://' + world + '.forgeofempires.com/game/index?')
                 .then(res => res.text())
                 .then(body => {
+                    
                     let re = /https:\/\/\w{1,2}\d{1,2}\.forgeofempires\.com\/game\/json\?h=(.+)',/ig;
                     let rex = /https:\/\/foe\w{1,4}\.innogamescdn\.com\/\/cache\/ForgeHX(.+.js)'/ig;
                     re = new RegExp(re);
@@ -57,12 +58,14 @@ const init = () => {
                         }
                     }
                     if (null !== result) {
-                        if (result.length === 2) {
-                            UID = result[1];
-                            myEmitter.emit("UID_Loaded", UID);
-                        } else {
-                            console.log("ERROR");
-                        }
+                        setTimeout(()=>{
+                            if (result.length === 2) {
+                                UID = result[1];
+                                myEmitter.emit("UID_Loaded", UID);
+                            } else {
+                                console.log("ERROR");
+                            }
+                        },1000);
                     }
                 })
         }

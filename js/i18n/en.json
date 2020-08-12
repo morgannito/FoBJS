@@ -48,6 +48,12 @@
         "Menu.Settings.ClearUserData": "Delete UserData (!LOGOUT!)",
         "Menu.Settings.ClearAllData": "Delete every Data (!LOGOUT!)",
         "Menu.Settings.SwitchLanguage": "Change Language",
+        "Menu.Settings.DarkMode": "Dark Mode",
+        "Menu.Settings.LightMode": "Light Mode",
+        "Menu.Settings.SelectTheme": "Select theme",
+        "Menu.Settings.DisplayOptions": "Select display option",
+        "Menu.Settings.DisplayOptionsDetailed": "Detailed",
+        "Menu.Settings.DisplayOptionsGrouped": "Grouped",
         "Menu.DevTools": "Debugging",
         "Menu.TavernBotInterval": "Set Tavernbot-Checkinterval",
         "Menu.TavernBotIntervalValue": "Interval value in minutes: ",
@@ -108,6 +114,8 @@
         "Overlay.MotivatingClan": "Motivating Members...",
         "Overlay.MotivatingFriends": "Motivating Friends...",
         "Overlay.MotivatingNeighbor": "Motivating Neighbors...",
-        "Overlay.VisitingTavern": "Visiting Tavern..."
+        "Overlay.VisitingTavern": "Visiting Tavern...",
+        "Overlay.ChangingTheme": "Changing Style...",
+        "Overlay.ChangingDisplayOption": "Changing Display Option..."
 	}
 }

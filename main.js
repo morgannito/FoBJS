@@ -109,6 +109,8 @@ PlayableWorld = store.get("PlayableWorld");
 WorldServer = store.get("WorldServer");
 Lng = store.get("Language");
 Settings = store.get("Settings");
+DarkMode = store.get("DarkMode");
+DetailedDisplay = store.get("DetailedDisplay")
 if (Lng === undefined) {
     Lng = "en";
     store.set('Language', Lng);
@@ -229,7 +231,7 @@ function createWindow() {
                 Gwin, win = null
             });
 
-            fs.readFile(path.join(asarPath, 'css', 'window.css'), "utf-8", function (error, data) {
+            fs.readFile(path.join(asarPath, 'css', DarkMode? 'windowdark.css' : 'window.css'), "utf-8", function (error, data) {
                 if (!error) {
                     var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
                     windowCSS = formatedData;
@@ -285,7 +287,7 @@ async function downloadForgeHX() {
     }
 
     let content = fs.readFileSync(filePath, 'utf8');
-    if (content.length === 0) {
+    if (content.length === 0 || content.trim().length === 0) {
         FoBCore.debug(`${UserIDs.ForgeHX} invalid, has no content`);
         return;
     }
@@ -446,7 +448,7 @@ function GetData(clear = true, callback = null, dorefresh = true) {
                                         if (jsonbody !== null) {
                                             processer.GetAllBuildings(jsonbody);
                                             processer.GetOwnBuildings();
-                                            processer.GetDistinctProductList();
+                                            processer.GetDistinctProductList(!store.get("DetailedDisplay"));
                                         }
                                         var StartUpBody = body;
                                         builder.DoGetOwnTavern()
@@ -477,6 +479,9 @@ function GetData(clear = true, callback = null, dorefresh = true) {
                 });
         });
 }
+var tableProductionList = undefined;
+var buildingContent = undefined;
+var lastSend = new Date()
 function PrepareInfoMenu() {
     if (UserIDs.CID === null && UserIDs.UID === null && UserIDs.SID === null) {
         Gwin.loadFile(path.join(asarPath, "html", "login.html"));
@@ -501,12 +506,12 @@ function PrepareInfoMenu() {
     filePath = path.join(asarPath, 'html', 'tableContent', 'tableBots.html');
     var tableBots = fs.readFileSync(filePath, 'utf8');
     filePath = path.join(asarPath, 'html', 'tableContent', 'tableProductionList.html');
-    var tableProductionList = fs.readFileSync(filePath, 'utf8');
+    tableProductionList = fs.readFileSync(filePath, 'utf8');
     filePath = path.join(asarPath, 'html', 'tableContent', 'tableManually.html');
     var tableManually = fs.readFileSync(filePath, 'utf8');
 
     filePath = path.join(asarPath, 'html', 'insertContent', 'building.html');
-    var buildingContent = fs.readFileSync(filePath, 'utf8');
+    buildingContent = fs.readFileSync(filePath, 'utf8');
     filePath = path.join(asarPath, 'html', 'insertContent', 'goods.html');
     var goodsContent = fs.readFileSync(filePath, 'utf8');
     filePath = path.join(asarPath, 'html', 'insertContent', 'inactiveFriends.html');
@@ -516,15 +521,16 @@ function PrepareInfoMenu() {
     filePath = path.join(asarPath, 'html', 'insertContent', 'incidents.html');
     var incidentsContent = fs.readFileSync(filePath, 'utf8');
 
-    var dProdList = processer.DProductionDict/* processer.ProductionDict */;
-    var dGoodProdList = processer.DGoodProductionDict/* processer.GoodProdDict */;
-    //var dResidList = processer.ResidentialDict;
+    var dProdList = processer.DProductionDict /*processer.ProductionDict*/;
+    var dGoodProdList = processer.DGoodProductionDict /*processer.GoodProdDict*/;
+    var dOtherList = processer.DAllOtherDict /*processer.AllOtherDict*/;
+    var dResidList = processer.DResidentialDict /*processer.ResidentialDict*/;
 
     NeighborMoppelDict = NeighborDict.filter((f) => f.canMotivate);
     FriendsMoppelDict = FriendsDict.filter((f) => f.canMotivate);
     ClanMemberMoppelDict = ClanMemberDict.filter((f) => f.canMotivate);
 
-    var dList = dProdList.concat(dGoodProdList/* , dResidList */);
+    // var dList = dProdList.concat(dGoodProdList /*,dOtherList , dResidList */);
 
     tableOverview = tableOverview
         .replace("###CurWorld###", Worlds[UserIDs.WID] !== undefined ? Worlds[UserIDs.WID].name : UserIDs.WID)
@@ -532,8 +538,10 @@ function PrepareInfoMenu() {
         .replace("###PlayerName###", `${UserData.UserName}`)
         .replace("###SupplyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "supplies") }).name}`)
         .replace("###MoneyName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "money") }).name}`)
+        .replace("###StrategyPointsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "strategy_points") }).name}`)
         .replace("###Supplies###", `${Math.floor(processer.ResourceDict.supplies).toLocaleString()}`)
         .replace("###Money###", `${Math.floor(processer.ResourceDict.money).toLocaleString()}`)
+        .replace("###StrategyPoints###", `${Math.floor(processer.ResourceDict.strategy_points).toLocaleString()}`)
         .replace("###DiaName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "premium") }).name}`)
         .replace("###Dias###", `${Math.floor(processer.ResourceDict.premium).toLocaleString()}`)
         .replace("###MedsName###", `${processer.ResourceDefinitions.find((v, i, r) => { return (v.id === "medals") }).name}`)
@@ -651,70 +659,13 @@ function PrepareInfoMenu() {
     else if (BotsRunning.IncidentBot == -1) tableBots = tableBots.replace("###IncidentBotColor###", "#0000ff").replace("###IncidentBotButtonName###", i18n("Bots.Nothing"));
 
 
-    for (let _key in dList) {
-        if (!dList.hasOwnProperty(_key)) return;
-        var localContent = buildingContent;
-        var prod = (dList[_key]["prod"] !== undefined) ? dList[_key].prod : ((dList[_key]["res"] !== undefined) ? dList[_key].res : null);
-        /* var prod = dList[_key]; */
-        if (prod == null) continue;
-        var count = dList[_key].count;
-        var prodName = s = production = i18n("Production.Idle");
-        var key = prod["id"];
-        if (prod["state"]["__class__"] === "ProducingState") {
-            var end = moment.unix(prod["state"]["next_state_transition_at"]);
-            var start = moment.unix(Math.round(new Date().getTime() / 1000));
-            if ((start.isAfter(end) || start.isSame(end)) && ProductionTimer[key] !== undefined) {
-                ProductionTimer[key]["finished"] = true;
-                ProductionTimer[key]["string_state"] = i18n("Production.Finished");
-                ProductionTimer[key]["nextStateAt"] = 0;
-                ProductionTimer[key]["key"] = key;
-                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-            }
-            else {
-                if (ProductionTimer[key] === undefined) {
-                    ProductionTimer[key] = {};
-                }
-                ProductionTimer[key]["string_state"] = i18n("Production.Producing");
-                ProductionTimer[key]["finished"] = false;
-                ProductionTimer[key]["nextStateAt"] = prod["state"]["next_state_transition_at"];
-                ProductionTimer[key]["key"] = key;
-                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-                s = "producing (default)"
-                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-                prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-            }
-        }
-        else if (prod["state"]["__class__"] === "IdleState") {
-            if (ProductionTimer[key] === undefined) {
-                ProductionTimer[key] = {};
-            }
-            ProductionTimer[key]["string_state"] = i18n("Production.Idle");
-            ProductionTimer[key]["finished"] = false;
-            ProductionTimer[key]["nextStateAt"] = 0;
-            ProductionTimer[key]["key"] = key;
-            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-            s = "idle (default)"
-        }
-        else if (prod["state"]["__class__"] === "ProductionFinishedState") {
-            s = "finished (default)";
-            production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
-            prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
-            if (ProductionTimer[key] === undefined) {
-                ProductionTimer[key] = {};
-            }
-            ProductionTimer[key]["string_state"] = i18n("Production.Finished");
-            ProductionTimer[key]["finished"] = true;
-            ProductionTimer[key]["nextStateAt"] = 0;
-            ProductionTimer[key]["key"] = key;
-            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
-        };
-        localContent = localContent
-            .replace("###BuildName###", count + "x " + prod["name"])
-            .replace("###ProdName###", prodName)
-            .replace("###ProdState###", s)
-            .replace("###id###", key)
-        tableProductionList = tableProductionList.replace("###Building###", localContent);
-    }
+    displayList(dProdList);
+    addDivision()
+    displayList(dGoodProdList);
+    // addDivision()
+    // displayList(dResidList);
+    // addDivision()
+    // displayList(dOtherList);
     tableProductionList = tableProductionList
         .replace("###Building###", "")
         .replace("###Production.Heading###", i18n("Production.Heading"))
@@ -796,14 +747,98 @@ function PrepareInfoMenu() {
         if (RunningSince === undefined || RunningSince === null) {
             RunningSince = moment.unix(Math.round(new Date().getTime() / 1000));
         } else {
-            FoBCore.debug(`${Block}, ${BlockFinish}, ${BlockProduction}`);
-            Block = false;
-            Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction, Block]);
+            var now = new Date()
+            if (now > lastSend) {
+                FoBCore.debug(`sendProductionState ${Block}, ${BlockFinish}, ${BlockProduction}`);
+                Block = false;
+                Gwin.webContents.send('sendProductionState', [ProductionTimer, BlockFinish, BlockProduction, Block]);
+                now.setSeconds(now.getSeconds() + 1)
+                lastSend = now
+            }
         }
         Gwin.webContents.send('sendRunningTime', RunningSince.valueOf());
     }).catch(r => {
-        console.log(r);
+        FoBCore.error(r.code + " - " + r.errno)
+        dialog.showMessageBox(null,{message : `${r.code} - ${r.errno} loadURL catch`})
     });
+}
+function addDivision(){
+    tableProductionList = tableProductionList
+        .replace("###Building###", "<tr><td style=\"width: auto; text-align: center;\" colspan=\"3\"><hr /></td></tr>###Building###")
+}
+function displayList(dList){
+    for (let _key in dList) {
+        if (!dList.hasOwnProperty(_key)) return;
+        var localContent = buildingContent;
+        var prod = (dList[_key]["prod"] !== undefined) ? dList[_key].prod : ((dList[_key]["res"] !== undefined) ? dList[_key].res : null);
+        /* var prod = dList[_key]; */
+        if (prod == null) continue;
+        var count = dList[_key].count;
+        var prodName = s = production = i18n("Production.Idle");
+        var key = prod["id"];
+        if (prod["state"]["__class__"] === "ProducingState") {
+            var end = moment.unix(prod["state"]["next_state_transition_at"]);
+            var start = moment.unix(Math.round(new Date().getTime() / 1000));
+            if ((start.isAfter(end) || start.isSame(end)) && ProductionTimer[key] !== undefined) {
+                ProductionTimer[key]["finished"] = true;
+                ProductionTimer[key]["string_state"] = i18n("Production.Finished");
+                ProductionTimer[key]["nextStateAt"] = 0;
+                ProductionTimer[key]["nextStateIn"] = 0;
+                ProductionTimer[key]["key"] = key;
+                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+            }
+            else {
+                if (ProductionTimer[key] === undefined) {
+                    ProductionTimer[key] = {};
+                }
+                ProductionTimer[key]["string_state"] = i18n("Production.Producing");
+                ProductionTimer[key]["finished"] = false;
+                ProductionTimer[key]["nextStateAt"] = prod["state"]["next_state_transition_at"];
+                ProductionTimer[key]["nextStateIn"] = prod["state"]["next_state_transition_in"];
+                ProductionTimer[key]["key"] = key;
+                ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+                s = "producing (default)"
+                production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+                if (DetailedDisplay) {
+                    prodName = prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"];
+                }else{
+                    prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+                }
+            }
+        }
+        else if (prod["state"]["__class__"] === "IdleState") {
+            if (ProductionTimer[key] === undefined) {
+                ProductionTimer[key] = {};
+            }
+            ProductionTimer[key]["string_state"] = i18n("Production.Idle");
+            ProductionTimer[key]["finished"] = false;
+            ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["nextStateIn"] = 0;
+            ProductionTimer[key]["key"] = key;
+            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+            s = "idle (default)"
+        }
+        else if (prod["state"]["__class__"] === "ProductionFinishedState") {
+            s = "finished (default)";
+            production = Object.keys(prod["state"]["current_product"]["product"]["resources"])[0];
+            prodName = count + "x " + prod["state"]["current_product"]["product"]["resources"][production] + " " + processer.ResourceDefinitions.find((v) => { return (v["id"] === production); })["name"] + ` (${count * prod["state"]["current_product"]["product"]["resources"][production]})`;
+            if (ProductionTimer[key] === undefined) {
+                ProductionTimer[key] = {};
+            }
+            ProductionTimer[key]["string_state"] = i18n("Production.Finished");
+            ProductionTimer[key]["finished"] = true;
+            ProductionTimer[key]["nextStateAt"] = 0;
+            ProductionTimer[key]["nextStateIn"] = 0;
+            ProductionTimer[key]["key"] = key;
+            ProductionTimer[key]["ProdBotRunning"] = BotsRunning.ProductionBot;
+        };
+        localContent = localContent
+            .replace("###BuildName###", DetailedDisplay ? prod["name"]:count + "x " + prod["name"])
+            .replace("###ProdName###", prodName)
+            .replace("###ProdState###", s)
+            .replace("###id###", key)
+        tableProductionList = tableProductionList.replace("###Building###", localContent);
+    }
 }
 function cbwDomReady() {
     let filePath = path.join(asarPath, 'js', 'preloadLogin.js');
@@ -1162,6 +1197,75 @@ function addSettings(menu, worlds = null, prodOptions = null, goodProdOptions = 
     }
     worldItem.push({ label: i18n("Menu.Settings.SwitchLanguage"), id: "ChangeLanguage", submenu: lng });
 
+    var themes = []
+    themes.push({
+        label : `${i18n("Menu.Settings.LightMode")} ${DarkMode? "" : "(" +i18n("Menu.Settings.Current") + ")"}`,
+        id: "LightTheme",
+        click: () =>{
+            Gwin.webContents.send('toggleOverlay', [true, i18n("Overlay.ChangingTheme")]);
+            store.set("DarkMode", false);
+            DarkMode = store.get("DarkMode")
+            fs.readFile(path.join(asarPath, 'css', DarkMode? 'windowdark.css' : 'window.css'), "utf-8", function (error, data) {
+                if (!error) {
+                    var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
+                    windowCSS = formatedData;
+                }
+            });
+            BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+            GetData();
+        }
+    })
+    themes.push({
+        label : `${i18n("Menu.Settings.DarkMode")} ${DarkMode? "(" +i18n("Menu.Settings.Current") + ")": ""}`,
+        id: "DarkTheme",
+        click: () =>{
+            Gwin.webContents.send('toggleOverlay', [true, i18n("Overlay.ChangingTheme")]);
+            store.set("DarkMode", true);
+            DarkMode = store.get("DarkMode")
+            fs.readFile(path.join(asarPath, 'css', DarkMode? 'windowdark.css' : 'window.css'), "utf-8", function (error, data) {
+                if (!error) {
+                    var formatedData = data.replace(/\s{2,10}/g, ' ').trim()
+                    windowCSS = formatedData;
+                }
+            });
+            BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+            GetData();
+        }
+    })
+    worldItem.push({
+        label: i18n("Menu.Settings.SelectTheme"),
+        id: "SelectTheme",
+        submenu : themes
+    });
+    var displayOptions = [];
+    displayOptions.push({
+        label : `${i18n("Menu.Settings.DisplayOptionsDetailed")} ${DetailedDisplay? "(" +i18n("Menu.Settings.Current") + ")" :""}`,
+        id : "DisplayModeDetailed",
+        click: () => {
+            Gwin.webContents.send('toggleOverlay', [true, i18n("Overlay.ChangingDisplayOption")]);
+            store.set("DetailedDisplay", true);
+            DetailedDisplay = store.get("DetailedDisplay");
+            BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+            GetData();
+        } 
+    })
+    displayOptions.push({
+        label : `${i18n("Menu.Settings.DisplayOptionsGrouped")} ${DetailedDisplay? "" : "(" +i18n("Menu.Settings.Current") + ")"}`,
+        id : "DisplayModeGrouped",
+        click: () => {
+            Gwin.webContents.send('toggleOverlay', [true, i18n("Overlay.ChangingDisplayOption")]);
+            store.set("DetailedDisplay", false);
+            DetailedDisplay = store.get("DetailedDisplay");
+            BuildMenu((UserIDs.UID === null), (UserIDs.UID !== null), (UserIDs.UID !== null), true, true, isDev);
+            GetData();
+        } 
+    })
+    
+    worldItem.push({ 
+        label: i18n("Menu.Settings.DisplayOptions"), 
+        id: "DisplayMode",
+        submenu : displayOptions
+    });
     mitem = new MenuItem({
         label: i18n("Menu.Settings"),
         id: "settings",

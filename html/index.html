@@ -32,6 +32,10 @@
     var BlockFinish = false;
     var BlockProduction = false;
 
+    var timeDiff = undefined;
+    var timeDiffList = [];
+    var timeNow = moment.unix(Math.round(new Date().getTime() / 1000));
+
     function openTab(xtab) {
         //debugger;
         if (document.getElementById(xtab) === undefined) return;
@@ -184,15 +188,25 @@
                     ProdState[key]["TimerID"] = setInterval(() => {
                         var end = moment.unix(ProdState[key]["nextStateAt"]);
                         var start = moment.unix(Math.round(new Date().getTime() / 1000));
+                        if (timeDiff !== undefined) {
+                            start = moment.unix(Math.round(new Date().getTime() / 1000) + timeDiff);
+                        }
                         var durRunning = moment.duration(end.diff(start));
-                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                        if (timeNow.isAfter(moment.unix(Math.round(new Date().getTime() / 1000)))) {
+                            if (!Block)
+                                ipcRenderer.send('CollectAndStart', [false, BlockFinish, BlockProduction, Block]);
+                            Block = true;
+                            return;
+                        }
+                        timeNow = moment.unix(Math.round(new Date().getTime() / 1000));
+                        if (ProdState[key]["ProdBotRunning"] && (start.isAfter(end))) {
                             clearInterval(ProdState[key]["TimerID"]);
                             updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
                             if (!Block)
                                 ipcRenderer.send('CollectAndStart', [false, BlockFinish, BlockProduction, Block]);
                             Block = true;
                             return;
-                        } else if (!ProdState[key]["ProdBotRunning"] && (start.isAfter(end) || start.isSame(end))) {
+                        } else if (!ProdState[key]["ProdBotRunning"] && (start.isAfter(end))) {
                             updateElement("BuidlingStatus" + ProdState[key]["key"], finishedText);
                             clearInterval(ProdState[key]["TimerID"]);
                         }
@@ -202,6 +216,9 @@
                         }
 
                     }, 999);
+                    if (timeDiff == undefined && ProdState[key]["nextStateIn"] > 0) {
+                        timeDiffList.push(ProdState[key]["nextStateAt"] - ProdState[key]["nextStateIn"] - Math.round(new Date().getTime() / 1000));
+                    }
                 } else if (Production["finished"]) {
                     if (ProdState[key]["ProdBotRunning"]) {
                         if (!Block)
@@ -220,7 +237,11 @@
                 }
             }
         }
-    });
+        if (timeDiffList.length > 0) {
+            timeDiff = Math.min.apply(Math, timeDiffList);
+        }
+        timeDiff =[];
+ });
 </script>
 
 </html>
