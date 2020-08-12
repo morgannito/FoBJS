@@ -38,6 +38,8 @@ bower_components
 **/release-builds/fobjs-win32-x64
 **/release-builds/fobjs-linux-x64
 
+**/release-builds/*.*
+
 # Dependency directories
 **/node_modules/
 jspm_packages/
