@@ -313,7 +313,7 @@ function error(msg) {
 exports.Servers = Servers = {
     "en": "en.forgeofempires.com",
     "de": "de.forgeofempires.com",
-    "beta": "beta.forgeofempires.com",
+    "zz": "zz.forgeofempires.com",
     "us": "us.forgeofempires.com",
     "fr": "fr.forgeofempires.com",
     "nl": "nl.forgeofempires.com",
