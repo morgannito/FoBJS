@@ -1,7 +1,7 @@
 
 # Forge of Empires Bot [![Build Status](https://travis-ci.com/Th3C0D3R/FoBJS.svg?token=RwyETmryp2rK95JJsgYq&branch=master)](https://travis-ci.com/Th3C0D3R/FoBJS)
 
-#INACTIVE AND NO LONGER SUPPORTED
+# INACTIVE AND NO LONGER SUPPORTED
 
 # The new recoded Version of the Bot is live. got to [FoBCS](https://github.com/th3c0d3r/fobcs) and download the latest (v1.1.0) beta release.
 
