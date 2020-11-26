@@ -1,9 +1,15 @@
 
 # Forge of Empires Bot [![Build Status](https://travis-ci.com/Th3C0D3R/FoBJS.svg?token=RwyETmryp2rK95JJsgYq&branch=master)](https://travis-ci.com/Th3C0D3R/FoBJS)
 
-## New Version (v1.2.8) with dark mode, thanks to @danielfelipesartorio
+#INACTIVE AND NO LONGER SUPPORTED
 
-## Currently working on a C# and better Version of the Bot with more features but it takes time to recode everything and fix stuff
+# The new recoded Version of the Bot is live. got to [FoBCS](https://github.com/th3c0d3r/fobcs) and download the latest (v1.1.0) beta release.
+
+Keep in mind that its currently in a beta state and some festures could need some bug fixing. also features like Dark Mode or Update-Notification are not yet implemented, but listed in my todo.
+
+
+
+
 
 Since some time I worked on a Forge of Empire Bot to interact with the game while doing something other and not looking on production progress and motivate/polish others.
 
